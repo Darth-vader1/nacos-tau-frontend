@@ -659,10 +659,30 @@
 
             console.log('✅ Student profile created');
 
-            // Success
+            // Auto sign-in after registration
+            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+
+            if (loginError) {
+                console.error('❌ Auto-login failed:', loginError);
+                await Swal.fire({
+                    title: 'Registration Complete',
+                    text: `Welcome ${fullName}! Your account is active, but we could not automatically sign you in. Please log in manually.`,
+                    icon: 'success',
+                    confirmButtonColor: '#1b8c0c',
+                    confirmButtonText: 'Go to Login'
+                });
+                window.location.href = 'student-login.html';
+                return;
+            }
+
+            console.log('✅ Auto-login successful', loginData?.session);
+
             await Swal.fire({
                 title: 'Registration Successful! 🎉',
-                text: `Welcome ${fullName}! Your account is active and you're now being redirected to your dashboard.`,
+                text: `Welcome ${fullName}! You are now being redirected to your dashboard.`,
                 icon: 'success',
                 confirmButtonColor: '#1b8c0c',
                 confirmButtonText: 'Continue'
