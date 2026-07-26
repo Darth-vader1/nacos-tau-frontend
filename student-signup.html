@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Student Sign Up | NACOS - Thomas Adewumi University</title>
+  <meta name="description" content="Register for your NACOS student account to access academic resources, past questions, and career materials.">
+  <meta name="keywords" content="NACOS, TAU, student registration, computing students, Nigeria">
+
+  <!-- Favicons -->
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <style>
+    .toggle-password {
+      position: absolute;
+      right: 10px;
+      top: 70%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      z-index: 10;
+    }
+    
+    .password-container {
+      position: relative;
+    }
+    
+    .loginForm {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 30px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+    
+    .logo-underlay {
+      display: block;
+      margin: 0 auto 20px;
+      max-width: 80px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: block;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    
+    .form-control:focus {
+      outline: none;
+      border-color: #1b8c0c;
+      box-shadow: 0 0 5px rgba(27, 140, 12, 0.3);
+    }
+    
+    .form-control.error {
+      border-color: #dc3545;
+    }
+    
+    .form-control.success {
+      border-color: #28a745;
+    }
+    /* Ensure checkbox is visible and clickable */
+    .form-check-input[type="checkbox"] {
+      -webkit-appearance: checkbox !important;
+      -moz-appearance: checkbox !important;
+      appearance: checkbox !important;
+      width: 18px !important;
+      height: 18px !important;
+      margin-top: 0;
+      cursor: pointer !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    
+    .form-check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .error-message {
+      color: #dc3545;
+      font-size: 12px;
+      margin-top: 5px;
+      display: block;
+    }
+    
+    .checkbx {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    
+    .checkbx input {
+      margin: 0;
+    }
+    
+    .spinner-border {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      vertical-align: text-bottom;
+      border: 0.2em solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spinner-border 0.75s linear infinite;
+    }
+    
+    @keyframes spinner-border {
+      to { transform: rotate(360deg); }
+    }
+    
+    .password-strength {
+      margin-top: 5px;
+      font-size: 12px;
+    }
+    /* Hide preloader completely */
+#preloader {
+    display: none !important;
+}
+[data-aos] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+}
+    
+    .strength-weak { color: #dc3545; }
+    .strength-medium { color: #ffc107; }
+    .strength-strong { color: #28a745; }
+  </style>
+</head>
+
+<body class="starter-page-page">
+
+  <header id="header" class="header d-flex align-items-center fixed-top" style="justify-content: center;">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center" style="width: 100%;display: flex;justify-content: space-around;">
+      <a href="index.html" class="logo d-flex align-items-center me-auto">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
+        <h1 class="sitename"><span style="color: #1b8c0c;" id="nacos-text">Nigerian Association of Computing Students</span><br id="br"> <strong id="tau-text">Thomas Adewumi University</strong></h1>
+      </a>
+    </div>
+  </header>
+  
+  <main class="main">
+    
+    <div class="page-title" data-aos="fade">
+      <div class="container d-lg-flex justify-content-between align-items-center">
+        <h1 class="mb-2 mb-lg-0">Student Registration</h1>
+      </div>
+    </div>
+    
+    <section id="starter-section" class="starter-section section" style="padding: 20px; display: flex;justify-content: center; width: 100%;">
+      
+      <div class="loginForm">
+        <img src="assets/img/tau_logo-removebg-preview.png" class="logo-underlay" alt="TAU Logo">
+        <div class="container section-title">
+          <h2>Sign Up</h2>
+          <p>Enter details to register on the platform!</p>
+          <a href="student-login.html">Already registered? <span>Click here to sign in.</span></a>
+        </div>
+    
+        <div class="container"  style="margin: 0px; padding: 0px;">
+          <form id="signupForm">
+            <div class="form-group" style="display: flex;justify-content: space-between; gap: 15px;">
+              <div style="flex: 1;">
+                <label for="first_name">First Name:</label>
+                <input type="text" class="form-control" id="first_name" placeholder="Enter first name" required autocomplete="given-name">
+              </div>
+              <div style="flex: 1;">
+                <label for="last_name">Last Name:</label>
+                <input type="text" class="form-control" id="last_name" placeholder="Enter last name" required autocomplete="family-name">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="matric_no">Matric Number:</label>
+              <input type="text" class="form-control" id="matric_no" placeholder="e.g. 21/40SE001" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="department">Department:</label>
+              <select class="form-control" id="department" name="department" required>
+                <option value="">Select your department</option>
+                <option value="Software Engineering">Software Engineering</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Cyber Security">Cyber Security</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="email">School Email:</label>
+              <input type="email" class="form-control" id="email" placeholder="yourname@st.tau.edu.ng" required autocomplete="email">
+            </div>
+            
+            <div class="form-group">
+              <div class="password-container">
+                <label for="password">Password:</label>
+                <input type="password" class="form-control" id="password" placeholder="Enter password (min 6 characters)" required autocomplete="new-password">
+                <button id="toggle-password" class="toggle-password" type="button" aria-label="Toggle password visibility">
+                  <i class="bi bi-eye-slash"></i>
+                </button>
+              </div>
+              <div class="password-strength" id="passwordStrength"></div>
+            </div>
+            
+            <div class="form-group">
+              <div class="password-container">
+                <label for="confirm_password">Confirm Password:</label>
+                <input type="password" class="form-control" id="confirm_password" placeholder="Confirm password" required autocomplete="new-password">
+                <button id="toggle-confirm-password" class="toggle-password" type="button" aria-label="Toggle password visibility">
+                  <i class="bi bi-eye-slash"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div class="form-group mb-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="termsCheckbox" required>
+                <label class="form-check-label" for="termsCheckbox">
+                  I agree to the <a href="terms-conditions.html" target="_blank">Terms and Conditions</a>
+                </label>
+              </div>
+            </div>
+            
+            <div style="display: flex; justify-content: center; margin-top: 20px;">
+              <button type="submit" class="btn btn-primary" id="signupButton"
+                style="background-color: #1b8c0c; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease-in-out; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);"
+                onmouseover="this.style.backgroundColor='#166a0a'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 10px rgba(0, 0, 0, 0.3)';"
+                onmouseout="this.style.backgroundColor='#1b8c0c'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.2)';"
+                onmousedown="this.style.transform='translateY(1px)'; this.style.boxShadow='0 3px 6px rgba(0, 0, 0, 0.2)';"
+                onmouseup="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 10px rgba(0, 0, 0, 0.3)';">
+                Sign Up
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    
+    </section>
+
+  </main>
+
+  <footer id="footer" class="footer position-relative light-background">
+    <div class="container footer-top" style="display: flex;justify-content: center;width: 100%;max-width: max-content;">
+      <div class="row gy-4">
+        <div class="col-lg-4 col-md-6 footer-about" style="width: 100%;justify-content: center;display: flex;flex-direction: column;">
+          <a href="index.html" class="logo d-flex align-items-center" style="justify-content: center;">
+            <span class="sitename">NACOS TAU</span>
+          </a>
+          <div class="footer-contact pt-3" style="text-align: center;">
+            <p>Thomas Adewumi University</p>
+            <p>Oko, Kwara State</p>
+            <p class="mt-3"><strong>Email:</strong> <span>nacos@tau.edu.ng</span></p>
+          </div>
+          <div class="social-links d-flex mt-4" style="justify-content: center;">
+            <a href=""><i class="bi bi-twitter-x"></i></a>
+            <a href=""><i class="bi bi-facebook"></i></a>
+            <a href=""><i class="bi bi-instagram"></i></a>
+            <a href=""><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container copyright text-center mt-4">
+      <p><span>Copyright</span> © <strong class="px-1 sitename">NACOS - TAU Development Team</strong><br><span>All Rights Reserved.</span></p>
+    </div>
+  </footer>
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+ 
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+  
+  <!-- Config and Supabase -->
+  <!-- <script src="assets/js/env.js"></script> -->
+  <script src="config.local.js"></script>
+  <script type="module" src="assets/js/supabase-config.js"></script>
+  <!-- Signup Script (Direct Supabase - No Netlify Function) -->
+
+  <!-- Permanent fix for input issues -->
+<script>
+    // Run this when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Remove preloader if exists
+        const preloader = document.getElementById('preloader');
+        if (preloader) preloader.remove();
+        
+        // Make sure form is clickable
+        const form = document.querySelector('.loginForm');
+        if (form) {
+            form.style.pointerEvents = 'auto';
+            form.style.position = 'relative';
+            form.style.zIndex = '1000';
+        }
+        
+        // Enable all inputs but be careful with styles
+        document.querySelectorAll('input, button, select, textarea').forEach(input => {
+            input.disabled = false;
+            input.readOnly = false;
+            input.style.pointerEvents = 'auto';
+            input.style.opacity = '1';
+            
+            // Only set background for text-like inputs to avoid breaking checkboxes/radios
+            if (['text', 'password', 'email', 'number', 'tel', 'url'].includes(input.type) || input.tagName === 'SELECT' || input.tagName === 'TEXTAREA') {
+                input.style.backgroundColor = 'white';
+            }
+        });
+        
+        console.log('✅ Input fix applied');
+    });
+
+    
+</script>
+  <script type="module">
+    import { supabase } from './assets/js/supabase-config.js';
+    
+    // DOM Elements
+    const form = document.getElementById('signupForm');
+    const firstNameInput = document.getElementById('first_name');
+    const lastNameInput = document.getElementById('last_name');
+    const matricNoInput = document.getElementById('matric_no');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirm_password');
+    const signupButton = document.getElementById('signupButton');
+    const termsCheckbox = document.getElementById('termsCheckbox');
+    
+    // ============================================
+    // VALIDATION FUNCTIONS
+    // ============================================
+    
+    function validateMatricNumber(matric) {
+      // More inclusive regex for university matric numbers
+      // Supports XX/XXMSCXXX, XXXX/XXXX, etc.
+      return matric.length >= 5;
+    }
+    
+    function validateEmail(email) {
+      // Support both @st.tau.edu.ng and @tau.edu.ng for flexibility if needed, 
+      // but primarily @st.tau.edu.ng as requested
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@(st\.)?tau\.edu\.ng$/;
+      return emailRegex.test(email);
+    }
+    
+    function validatePasswordStrength(password) {
+      if (password.length < 6) return { level: 'weak', message: 'Password must be at least 6 characters' };
+      let strength = 0;
+      if (password.length >= 8) strength++;
+      if (password.match(/[a-z]+/)) strength++;
+      if (password.match(/[A-Z]+/)) strength++;
+      if (password.match(/[0-9]+/)) strength++;
+      if (password.match(/[$@#&!]+/)) strength++;
+      
+      if (strength <= 2) return { level: 'weak', message: 'Weak password' };
+      if (strength === 3) return { level: 'medium', message: 'Medium password' };
+      return { level: 'strong', message: 'Strong password' };
+    }
+    
+    function validateForm() {
+      let isValid = true;
+      
+      if (!firstNameInput.value.trim()) { showError(firstNameInput, 'First name is required'); isValid = false; } else { clearError(firstNameInput); }
+      if (!lastNameInput.value.trim()) { showError(lastNameInput, 'Last name is required'); isValid = false; } else { clearError(lastNameInput); }
+      if (!validateMatricNumber(matricNoInput.value.trim())) { showError(matricNoInput, 'Invalid matric number format'); isValid = false; } else { clearError(matricNoInput); }
+      if (!validateEmail(emailInput.value.trim())) { showError(emailInput, 'Please use your valid @st.tau.edu.ng email'); isValid = false; } else { clearError(emailInput); }
+      
+      const passwordStrength = validatePasswordStrength(passwordInput.value);
+      if (passwordStrength.level === 'weak') { showError(passwordInput, passwordStrength.message); isValid = false; } else { clearError(passwordInput); }
+      
+      if (passwordInput.value !== confirmPasswordInput.value) { showError(confirmPasswordInput, 'Passwords do not match'); isValid = false; } else { clearError(confirmPasswordInput); }
+      if (!termsCheckbox.checked) { showError(termsCheckbox, 'You must agree to the terms'); isValid = false; } else { clearError(termsCheckbox); }
+      
+      return isValid;
+    }
+    
+    function showError(element, message) {
+      element.classList.add('error');
+      let parent = element.parentElement;
+      if (element.classList.contains('form-check-input')) {
+        parent = element.closest('.form-group');
+      }
+      
+      const existingError = parent.querySelector('.error-message');
+      if (existingError) existingError.remove();
+      
+      const errorSpan = document.createElement('span');
+      errorSpan.className = 'error-message';
+      errorSpan.setAttribute('role', 'alert'); // Accessibility
+      errorSpan.textContent = message;
+      parent.appendChild(errorSpan);
+    }
+    
+    function clearError(element) {
+      element.classList.remove('error');
+      let parent = element.parentElement;
+      if (element.classList.contains('form-check-input')) {
+        parent = element.closest('.form-group');
+      }
+      const existingError = parent.querySelector('.error-message');
+      if (existingError) existingError.remove();
+    }
+    
+    // Live validation
+    emailInput.addEventListener('input', () => {
+      if (emailInput.value.trim() && !validateEmail(emailInput.value.trim())) {
+        emailInput.style.borderColor = '#dc3545';
+      } else {
+        emailInput.style.borderColor = '#ddd';
+      }
+    });
+    
+    // Password toggle
+    const togglePassword = document.getElementById('toggle-password');
+    togglePassword.addEventListener('click', () => {
+      const type = passwordInput.type === 'password' ? 'text' : 'password';
+      passwordInput.type = type;
+      const icon = togglePassword.querySelector('i');
+      icon.classList.toggle('bi-eye');
+      icon.classList.toggle('bi-eye-slash');
+    });
+    
+    const toggleConfirmPassword = document.getElementById('toggle-confirm-password');
+    toggleConfirmPassword.addEventListener('click', () => {
+      const type = confirmPasswordInput.type === 'password' ? 'text' : 'password';
+      confirmPasswordInput.type = type;
+      const icon = toggleConfirmPassword.querySelector('i');
+      icon.classList.toggle('bi-eye');
+      icon.classList.toggle('bi-eye-slash');
+    });
+    
+    // ============================================
+    // FORM SUBMISSION - DIRECT SUPABASE (NO NETLIFY)
+    // ============================================
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      if (!validateForm()) {
+        await Swal.fire({ title: 'Validation Error', text: 'Please check all fields and try again.', icon: 'warning', confirmButtonText: 'OK' });
+        return;
+      }
+      
+      // Get selected department
+// Get selected department from dropdown
+      const department = document.getElementById('department').value;
+      if (!department) {
+      await Swal.fire({ title: 'Missing Information', text: 'Please select your department.', icon: 'warning', confirmButtonText: 'OK' });
+      return;
+}
+      
+      const fullName = `${firstNameInput.value.trim()} ${lastNameInput.value.trim()}`;
+      const email = emailInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
+      const matricNo = matricNoInput.value.trim().toUpperCase();
+      
+      
+      // Show loading state
+      signupButton.disabled = true;
+      signupButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating account...';
+      
+      try {
+        // Create user in Supabase Auth
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            data: {
+              first_name: firstNameInput.value.trim(),
+              last_name: lastNameInput.value.trim(),
+              matric_number: matricNo,
+              department: department
+            }
+          }
+        });
+        
+        if (signUpError) throw signUpError;
+        
+        if (authData.user) {
+          // Add to students table
+          const { error: insertError } = await supabase
+            .from('students')
+            .insert({
+              user_id: authData.user.id,
+              matric_number: matricNo,
+              first_name: firstNameInput.value.trim(),
+              last_name: lastNameInput.value.trim(),
+              email: email,
+              department: department,
+              status: 'pending'
+            });
+          
+          if (insertError) {
+            console.error('Insert error:', insertError);
+            // If DB insert fails, we should ideally delete the auth user or notify admin
+            // For now, show a specific error but acknowledge the account creation
+            await Swal.fire({
+              title: 'Partial Success',
+              text: 'Your account was created, but there was an issue saving your profile details. Please contact admin.',
+              icon: 'warning',
+              confirmButtonText: 'OK'
+            });
+            return;
+          }
+          
+          await Swal.fire({
+            title: 'Registration Successful!',
+            text: 'Your account has been created and is pending admin approval. You will be able to log in once an admin verifies your details.',
+            icon: 'success',
+            confirmButtonText: 'Go to Login'
+          });
+          
+          window.location.href = 'student-login.html';
+        }
+        
+      } catch (err) {
+        console.error('Signup error:', err);
+        await Swal.fire({
+          title: 'Registration Failed',
+          text: err.message || 'An error occurred during registration. Please try again.',
+          icon: 'error',
+          confirmButtonText: 'OK'
+        });
+      } finally {
+        signupButton.disabled = false;
+        signupButton.innerHTML = 'Sign Up';
+      }
+    });
+  </script>
+
+</body>
+</html>

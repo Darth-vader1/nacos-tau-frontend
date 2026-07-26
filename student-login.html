@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Student Login | NACOS - Thomas Adewumi University</title>
+  <meta name="description" content="Sign in to your NACOS student dashboard to access past questions, timetables, career resources, and academic materials.">
+  <meta name="keywords" content="NACOS, TAU, student login, computing students, Nigeria">
+
+  <!-- Favicons -->
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+  
+
+  
+
+  <!-- Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  
+  <style>
+    .toggle-password {
+      position: absolute;
+      right: 10px;
+      top: 70%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      z-index: 10;
+    }
+    
+    .password-container {
+      position: relative;
+    }
+
+    .spinner-border {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      vertical-align: text-bottom;
+      border: 0.2em solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spinner-border 0.75s linear infinite;
+    }
+
+    @keyframes spinner-border {
+      to { transform: rotate(360deg); }
+    }
+
+    .loginForm {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 30px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+
+    .logo-underlay {
+      display: block;
+      margin: 0 auto 20px;
+      max-width: 80px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .checkbx {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .checkbx input {
+      margin: 0;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .text-muted {
+      color: #6c757d;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .text-muted:hover {
+      text-decoration: underline;
+    }
+
+    .mt-3 {
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body class="starter-page-page">
+
+  <header id="header" class="header d-flex align-items-center fixed-top" style="justify-content: center;">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center" style="width: 100%;display: flex;justify-content: space-around;">
+      <a href="index.html" class="logo d-flex align-items-center me-auto">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
+        <h1 class="sitename"><span style="color: #1b8c0c;" id="nacos-text">Nigerian Association of Computing Students</span><br id="br"> <strong id="tau-text">Thomas Adewumi University</strong></h1>
+      </a>
+    </div>
+  </header>
+  
+  <main class="main">
+    
+    <!-- Page Title -->
+    <div class="page-title" data-aos="fade">
+      <div class="container d-lg-flex justify-content-between align-items-center">
+        <h1 class="mb-2 mb-lg-0">Student Login</h1>
+      </div>
+    </div><!-- End Page Title -->
+    
+    <!-- Starter Section Section -->
+    <section id="starter-section" class="starter-section section">
+      
+      <!-- Section Title -->
+      <div class="loginForm">
+        <img src="assets/img/tau_logo-removebg-preview.png" class="logo-underlay" alt="TAU Logo">
+        <div class="container section-title" data-aos="fade-up">
+          <h2>Sign in</h2>
+          <p>Enter details to gain access to your dashboard</p>
+          <a href="student-signup.html">Not registered? <span>Click here to signup.</span></a>
+        </div><!-- End Section Title -->
+    
+        <div class="container" data-aos="fade-up" style="margin: 0px; padding: 0px;">
+          <form id="loginForm">
+            <div class="form-group">
+              <label for="email">Student Email:</label>
+              <input type="email" class="form-control" id="email" aria-describedby="emailHelp" placeholder="Enter student email (e.g., name@st.tau.edu.ng)" required autocomplete="email">
+              <small id="emailHelp" class="form-text text-muted">Use your official TAU student email address</small>
+            </div>
+            
+            <div class="password-container">
+              <label for="password">Password:</label>
+              <input type="password" class="form-control" id="password" placeholder="Enter password" required autocomplete="current-password">
+              <button id="toggle-password" class="toggle-password" type="button" aria-label="Toggle password visibility">
+                <i class="bi bi-eye-slash"></i>
+              </button>
+            </div>
+            
+            <!-- Align Checkbox with Input Fields -->
+            <div class="form-check spaced-div checkbx form-group" style="margin-left: 0px;">
+              <input type="checkbox" class="form-check-input" id="rememberCheckbox">
+              <label class="form-check-label" for="rememberCheckbox">Remember Me</label>
+            </div>
+            
+            <div class="text-center mt-3">
+              <a href="forgot-password.html" class="text-muted">Forgot Password?</a>
+            </div>
+            
+            <!-- Center Submit Button -->
+            <div style="display: flex; justify-content: center; margin-top: 20px;">
+              <button type="submit" class="btn btn-primary" id="loginButton"
+                style="background-color: #1b8c0c; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease-in-out; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);"
+                onmouseover="this.style.backgroundColor='#166a0a'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 10px rgba(0, 0, 0, 0.3)';"
+                onmouseout="this.style.backgroundColor='#1b8c0c'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.2)';"
+                onmousedown="this.style.transform='translateY(1px)'; this.style.boxShadow='0 3px 6px rgba(0, 0, 0, 0.2)';"
+                onmouseup="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 10px rgba(0, 0, 0, 0.3)';">
+                Login
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    
+    </section><!-- /Starter Section Section -->
+
+  </main>
+
+  <footer id="footer" class="footer position-relative light-background">
+    <div class="container footer-top" style="display: flex;justify-content: center;width: 100%;max-width: max-content;">
+      <div class="row gy-4">
+        <div class="col-lg-4 col-md-6 footer-about" style="width: 100%;justify-content: center;display: flex;flex-direction: column;">
+          <a href="index.html" class="logo d-flex align-items-center">
+            <span class="sitename">NACOS - TAU</span>
+          </a>
+          <div class="logo d-flex align-items-center" style="justify-content: center;">
+            <img src="assets/img/nacos logo.jpg" class="img-fluid" alt="NACOS Logo" style="padding-right: 5%;max-height: 50px;">
+            <img src="assets/img/tau_logo-removebg-preview.png" alt="TAU Logo" class="img-fluid" style="max-height: 60px;">
+          </div>
+          <div class="footer-contact pt-3" style="text-align: center;">
+            <p>University Drive, Off Idofin Road</p>
+            <p>Oko-Irese, Kwara State</p>
+            <p class="mt-3"><strong>Phone:</strong> <span>+234 813 624 2060</span></p>
+            <p><strong>Email:</strong> <span>nacos@tau.edu.ng</span></p>
+          </div>
+          <div class="social-links d-flex mt-4" style="justify-content: center;">
+            <a href="https://www.tiktok.com/@nacos_tau?is_from_webapp=1&sender_device=pc" target="_blank" rel="noopener noreferrer"><i class="bi bi-tiktok"></i></a>
+            <a href="https://www.instagram.com/nacos_tauchapter?igsh=MWw1ZTlpaWZxZnl6cA==" target="_blank" rel="noopener noreferrer"><i class="bi bi-instagram"></i></a>
+            <a href="https://www.linkedin.com/company/nacos-tauchapter/about/" target="_blank" rel="noopener noreferrer"><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container copyright text-center mt-4">
+      <p><span>Copyright</span> © <strong class="px-1 sitename">NACOS - TAU Development Team</strong><br><span>All Rights Reserved.</span></p>
+    </div>
+  </footer>
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/js/api-config.js"></script>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+  
+  <script src="assets/js/env.js"></script>
+<script src="config.local.js"></script>
+  <script type="module" src="assets/js/supabase-config.js"></script>
+  <!-- Main JS File -->
+  <script src="dashboard assets/js/main.js"></script>
+  
+  <script>
+    // Safety preloader removal
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        const preloader = document.getElementById('preloader');
+        if (preloader) {
+          console.log('Safety preloader removal triggered');
+          preloader.remove();
+        }
+      }, 3000); // 3 second fallback
+    });
+  </script>
+  
+  <!-- Main Login Script -->
+  <script type="module">
+    import { supabase, checkAuth } from './assets/js/supabase-config.js';
+    
+    // ============================================
+    // RATE LIMITING CONFIGURATION
+    // ============================================
+    const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes in milliseconds
+    const MAX_ATTEMPTS = 5;
+    
+    function checkRateLimit(email) {
+      try {
+        const attempts = JSON.parse(localStorage.getItem('login_attempts') || '{}');
+        const now = Date.now();
+        const userAttempts = attempts[email] || [];
+        
+        // Clean old attempts (older than window)
+        const recentAttempts = userAttempts.filter(time => now - time < RATE_LIMIT_WINDOW);
+        
+        if (recentAttempts.length >= MAX_ATTEMPTS) {
+          const oldestAttempt = recentAttempts[0];
+          const waitSeconds = Math.ceil((RATE_LIMIT_WINDOW - (now - oldestAttempt)) / 1000);
+          const waitMinutes = Math.ceil(waitSeconds / 60);
+          throw new Error(`Too many failed attempts. Please wait ${waitMinutes} minutes before trying again.`);
+        }
+        
+        return recentAttempts;
+      } catch (error) {
+        throw error;
+      }
+    }
+    
+    function recordFailedAttempt(email) {
+      const attempts = JSON.parse(localStorage.getItem('login_attempts') || '{}');
+      const now = Date.now();
+      const userAttempts = attempts[email] || [];
+      const recentAttempts = userAttempts.filter(time => now - time < RATE_LIMIT_WINDOW);
+      
+      recentAttempts.push(now);
+      attempts[email] = recentAttempts;
+      localStorage.setItem('login_attempts', JSON.stringify(attempts));
+    }
+    
+    function clearFailedAttempts(email) {
+      const attempts = JSON.parse(localStorage.getItem('login_attempts') || '{}');
+      delete attempts[email];
+      localStorage.setItem('login_attempts', JSON.stringify(attempts));
+    }
+    
+    // ============================================
+    // SESSION CHECK - Redirect if already logged in
+    // ============================================
+    async function checkExistingSession() {
+      try {
+        const session = await checkAuth();
+        if (session) {
+          // User is already logged in, redirect to dashboard
+          window.location.href = 'student-dashboard.html';
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+      }
+    }
+    
+    // Run session check immediately
+    checkExistingSession();
+    
+    // ============================================
+    // FORM HANDLING
+    // ============================================
+    const loginForm = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const rememberCheckbox = document.getElementById('rememberCheckbox');
+    const loginButton = document.getElementById('loginButton');
+    
+    // Load remembered email if exists
+    const rememberedEmail = localStorage.getItem('remembered_email');
+    if (rememberedEmail) {
+      emailInput.value = rememberedEmail;
+      rememberCheckbox.checked = true;
+    }
+    
+    // Toggle password visibility
+    const toggleBtn = document.getElementById('toggle-password');
+    toggleBtn.addEventListener('click', () => {
+      const type = passwordInput.type === 'password' ? 'text' : 'password';
+      passwordInput.type = type;
+      const icon = toggleBtn.querySelector('i');
+      icon.classList.toggle('bi-eye');
+      icon.classList.toggle('bi-eye-slash');
+    });
+    
+    // Form submission handler
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+    console.log('Form submitted!');  // ← ADD THIS
+    console.log('Email:', emailInput.value);  // ← ADD THIS
+    console.log('Password length:', passwordInput.value.length);  // ← ADD THIS
+      
+      // Get and sanitize inputs
+      const email = emailInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
+      const rememberMe = rememberCheckbox.checked;
+      
+      // Validate inputs
+      if (!email || !password) {
+        await Swal.fire({
+          title: 'Missing Information',
+          text: 'Please enter both email and password.',
+          icon: 'warning',
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+      
+
+      // Allow both @st.tau.edu.ng and @tau.edu.ng
+const emailRegex = /^[a-zA-Z0-9._%+-]+@(st\.)?tau\.edu\.ng$/;
+      if (!emailRegex.test(email)) {
+        await Swal.fire({
+          title: 'Invalid Email',
+          text: 'Please use your valid student email address ending with @st.tau.edu.ng',
+          icon: 'warning',
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+      
+      // Check rate limit before attempting login
+      try {
+        checkRateLimit(email);
+      } catch (error) {
+        await Swal.fire({
+          title: 'Too Many Attempts',
+          text: error.message,
+          icon: 'error',
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+      
+      // Show loading state
+      loginButton.disabled = true;
+      loginButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logging in...';
+      
+      try {
+        // Attempt login
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+        
+        if (error) {
+          // Record failed attempt for rate limiting
+          recordFailedAttempt(email);
+          throw error;
+        }
+        
+        // Login successful - clear rate limit attempts
+        clearFailedAttempts(email);
+        
+        // Handle "Remember Me"
+        if (rememberMe) {
+          localStorage.setItem('remembered_email', email);
+        } else {
+          localStorage.removeItem('remembered_email');
+        }
+        
+        // Show success message
+        await Swal.fire({
+          title: 'Success!',
+          text: 'Login successful! Redirecting to dashboard...',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        
+        // Redirect to student dashboard
+        window.location.href = 'student-dashboard.html';
+        
+      } catch (error) {
+        console.error('Login error:', error);
+        
+        let errorMessage = 'Login failed. Please try again.';
+        
+        // User-friendly error messages (don't reveal too much info)
+        if (error.message === 'Invalid login credentials') {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email inbox and verify your account before logging in.';
+        } else if (error.message.includes('rate limit')) {
+          errorMessage = error.message;
+        }
+        
+        await Swal.fire({
+          title: 'Login Failed',
+          text: errorMessage,
+          icon: 'error',
+          confirmButtonText: 'Try Again'
+        });
+        
+      } finally {
+        // Reset button state
+        loginButton.disabled = false;
+        loginButton.innerHTML = 'Login';
+      }
+    });
+    
+    // Optional: Add input validation feedback
+    emailInput.addEventListener('input', () => {
+      const email = emailInput.value.trim();
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@st\.tau\.edu\.ng$/;
+      
+      if (email && !emailRegex.test(email)) {
+        emailInput.style.borderColor = '#ff6b6b';
+      } else {
+        emailInput.style.borderColor = '#ddd';
+      }
+    });
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>NACOS - Thomas Adewumi University Chapter</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <meta property="og:title" content="NACOS - Thomas Adewumi University Chapter">
+  <meta property="og:description" content="">
+  <meta property="og:image" content="https://nacos-tau-chapter.netlify.app/assets/img/tau_logo-removebg-preview.png">
+  <meta property="og:url" content="https://nacos-tau-chapter.netlify.app/">
+  <meta property="og:type" content="website">
+
+  <!-- Favicons -->
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+  
+  <style>
+    /* Smooth scrolling for anchor links */
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    /* Active nav link styling */
+    .navmenu a.active {
+      color: #1b8c0c !important;
+      font-weight: 600;
+    }
+    
+    /* Hide preloader */
+    #preloader {
+      display: none !important;
+    }
+    
+    /* Student-only section styling (initially hidden) */
+    .student-only-section {
+      display: none;
+    }
+    
+    /* Responsive fixes */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 1.8rem;
+      }
+      .hero p {
+        font-size: 1rem;
+      }
+      .pricing-item {
+        margin-bottom: 20px;
+      }
+      
+      /* Fix NACOS Week accordion on mobile */
+      .accordion-body {
+        padding: 10px;
+      }
+      
+      .accordion-body .service-item {
+        margin-bottom: 15px;
+      }
+      
+      .accordion-body img {
+        max-width: 100%;
+        height: auto;
+      }
+    }
+
+    /* Clean Navbar Styles */
+.header {
+  background: white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  padding: 10px 0;
+}
+
+.logo img {
+  height: 45px;
+  border-radius: 8px;
+}
+
+.navmenu ul {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 5px;
+}
+
+.navmenu li {
+  list-style: none;
+}
+
+.navmenu a {
+  padding: 8px 15px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  transition: all 0.3s;
+}
+
+.navmenu a:hover,
+.navmenu a.active {
+  color: #1b8c0c;
+  background: #e8f5e9;
+  border-radius: 8px;
+}
+
+/* Dropdown menu for student resources */
+    @media (min-width: 1200px) {
+      .navmenu .dropdown ul {
+        position: absolute;
+        background: white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        border-radius: 10px;
+        padding: 10px 0;
+        min-width: 180px;
+        visibility: hidden;
+        opacity: 0;
+        transition: all 0.3s;
+      }
+
+      .navmenu .dropdown:hover ul {
+        visibility: visible;
+        opacity: 1;
+      }
+    }
+
+/* Mobile nav toggle */
+.mobile-nav-toggle {
+  font-size: 28px;
+  cursor: pointer;
+  color: #1b8c0c;
+  display: none;
+}
+
+/* Mobile responsive */
+@media (max-width: 1199px) {
+  .navmenu ul {
+    display: none;
+  }
+  
+  .mobile-nav-toggle {
+    display: block !important;
+  }
+  
+  .navmenu.mobile-nav-active ul {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 60px;
+    right: 15px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    z-index: 999;
+  }
+}
+
+@media (min-width: 1200px) {
+  .mobile-nav-toggle {
+    display: none !important;
+  }
+  
+  .navmenu ul {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .navmenu ul {
+    flex-direction: column;
+    background: white;
+    padding: 20px;
+  }
+  
+  .logo div span {
+    font-size: 14px;
+  }
+}
+  </style>
+</head>
+
+<body class="index-page">
+
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container d-flex align-items-center justify-content-between">
+
+      <a href="index.html" class="logo d-flex align-items-center">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo" style="height: 45px;">
+        <div class="ms-2">
+          <span style="color: #1b8c0c; font-weight: 700;">NACOS</span>
+          <span style="font-size: 10px; display: block; color: #777;">TAU Chapter</span>
+        </div>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="#hero">Home</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#events"> Past Events</a></li>
+          <li><a href="#execs">Execs</a></li>
+          <li><a href="#pays">Payments</a></li>
+          <li id="nav-student-links" class="dropdown" style="display: none;">
+            <a href="#">Resources <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+            <ul>
+              <li><a href="past-questions.html">Past Questions</a></li>
+              <li><a href="timetables.html">Timetables</a></li>
+              <li><a href="resources.html">Resources</a></li>
+              <li><a href="career-paths.html">Career Paths</a></li>
+            </ul>
+          </li>
+          <li id="nav-signin"><a href="student-login.html">Sign In</a></li>
+          <li id="nav-dashboard" style="display: none;"><a href="student-dashboard.html">Dashboard</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero section">
+      <div class="hero-bg">
+        <img src="assets/img/tau sample image.jpg" alt="">
+      </div>
+      <div class="container text-center " style="padding-bottom: 50px;">
+        <div class="d-flex flex-column justify-content-center align-items-center">
+          <h1 data-aos="fade-up">Welcome to Thomas Adewumi University's <br><span>Nigerian Association of Computing Students</span></h1>
+          <p data-aos="fade-up" data-aos-delay="100"><em>Breeding the innovators of tomorrow's technology.</em><br></p>
+          <div class="d-flex" data-aos="fade-up" data-aos-delay="200" style="padding-bottom: 2%;">
+            <a id="hero-signin-btn" class="btn-get-started" href="student-login.html">Sign In</a>
+            <a id="hero-dashboard-btn" class="btn-get-started" href="student-dashboard.html" style="display: none;">Dashboard</a>
+          </div>
+          <img src="assets/img/tau_logo-removebg-preview.png" class="img-fluid animated" alt="" data-aos="zoom-out" data-aos-delay="300">
+        </div>
+      </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about section">
+      <div class="container">
+        <div class="row gy-4">
+          <div class="col-lg-6 content" data-aos="fade-up" data-aos-delay="100">
+            <p class="who-we-are">Who We Are</p>
+            <h3>Breeding the innovators of tomorrow's technology</h3>
+            <p class="fst-italic">
+              The Nigerian Association of Computing Students (NACOS) at Thomas Adewumi University is home to all students
+              of Computer Science, Software Engineering and all other IT related courses.
+            </p>
+            <ul>
+              <li><i class="bi bi-check-circle"></i> <span>We foster a supportive and collaborative community for all computing students.</span></li>
+              <li><i class="bi bi-check-circle"></i> <span>We aim to bridge the gap between theoretical and practical knowledge by providing
+                students with real-world experiences.
+              </span></li>
+              <li><i class="bi bi-check-circle"></i> <span>We create awareness on the latest technology and its applications
+                on our campus and community as a whole.
+              </span></li>
+            </ul>
+          </div>
+          <div class="col-lg-6 about-images" data-aos="fade-up" data-aos-delay="200">
+            <div class="row gy-4">
+              <div class="col-lg-6">
+                <img src="#" class="img-fluid" alt="">
+              </div>
+              <div class="col-lg-6">
+                <div class="row gy-4">
+                  <div class="col-lg-12">
+                    <img src="#" class="img-fluid" alt="">
+                  </div>
+                  <div class="col-lg-12">
+                    <img src="assets/img/group.jpg" class="img-fluid" alt="">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Events Section (Public - Always Visible) -->
+    <section id="events" class="services section light-background">
+      <div class="container section-title" data-aos="fade-up">
+        <h2> Past Events</h2>
+        <p>View highlights from some of our exciting events!</p>
+      </div>
+
+      <div class="container">
+        <div class="row g-5">
+          <div class="col-lg-6" data-aos="fade-up" data-aos-delay="100" style="width: 100%;">
+            <div class="service-item item-cyan position-relative">
+              <img src="assets/img/hangout.png" class="img-fluid icon" alt="" style="border: none;">
+              <div>
+                <h3>Unwind and Connect</h3>
+                <p><em><i class="bi bi-check-circle"></i> 15th February 2025</em></p>
+                <a href="https://nacostauchapter.pixieset.com/unwindandconnect25/" class="read-more stretched-link" target="_blank">View Gallery<i class="bi bi-arrow-right"></i></a>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6" data-aos="fade-up" data-aos-delay="100" style="width: 100%; cursor:pointer ;">
+            <div class="service-item item-cyan position-relative">
+              <img src="assets/img/events/Symposium Prt 1.png" class="img-fluid icon" alt="" style="border: none;">
+              <div>
+                <h3>Symposium: The Age of Artificial Intelligence (PART I) </h3>
+                <p><em><i class="bi bi-check-circle"></i> 2nd June 2025</em></p>
+                <a href="#" class="read-more stretched-link" onclick="Swal.fire('Coming Soon!', 'More details will be announced soon.', 'info')">See Details <i class="bi bi-arrow-right"></i></a>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6" data-aos="fade-up" data-aos-delay="100" style="width: 100%; cursor: pointer;">
+            <div class="service-item item-cyan position-relative">
+              <img src="assets/img/events/NACOS Week Flyer.png" class="img-fluid icon" alt="" style="border: none;">
+              <div class="accordion" id="accordionExample">
+                <div>
+                  <h3 class="accordion-header">NACOS Week</h3>
+                  <p><em><i class="bi bi-check-circle"></i> 16th June - 20th June 2025 </em></p>
+                  <a class="read-more stretched-link" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">View Details <i class="bi bi-arrow-right"></i></a>
+                  <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
+                    <div class="accordion-body">
+                      <!-- NACOS Week Sub-events -->
+                      <div class="col-lg-6 pt-4" style="width: 100%; cursor:pointer;">
+                        <div class="service-item item-cyan position-relative">
+                          <img src="assets/img/events/pt 2.jpg" class="img-fluid icon" alt="" style="border: none;">
+                          <div>
+                            <h3>Day 1: Symposium: The Age of Artificial Intelligence (PART II) </h3>
+                            <p><em><i class="bi bi-check-circle"></i> 16th June 2025</em></p>
+                            <a href="https://nacostauchapter.pixieset.com/nacosweek/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-lg-6 pt-4" style="width: 100%; cursor:pointer;">
+                        <div class="service-item item-cyan position-relative">
+                          <img src="assets/img/events/scrrr.jpg" class="img-fluid icon" alt="" style="border: none;">
+                          <div>
+                            <h3>Day 2: Bootcamp 🤖 - Coding with Scratch </h3>
+                            <p><em><i class="bi bi-check-circle"></i> 17th June 2025</em></p>
+                            <a href="https://nacostauchapter.pixieset.com/nacosweekdaytwo/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-lg-6 pt-4" style="width: 100%; cursor:pointer;">
+                        <div class="service-item item-cyan position-relative">
+                          <img src="assets/img/events/gamee.jpg" class="img-fluid icon" alt="" style="border: none;">
+                          <div>
+                            <h3>Day 3: Sport Day 🏅 & Game Night🎮 </h3>
+                            <p><em><i class="bi bi-check-circle"></i> 18th June 2025</em></p>
+                            <a href="https://nacostauchapter.pixieset.com/daythreesportsday/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-lg-6 pt-4" style="width: 100%; cursor:pointer;">
+                        <div class="service-item item-cyan position-relative">
+                          <img src="assets/img/events/hackk.jpg" class="img-fluid icon" alt="" style="border: none;">
+                          <div>
+                            <h3>Day 4: Hackathon 💻 </h3>
+                            <p><em><i class="bi bi-check-circle"></i> 19th June 2025</em></p>
+                            <a href="https://nacostauchapter.pixieset.com/daythreesportsday/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-lg-6 pt-4" style="width: 100%; cursor:pointer;">
+                        <div class="service-item item-cyan position-relative">
+                          <img src="assets/img/events/futureee.jpg" class="img-fluid icon" alt="" style="border: none;">
+                          <div>
+                            <h3>Day 5: Dinner - The Future <span class="" style="text-decoration: line-through;">Today</span>, Tonight! 🥂</h3>
+                            <p><em><i class="bi bi-check-circle"></i> 20th June 2025</em></p>
+                            <a href="https://nacostauchapter.pixieset.com/dayfivethefuturetonight/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Executives Section (Public - Always Visible) -->
+    <section id="execs" class="pricing section">
+      <div class="container section-title" data-aos="fade-up">
+        <h2>Executives</h2>
+        <p>With a versatile and hardworking team of executives, we're glad to be led by some of the brightest minds on campus!</p>
+      </div>
+
+      <div class="container">
+        <div class="row gy-4">
+          <!-- All your executive cards (kept exactly as you had them) -->
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/praise.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong> Ajetomobi Praise Jesutofunmi </strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>President</em></span></p>
+              <a href="https://www.linkedin.com/in/praise-ajetomobi-7256302ba?/" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/victor.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong>Akinlotan Victor</strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>Vice-President</em></span></p>
+              <a href="https://www.linkedin.com/in/akinlotan-victor-88b86a380" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/temitayo.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong>Bamiro Temitayo</strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>General Secretary</em></span></p>
+              <a href="https://www.linkedin.com/in/temitayo-bamiro-b06840288" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/henry.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong>Henry</strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>Assistant General Secretary</em></span></p>
+              <a href="#" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/nacos logo.jpg" alt="Publicity Relations officer" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong>Publicity Relations officer</strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>Publicity Relations officer</em></span></p>
+              <a href="https://www.linkedin.com/in/adelodun-stephanie-8139832b4?" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/gbolahan.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong>Olufemi-Abiodun Gbolahan</strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>Software Director</em></span></p>
+              <a href="https://www.linkedin.com/in/olufemi-abiodun-gbolahan-543aa52a4" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/philemon.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong>philemon .O. Olusegun
+              </strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>Assistant Software Director</em></span></p>
+              <a href="https://www.linkedin.com/in/neo-valos-3465702a6?" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/carmen.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong> Anifowoshe Khadijah</strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>Financial Secretary</em></span></p>
+              <a href="https://www.linkedin.com/in/anifowoshe-khadijah-292299271/" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/marvelous.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong>Olawuyi Marvellous</strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>Treasurer</em></span></p>
+              <a href="https://www.linkedin.com/in/olawuyi-marvelous-505960401" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="frontend/assets/img/fola.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong>Aina Folahan</strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>Sports Director</em></span></p>
+              <a href="https://www.linkedin.com/in/adegboyegatolulope?" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/alameen.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong>Alameen</strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>Assitant Sports Director</em></span></p>
+              <a href="https://www.linkedin.com/in/adegboyegatolulope?" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/daniel.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong>Friday Ugochi Daniel</strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>Provost</em></span></p>
+              <a href="https://www.linkedin.com/in/olajide-peter-b55108275/" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+            <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
+            <div class="pricing-item">
+              <img class="img-fluid passport" src="assets/img/daniel.jpg" alt="" style="padding-bottom: 5%;">
+              <h3 style="font-size: large;"><strong>Oyedokun Joshua Ayooluwaposi </strong></h3>
+              <p class="description"><span style="color: #1b8c0c;"><em>Academic Director </em></span></p>
+              <a href="https://www.linkedin.com/in/ayooluwaposi-oyedokun-3a83b12a0?" class="cta-btn">LinkedIn<i class="bi bi-linkedin" style="opacity: 0.5;color: #1b8c0c;padding-left: 5px;"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Payments Section (Public - Always Visible) -->
+    <section id="pays" class="services section light-background">
+      <div class="container section-title" data-aos="fade-up">
+        <h2>Payments</h2>
+        <p>Make your payments easily and securely.</p>
+      </div>
+
+      <div class="container">
+        <div class="row g-5">
+          <div class="col-lg-6" data-aos="fade-up" data-aos-delay="100" style="width: 100%;">
+            <div class="service-item item-cyan position-relative">
+              <div class="justify-content-center align-items-center d-flex flex-column" style="margin: auto;">
+                <img src="assets/img/cash_image.png" class="img-fluid icon" alt="Cash Icon" style="border: none; max-width: 150px; height: auto;">
+                <div>
+                  <h3 class="" style="display: flex; margin: auto; justify-content: center; align-items: center;">Account Details</h3>
+                  <div>
+                    <p>Account Number: 
+                      <strong style="padding-right: 2%">0118670866</strong>
+                      <i class="bi bi-copy" id="accountNumberIcon" style="cursor: pointer; font-size: larger;" onclick="copyToClipboard()"></i>
+                      <i class="bi bi-check-circle" id="copyMsg" style="display: none; color: green; margin-left: 10px;">Copied to clipboard</i>
+                    </p>
+                  </div>
+                  <p>Account Name: <strong>Nigerian Association of Computing Students - TAU</strong></p>
+                  <p>Bank: <strong>Sterling Bank</strong></p>
+                  <p>Amount For Association Members: <strong>N25,000</strong></p>
+                  <p>Note: <strong>Please include your full name, matric number and purpose of payment as the payment reference.</strong></p>
+                  <small style="display: flex; margin: auto; justify-content: center; align-items: center;"><em>Payment Reference: <strong>NACOS-TAU | Your Matric Number | Association Fee</strong></em></small>
+
+                  <br>
+                  <hr>
+                  <div>
+                    <strong>For any inquiries, please reach out through: </strong>
+                    <p class="contact-info">
+                      <a href="mailto:nacos@tau.edu.ng" target="_blank">nacos@tau.edu.ng</a> <br>
+                      <a href="https://wa.me/08144379626" target="_blank">The President</a> <br>
+                      <a href="https://wa.me/09167566489" target="_blank">The Vice President </a><br>
+                      <a href="https://wa.me/08028756004" target="_blank">The General Secretary</a> <br>
+                      <a href="https://wa.me/08130383123" target="_blank">The Asst. General Secretary</a><br>
+                      <a href="https://wa.me/08166826137" target="_blank">The Software Director</a><br>
+                      <a href="https://wa.me/08126398496" target="_blank">The Asst. Software Director </a><br>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer id="footer" class="footer position-relative light-background">
+    <div class="container footer-top text-center">
+      <div class="row gy-4 justify-content-center">
+        <div class="col-lg-6 col-md-8 footer-about">
+          <a href="index.html" class="logo d-flex align-items-center justify-content-center mb-4">
+            <span class="sitename">NACOS - TAU</span>
+          </a>
+          <div class="logo d-flex justify-content-center mb-4">
+            <img src="assets/img/nacos logo.jpg" class="img-fluid me-3" alt="" style="max-height: 50px; border-radius: 8px;">
+            <img src="assets/img/tau_logo-removebg-preview.png" alt="" class="img-fluid" style="max-height: 60px;">
+          </div>
+          <div class="footer-contact pt-3">
+            <p>University Drive, Off Idofin Road</p>
+            <p>Oko-Irese, Kwara State</p>
+            <p class="mt-3"><strong>Phone:</strong> <span>+234 813 624 2060</span></p>
+            <p><strong>Email:</strong> <span>nacos@tau.edu.ng</span></p>
+          </div>
+          <div class="social-links d-flex justify-content-center mt-4">
+            <a href="https://www.tiktok.com/@nacos_tau?is_from_webapp=1&sender_device=pc"><i class="bi bi-tiktok"></i></a>
+            <a href="https://www.instagram.com/nacos_tauchapter?igsh=MWw1ZTlpaWZxZnl6cA=="><i class="bi bi-instagram"></i></a>
+            <a href="https://www.linkedin.com/company/nacos-tauchapter/about/"><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container copyright text-center mt-4">
+      <p> <span>Copyright</span> © <strong class="px-1 sitename">NACOS - TAU Development Team.</strong><br><span>All Rights Reserved.</span></p>
+    </div>
+  </footer>
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/js/api-config.js"></script>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+
+  <!-- Main JS File -->
+  <script src="assets/js/main.js" type="module"></script>
+
+  <script src="assets/js/env.js"></script>
+  <script src="config.local.js"></script>
+  <script type="module" src="assets/js/supabase-config.js"></script>
+  
+  <script>
+    // Copy to clipboard function
+    function copyToClipboard() {
+      const copyIcon = document.getElementById('accountNumberIcon');
+      const msg = document.getElementById('copyMsg');
+      navigator.clipboard.writeText('0118670866').then(() => {
+        copyIcon.style.display = 'none';
+        msg.style.display = 'inline';
+        setTimeout(() => {
+          msg.style.display = 'none';
+          copyIcon.style.display = 'inline';
+        }, 4000);
+      });
+    }
+  </script>
+  
+  <script type="module">
+    import { supabase } from './assets/js/supabase-config.js';
+
+    document.addEventListener('DOMContentLoaded', async function() {
+      const { data: { session } } = await supabase.auth.getSession();
+      const isLoggedIn = !!session;
+
+      // Navigation links
+      const signinLink = document.getElementById('nav-signin');
+      const dashboardLink = document.getElementById('nav-dashboard');
+      const pastQuestionsLink = document.getElementById('nav-past-questions');
+      const timetablesLink = document.getElementById('nav-timetables');
+      const resourcesLink = document.getElementById('nav-resources');
+      const careerPathsLink = document.getElementById('nav-career-paths');
+      
+      // Hero buttons
+      const heroSigninBtn = document.getElementById('hero-signin-btn');
+      const heroDashboardBtn = document.getElementById('hero-dashboard-btn');
+
+      if (isLoggedIn) {
+        // Show student-only navigation items
+        if (signinLink) signinLink.style.display = 'none';
+        if (dashboardLink) dashboardLink.style.display = 'block';
+        if (pastQuestionsLink) pastQuestionsLink.style.display = 'block';
+        if (timetablesLink) timetablesLink.style.display = 'block';
+        if (resourcesLink) resourcesLink.style.display = 'block';
+        if (careerPathsLink) careerPathsLink.style.display = 'block';
+        
+        // Update hero buttons
+        if (heroSigninBtn) heroSigninBtn.style.display = 'none';
+        if (heroDashboardBtn) heroDashboardBtn.style.display = 'inline-block';
+      } else {
+        // Hide student-only navigation items
+        if (signinLink) signinLink.style.display = 'block';
+        if (dashboardLink) dashboardLink.style.display = 'none';
+        if (pastQuestionsLink) pastQuestionsLink.style.display = 'none';
+        if (timetablesLink) timetablesLink.style.display = 'none';
+        if (resourcesLink) resourcesLink.style.display = 'none';
+        if (careerPathsLink) careerPathsLink.style.display = 'none';
+        
+        // Update hero buttons
+        if (heroSigninBtn) heroSigninBtn.style.display = 'inline-block';
+        if (heroDashboardBtn) heroDashboardBtn.style.display = 'none';
+      }
+
+      // Smooth scrolling for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+          const href = this.getAttribute('href');
+          if (href === '#' || href === '') return;
+          
+          const targetElement = document.querySelector(href);
+          if (targetElement) {
+            e.preventDefault();
+            targetElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+            // Update URL without reloading
+            history.pushState(null, null, href);
+          }
+        });
+      });
+
+      // Highlight active nav link based on scroll position
+      const sections = document.querySelectorAll('section[id]');
+      const navLinks = document.querySelectorAll('.navmenu a');
+
+      window.addEventListener('scroll', () => {
+        let current = '';
+        const scrollPosition = window.scrollY + 200;
+        
+        sections.forEach(section => {
+          const sectionTop = section.offsetTop;
+          const sectionHeight = section.offsetHeight;
+          if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+            current = section.getAttribute('id');
+          }
+        });
+        
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          const href = link.getAttribute('href');
+          if (href === `#${current}`) {
+            link.classList.add('active');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>

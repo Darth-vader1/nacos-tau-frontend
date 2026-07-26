@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Admin Dashboard - NACOS | Thomas Adewumi University</title>
+  <meta name="description" content="NACOS Admin Dashboard - Content Management System">
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Favicons -->
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    :root {
+      --admin-primary: #1b8c0c;
+      --admin-secondary: #2d9b0f;
+      --admin-danger: #dc3545;
+      --admin-warning: #ffc107;
+    }
+    
+    .admin-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 260px;
+      background: linear-gradient(180deg, #1b8c0c 0%, #0d5c08 100%);
+      padding: 20px;
+      z-index: 1000;
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+    }
+    
+    .admin-content {
+      margin-left: 260px;
+      padding: 20px;
+      min-height: 100vh;
+      background: #f8fbfc;
+      transition: margin-left 0.3s ease;
+    }
+    
+    .admin-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      margin-bottom: 30px;
+    }
+    
+    .admin-logo img {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+    
+    .admin-logo h3 {
+      color: white;
+      font-size: 18px;
+      margin: 0;
+    }
+    
+    .nav-menu {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .nav-item {
+      margin-bottom: 5px;
+    }
+    
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 15px;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      border-radius: 10px;
+      transition: all 0.3s;
+    }
+    
+    .nav-link:hover, .nav-link.active {
+      background: rgba(255,255,255,0.15);
+      color: white;
+    }
+    
+    .nav-link.active {
+      background: rgba(255,255,255,0.2);
+      font-weight: 600;
+    }
+    
+    .card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+    
+    .card-header {
+      background: white;
+      border-bottom: 1px solid #eee;
+      padding: 15px 20px;
+      font-weight: 600;
+      border-radius: 12px 12px 0 0;
+    }
+    
+    .btn-admin {
+      background: #1b8c0c;
+      border-color: #1b8c0c;
+      color: white;
+    }
+    
+    .btn-admin:hover {
+      background: #0d5c08;
+      border-color: #0d5c08;
+      color: white;
+    }
+    
+    .stat-card {
+      border-radius: 12px;
+      padding: 20px;
+      background: white;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+      transition: transform 0.3s;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-3px);
+    }
+    
+    .stat-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .table-responsive {
+      border-radius: 12px;
+      background: white;
+      overflow: hidden;
+    }
+    
+    .table th {
+      background: #f8fbfc;
+      border-bottom: 2px solid #eee;
+      font-weight: 600;
+      color: #555;
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+    
+    .table td {
+      vertical-align: middle;
+    }
+    
+    .badge-category {
+      background: #e8f5e9;
+      color: #1b8c0c;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
+      border-width: 0.2em;
+    }
+    
+    .session-timer {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      z-index: 999;
+    }
+    
+    .logout-btn {
+      background-color: #dc3545;
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    
+    .logout-btn:hover {
+      background-color: #c82333;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .loading-pulse {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @media (max-width: 992px) {
+      .admin-sidebar {
+        transform: translateX(-100%);
+      }
+      .admin-sidebar.show {
+        transform: translateX(0);
+      }
+      .admin-content {
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <aside class="admin-sidebar" id="sidebar">
+    <div class="admin-logo">
+      <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
+      <h3>NACOS Admin</h3>
+    </div>
+
+    <ul class="nav-menu">
+      <li class="nav-item">
+        <a href="#dashboard" class="nav-link active" data-section="dashboard">
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#past-questions" class="nav-link" data-section="past-questions">
+          <i class="bi bi-file-earmark-pdf"></i>
+          <span>Past Questions</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#timetables" class="nav-link" data-section="timetables">
+          <i class="bi bi-calendar-week"></i>
+          <span>Timetables</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#resources" class="nav-link" data-section="resources">
+          <i class="bi bi-link-45deg"></i>
+          <span>Academic Resources</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#career-paths" class="nav-link" data-section="career-paths">
+          <i class="bi bi-graph-up"></i>
+          <span>Career Paths</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#events" class="nav-link" data-section="events">
+          <i class="bi bi-calendar-event"></i>
+          <span>Events</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#payments" class="nav-link" data-section="payments">
+          <i class="bi bi-credit-card"></i>
+          <span>Payments</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="#students" class="nav-link" data-section="students">
+          <i class="bi bi-people"></i>
+          <span>Student Verification</span>
+        </a>
+      </li>
+      <li class="nav-item mt-4">
+        <a href="#" class="nav-link" id="logout-btn">
+          <i class="bi bi-box-arrow-right"></i>
+          <span>Logout</span>
+        </a>
+      </li>
+    </ul>
+  </aside>
+
+  <main class="admin-content">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 id="page-title">Dashboard</h2>
+        <button class="btn btn-admin d-lg-none" id="menu-toggle">
+          <i class="bi bi-list"></i> Menu
+        </button>
+      </div>
+
+      <!-- Dashboard Section -->
+      <div id="dashboard-section" class="content-section">
+        <div class="row g-4 mb-4">
+          <div class="col-md-3 col-sm-6">
+            <div class="stat-card">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <p class="text-muted mb-1 small">Past Questions</p>
+                  <h3 class="mb-0" id="stat-questions">0</h3>
+                </div>
+                <div class="stat-icon" style="background: #e8f5e9; color: #1b8c0c;">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="stat-card">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <p class="text-muted mb-1 small">Timetables</p>
+                  <h3 class="mb-0" id="stat-timetables">0</h3>
+                </div>
+                <div class="stat-icon" style="background: #e3f2fd; color: #1976d2;">
+                  <i class="bi bi-calendar-week"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="stat-card">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <p class="text-muted mb-1 small">Resources</p>
+                  <h3 class="mb-0" id="stat-resources">0</h3>
+                </div>
+                <div class="stat-icon" style="background: #fff3e0; color: #f57c00;">
+                  <i class="bi bi-link-45deg"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="stat-card">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <p class="text-muted mb-1 small">Pending Students</p>
+                  <h3 class="mb-0" id="stat-students">0</h3>
+                </div>
+                <div class="stat-icon" style="background: #fce4ec; color: #c2185b;">
+                  <i class="bi bi-people"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <i class="bi bi-info-circle me-2"></i>Welcome to NACOS Admin Panel
+          </div>
+          <div class="card-body">
+            <p>Use the sidebar to navigate and manage content. You can upload past questions, timetables, and academic resources.</p>
+            <hr>
+            <small class="text-muted">
+              <i class="bi bi-shield-lock"></i> All actions are logged for security purposes.
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Past Questions Section -->
+      <div id="past-questions-section" class="content-section" style="display: none;">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-file-earmark-pdf me-2"></i>Past Questions</span>
+            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
+              <i class="bi bi-plus"></i> Add New
+            </button>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Course Code</th>
+                    <th>Course Name</th>
+                    <th>Level</th>
+                    <th>Semester</th>
+                    <th>File</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="questions-table-body">
+                  <tr><td colspan="6" class="text-center text-muted py-4 loading-pulse">Loading...</td</tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timetables Section -->
+      <div id="timetables-section" class="content-section" style="display: none;">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-calendar-week me-2"></i>Timetables</span>
+            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addTimetableModal">
+              <i class="bi bi-plus"></i> Upload New
+            </button>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Version</th>
+                    <th>Current</th>
+                    <th>File</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="timetables-table-body">
+                  <tr><td colspan="5" class="text-center text-muted py-4 loading-pulse">Loading...</td</tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resources Section -->
+      <div id="resources-section" class="content-section" style="display: none;">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-link-45deg me-2"></i>Academic Resources</span>
+            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addResourceModal">
+              <i class="bi bi-plus"></i> Add New
+            </button>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>URL</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="resources-table-body">
+                  <tr><td colspan="4" class="text-center text-muted py-4 loading-pulse">Loading...</td</tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Career Paths Section -->
+      <div id="career-paths-section" class="content-section" style="display: none;">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-graph-up me-2"></i>Career Paths</span>
+            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addCareerPathModal">
+              <i class="bi bi-plus"></i> Add New
+            </button>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Path Key</th>
+                    <th>Title</th>
+                    <th>Overview</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="careers-table-body">
+                  <tr><td colspan="4" class="text-center text-muted py-4 loading-pulse">Loading...</td</tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Events Section -->
+      <div id="events-section" class="content-section" style="display: none;">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-calendar-event me-2"></i>Events</span>
+            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addEventModal">
+              <i class="bi bi-plus"></i> Add Event
+            </button>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Date</th>
+                    <th>Fee</th>
+                    <th>Attendees</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="events-table-body">
+                  <tr><td colspan="6" class="text-center text-muted py-4 loading-pulse">Loading...</td</tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payments Section -->
+      <div id="payments-section" class="content-section" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <span><i class="bi bi-credit-card me-2"></i>Payment Verifications</span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Event</th>
+                    <th>Amount</th>
+                    <th>Reference</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="payments-table-body">
+                  <tr><td colspan="6" class="text-center text-muted py-4 loading-pulse">Loading...</td</tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Students Section -->
+      <div id="students-section" class="content-section" style="display: none;">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-people me-2"></i>Student Verification</span>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-secondary" data-student-filter="pending">Pending</button>
+              <button class="btn btn-outline-secondary" data-student-filter="approved">Approved</button>
+              <button class="btn btn-outline-secondary" data-student-filter="all">All</button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Matric No</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="students-table-body">
+                  <tr><td colspan="6" class="text-center text-muted py-4 loading-pulse">Loading...</td</tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Session Timer -->
+  <div class="session-timer" id="sessionTimer">Session active</div>
+
+  <!-- Add Event Modal -->
+  <div class="modal fade" id="addEventModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Event</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="addEventForm">
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-md-8">
+                <div class="mb-3">
+                  <label class="form-label">Event Title *</label>
+                  <input type="text" class="form-control" id="ev-title" required placeholder="e.g., NACOS Tech Summit 2025">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Event Type</label>
+                  <select class="form-select" id="ev-type">
+                    <option value="general">General</option>
+                    <option value="workshop">Workshop</option>
+                    <option value="seminar">Seminar</option>
+                    <option value="social">Social</option>
+                    <option value="payment">Payment</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" id="ev-description" rows="2" placeholder="Event description"></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Date *</label>
+                  <input type="date" class="form-control" id="ev-date" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Time *</label>
+                  <input type="time" class="form-control" id="ev-time" required>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Location</label>
+                  <input type="text" class="form-control" id="ev-location" placeholder="e.g., Main Auditorium">
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Max Attendees</label>
+                  <input type="number" class="form-control" id="ev-max" placeholder="Unlimited if empty">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Requires Payment</label>
+                  <select class="form-select" id="ev-requires-payment">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Amount (₦)</label>
+                  <input type="number" class="form-control" id="ev-amount" placeholder="0">
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Payment Details</label>
+              <textarea class="form-control" id="ev-payment-details" rows="2" placeholder="Bank name, account number, etc."></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Event Image (optional)</label>
+              <input type="file" class="form-control" id="ev-image" accept="image/jpeg,image/png,image/jpg,image/webp">
+              <small class="text-muted">Max size: 2MB. Allowed: JPG, PNG, WebP</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-admin">Create Event</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Event Modal -->
+<div class="modal fade" id="editEventModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Event</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editEventForm">
+                <div class="modal-body">
+                    <input type="hidden" id="edit-event-id">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label">Event Title *</label>
+                                <input type="text" class="form-control" id="edit-ev-title" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Event Type</label>
+                                <select class="form-select" id="edit-ev-type">
+                                    <option value="general">General</option>
+                                    <option value="workshop">Workshop</option>
+                                    <option value="seminar">Seminar</option>
+                                    <option value="social">Social</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="edit-ev-description" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Date *</label>
+                                <input type="date" class="form-control" id="edit-ev-date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Time</label>
+                                <input type="time" class="form-control" id="edit-ev-time">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Location</label>
+                                <input type="text" class="form-control" id="edit-ev-location">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Max Attendees</label>
+                                <input type="number" class="form-control" id="edit-ev-max">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Requires Payment</label>
+                                <select class="form-select" id="edit-ev-requires-payment">
+                                    <option value="false">No</option>
+                                    <option value="true">Yes</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Amount (₦)</label>
+                                <input type="number" class="form-control" id="edit-ev-amount" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Details</label>
+                        <textarea class="form-control" id="edit-ev-payment-details" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Event Status</label>
+                        <select class="form-select" id="edit-ev-status">
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Event Image URL (optional)</label>
+                        <input type="url" class="form-control" id="edit-ev-image" placeholder="https://example.com/image.jpg">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-admin">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+  <!-- Other Modals (Add Question, Timetable, Resource, Career Path) remain the same -->
+  <div class="modal fade" id="addQuestionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Past Question</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="addQuestionForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Course Code *</label>
+              <input type="text" class="form-control" id="q-course-code" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Course Name *</label>
+              <input type="text" class="form-control" id="q-course-name" required>
+            </div>
+            <div class="row">
+              <div class="col-6">
+                <label class="form-label">Level</label>
+                <select class="form-select" id="q-level">
+                  <option value="100">100 Level</option>
+                  <option value="200">200 Level</option>
+                  <option value="300">300 Level</option>
+                  <option value="400">400 Level</option>
+                  <option value="500">500 Level</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label">Semester</label>
+                <select class="form-select" id="q-semester">
+                  <option value="Harmattan">Harmattan</option>
+                  <option value="Rain">Rain</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Title *</label>
+              <input type="text" class="form-control" id="q-title" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">File (PDF/Image)</label>
+              <input type="file" class="form-control" id="q-file" accept=".pdf,.jpg,.jpeg,.png" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-admin">Upload</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="addTimetableModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Upload Timetable</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="addTimetableForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Title *</label>
+              <input type="text" class="form-control" id="t-title" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Version *</label>
+              <input type="text" class="form-control" id="t-version" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" id="t-description" rows="2"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Set as Current</label>
+              <select class="form-select" id="t-current">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">File (PDF/Image)</label>
+              <input type="file" class="form-control" id="t-file" accept=".pdf,.jpg,.jpeg,.png" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-admin">Upload</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="addResourceModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Resource</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="addResourceForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Title *</label>
+              <input type="text" class="form-control" id="r-title" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Type</label>
+              <select class="form-select" id="r-type">
+                <option value="Tutorial">Tutorial</option>
+                <option value="Documentation">Documentation</option>
+                <option value="Course">Course</option>
+                <option value="Book">Book</option>
+                <option value="Tool">Tool</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">URL *</label>
+              <input type="url" class="form-control" id="r-url" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Category</label>
+              <select class="form-select" id="r-category">
+                <option value="">Select</option>
+                <option value="Programming">Programming</option>
+                <option value="Database">Database</option>
+                <option value="Networking">Networking</option>
+                <option value="Web Development">Web Development</option>
+                <option value="AI/ML">AI/ML</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" id="r-description" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-admin">Add Resource</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="addCareerPathModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Career Path</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="addCareerPathForm">
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-md-6">
+                <label class="form-label">Path Key</label>
+                <input type="text" class="form-control" id="cp-key" required placeholder="e.g., backend">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Title</label>
+                <input type="text" class="form-control" id="cp-title" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Overview</label>
+              <textarea class="form-control" id="cp-overview" rows="2" required></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <label class="form-label">Skills (comma-separated)</label>
+                <input type="text" class="form-control" id="cp-skills">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Tools (comma-separated)</label>
+                <input type="text" class="form-control" id="cp-tools">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">External Resources (JSON)</label>
+              <textarea class="form-control" id="cp-resources" rows="2" placeholder='[{"name":"Resource","url":"https://..."}]'></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-admin">Add Career Path</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/api-config.js"></script>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/js/main.js"></script>
+  <!-- <script src="assets/js/config.js"></script> -->
+   <script src="assets/js/env.js"></script>
+   <script src="config.local.js"></script>
+   <script type="module" src="assets/js/supabase-config.js"></script>
+
+  <script type="module">
+    import { supabase, requireAdmin, checkAuth, signOut } from './assets/js/supabase-config.js';
+
+    // ============================================
+    // UTILITY FUNCTIONS
+    // ============================================
+    
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-NG');
+    }
+    
+    // ============================================
+    // SESSION TIMEOUT
+    // ============================================
+    
+    let sessionTimeout;
+    
+    function resetSessionTimeout() {
+      clearTimeout(sessionTimeout);
+      const timerDiv = document.getElementById('sessionTimer');
+      if (timerDiv) timerDiv.textContent = 'Session active';
+      
+      sessionTimeout = setTimeout(async () => {
+        await Swal.fire({
+          title: 'Session Expired',
+          text: 'Your session has expired due to inactivity.',
+          icon: 'warning',
+          confirmButtonText: 'OK'
+        });
+        await signOut('admin-login.html');
+      }, 30 * 60 * 1000);
+    }
+    
+    ['click', 'mousemove', 'keypress', 'scroll'].forEach(event => {
+      document.addEventListener(event, resetSessionTimeout);
+    });
+    
+    // ============================================
+    // AUDIT LOGGING
+    // ============================================
+    
+    async function logAdminAction(action, entityType, entityId, details = {}) {
+      try {
+        const session = await checkAuth();
+        if (!session) return;
+        
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        let ipAddress = null;
+        try {
+          const ipRes = await fetch('https://api.ipify.org?format=json');
+          const ipData = await ipRes.json();
+          ipAddress = ipData.ip;
+        } catch (e) {}
+        
+        await supabase.from('audit_logs').insert({
+          admin_id: adminData?.id,
+          action: action,
+          entity_type: entityType,
+          entity_id: entityId,
+          details: details,
+          ip_address: ipAddress,
+          user_agent: navigator.userAgent
+        });
+      } catch (error) {
+        console.error('Audit log failed:', error);
+      }
+    }
+    
+    // ============================================
+    // DASHBOARD STATS
+    // ============================================
+    
+    async function loadDashboardStats() {
+      try {
+        const [questions, timetables, resources, students] = await Promise.all([
+          supabase.from('past_questions').select('id', { count: 'exact', head: true }),
+          supabase.from('timetables').select('id', { count: 'exact', head: true }),
+          supabase.from('academic_resources').select('id', { count: 'exact', head: true }),
+          supabase.from('students').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+        ]);
+        
+        document.getElementById('stat-questions').textContent = questions.count || 0;
+        document.getElementById('stat-timetables').textContent = timetables.count || 0;
+        document.getElementById('stat-resources').textContent = resources.count || 0;
+        document.getElementById('stat-students').textContent = students.count || 0;
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+    
+    // ============================================
+    // EVENTS (with File Upload)
+    // ============================================
+    
+    async function loadEvents() {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('date', { ascending: false });
+      
+      const tbody = document.getElementById('events-table-body');
+      
+      if (error || !data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No events yet</td</tr>';
+        return;
+      }
+      
+      tbody.innerHTML = data.map(ev => `
+        <tr>
+          <td>
+            ${ev.image_url ? `<img src="${ev.image_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px;" class="me-2">` : ''}
+            <strong>${escapeHtml(ev.title)}</strong>
+          </td>
+          <td>${ev.date}</td>
+          <td>${ev.requires_payment ? '₦' + Number(ev.payment_amount).toLocaleString() : 'Free'}</td>
+          <td>${ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</td>
+          <td>${ev.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteEventItem('${ev.id}')"><i class="bi bi-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Edit Event - Load data into modal
+window.editEvent = async function(eventId) {
+    try {
+        const { data: event, error } = await supabase
+            .from('events')
+            .select('*')
+            .eq('id', eventId)
+            .single();
+        
+        if (error) throw error;
+        
+        // Populate modal fields
+        document.getElementById('edit-event-id').value = event.id;
+        document.getElementById('edit-ev-title').value = event.title || '';
+        document.getElementById('edit-ev-type').value = event.event_type || 'general';
+        document.getElementById('edit-ev-description').value = event.description || '';
+        document.getElementById('edit-ev-date').value = event.date || '';
+        document.getElementById('edit-ev-time').value = event.time || '';
+        document.getElementById('edit-ev-location').value = event.location || '';
+        document.getElementById('edit-ev-max').value = event.max_attendees || '';
+        document.getElementById('edit-ev-requires-payment').value = event.requires_payment ? 'true' : 'false';
+        document.getElementById('edit-ev-amount').value = event.payment_amount || 0;
+        document.getElementById('edit-ev-payment-details').value = event.payment_details || '';
+        document.getElementById('edit-ev-status').value = event.is_active ? 'true' : 'false';
+        document.getElementById('edit-ev-image').value = event.image_url || '';
+        
+        // Show modal
+        new bootstrap.Modal(document.getElementById('editEventModal')).show();
+        
+    } catch (error) {
+        console.error('Error loading event:', error);
+        Swal.fire('Error', 'Failed to load event details', 'error');
+    }
+};
+
+// Save edited event
+document.getElementById('editEventForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const eventId = document.getElementById('edit-event-id').value;
+    const requiresPayment = document.getElementById('edit-ev-requires-payment').value === 'true';
+    const isActive = document.getElementById('edit-ev-status').value === 'true';
+    
+    const updateData = {
+        title: document.getElementById('edit-ev-title').value.trim(),
+        description: document.getElementById('edit-ev-description').value.trim(),
+        event_type: document.getElementById('edit-ev-type').value,
+        date: document.getElementById('edit-ev-date').value,
+        time: document.getElementById('edit-ev-time').value || null,
+        location: document.getElementById('edit-ev-location').value.trim() || null,
+        max_attendees: document.getElementById('edit-ev-max').value ? parseInt(document.getElementById('edit-ev-max').value) : null,
+        requires_payment: requiresPayment,
+        payment_amount: requiresPayment ? parseFloat(document.getElementById('edit-ev-amount').value) : null,
+        payment_details: document.getElementById('edit-ev-payment-details').value.trim() || null,
+        is_active: isActive,
+        image_url: document.getElementById('edit-ev-image').value.trim() || null,
+        updated_at: new Date().toISOString()
+    };
+    
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+    
+    try {
+        const { error } = await supabase
+            .from('events')
+            .update(updateData)
+            .eq('id', eventId);
+        
+        if (error) throw error;
+        
+        await logAdminAction('UPDATE', 'event', eventId, { title: updateData.title });
+        
+        Swal.fire('Success', 'Event updated successfully!', 'success').then(() => {
+            bootstrap.Modal.getInstance(document.getElementById('editEventModal')).hide();
+            loadEvents();  // Refresh the events table
+            loadDashboardStats();
+        });
+        
+    } catch (error) {
+        console.error('Error updating event:', error);
+        Swal.fire('Error', 'Failed to update event: ' + error.message, 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Save Changes';
+    }
+});
+    
+window.deleteEvent = async function(id) {
+    const result = await Swal.fire({
+        title: 'Delete Event?',
+        text: 'This will also delete all registrations for this event.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel'
+    });
+    
+    if (!result.isConfirmed) return;
+    
+    const { data: item } = await supabase
+        .from('events')
+        .select('title')
+        .eq('id', id)
+        .single();
+    
+    const { error } = await supabase.from('events').delete().eq('id', id);
+    
+    if (error) {
+        Swal.fire('Error', 'Failed to delete event', 'error');
+    } else {
+        await logAdminAction('DELETE', 'event', id, { title: item?.title });
+        Swal.fire('Deleted', 'Event removed successfully!', 'success');
+        loadEvents();
+        loadDashboardStats();
+    }
+};
+    
+    // Handle Add Event with File Upload
+    document.getElementById('addEventForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const session = await checkAuth();
+      
+      const title = document.getElementById('ev-title').value.trim();
+      const description = document.getElementById('ev-description').value.trim();
+      const eventType = document.getElementById('ev-type').value;
+      const date = document.getElementById('ev-date').value;
+      const time = document.getElementById('ev-time').value;
+      const location = document.getElementById('ev-location').value.trim();
+      const maxAttendees = document.getElementById('ev-max').value;
+      const requiresPayment = document.getElementById('ev-requires-payment').value === 'true';
+      const amount = document.getElementById('ev-amount').value || 0;
+      const paymentDetails = document.getElementById('ev-payment-details').value.trim();
+      const imageFile = document.getElementById('ev-image').files[0];
+      
+      let imageUrl = null;
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating...';
+      
+      try {
+        if (imageFile) {
+          if (imageFile.size > 2 * 1024 * 1024) throw new Error('Image must be less than 2MB');
+          const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+          if (!allowedTypes.includes(imageFile.type)) throw new Error('Invalid file type');
+          
+          const fileExt = imageFile.name.split('.').pop();
+          const fileName = `events/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('nacos-assets')
+            .upload(fileName, imageFile);
+          if (uploadError) throw uploadError;
+          
+          const { data: urlData } = supabase.storage.from('nacos-assets').getPublicUrl(fileName);
+          imageUrl = urlData.publicUrl;
+        }
+        
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        const { error: insertError } = await supabase.from('events').insert({
+          title, description, event_type: eventType, date, time, location,
+          max_attendees: maxAttendees ? parseInt(maxAttendees) : null,
+          requires_payment: requiresPayment,
+          payment_amount: requiresPayment ? parseFloat(amount) : null,
+          payment_details: paymentDetails,
+          image_url: imageUrl,
+          created_by: adminData?.id,
+          is_active: true
+        });
+        
+        if (insertError) throw insertError;
+        
+        await logAdminAction('CREATE', 'event', null, { title });
+        Swal.fire('Success', 'Event created', 'success').then(() => {
+          bootstrap.Modal.getInstance(document.getElementById('addEventModal')).hide();
+          document.getElementById('addEventForm').reset();
+          loadEvents();
+          loadDashboardStats();
+        });
+        
+      } catch (err) {
+        Swal.fire('Error', err.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Create Event';
+      }
+    });
+    
+    // ============================================
+    // PAST QUESTIONS (with File Upload)
+    // ============================================
+
+    document.getElementById('addQuestionForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const session = await checkAuth();
+      if (!session) return;
+
+      const courseCode = document.getElementById('q-course-code').value.trim();
+      const courseName = document.getElementById('q-course-name').value.trim();
+      const level = document.getElementById('q-level').value;
+      const semester = document.getElementById('q-semester').value;
+      const title = document.getElementById('q-title').value.trim();
+      const fileInput = document.getElementById('q-file');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        Swal.fire('Error', 'Please select a file to upload', 'error');
+        return;
+      }
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading...';
+
+      try {
+        console.log('Starting past question upload:', { courseCode, fileName: file.name });
+
+        // 1. Upload to Storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `past_questions/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('nacos-assets')
+          .upload(fileName, file);
+        
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          throw new Error(`Upload failed: ${uploadError.message}`);
+        }
+
+        const { data: urlData } = supabase.storage.from('nacos-assets').getPublicUrl(fileName);
+        const fileUrl = urlData.publicUrl;
+
+        // 2. Get Admin ID
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+
+        // 3. Insert into Database
+        const { error: insertError } = await supabase.from('past_questions').insert({
+          title,
+          course_code: courseCode,
+          course_name: courseName,
+          level,
+          semester,
+          file_url: fileUrl,
+          file_type: fileExt,
+          uploaded_by: adminData?.id
+        });
+
+        if (insertError) {
+          console.error('Database insert error:', insertError);
+          throw new Error(`Database save failed: ${insertError.message}`);
+        }
+
+        await logAdminAction('CREATE', 'past_question', null, { courseCode, title });
+        
+        Swal.fire('Success', 'Past question uploaded successfully!', 'success').then(() => {
+          bootstrap.Modal.getInstance(document.getElementById('addQuestionModal')).hide();
+          e.target.reset();
+          loadPastQuestions();
+          loadDashboardStats();
+        });
+
+      } catch (err) {
+        console.error('Full upload process error:', err);
+        Swal.fire('Error', err.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Upload';
+      }
+    });
+
+    // ============================================
+    // TIMETABLES (with File Upload)
+    // ============================================
+
+    document.getElementById('addTimetableForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const session = await checkAuth();
+      if (!session) return;
+
+      const title = document.getElementById('t-title').value.trim();
+      const version = document.getElementById('t-version').value.trim();
+      const description = document.getElementById('t-description').value.trim();
+      const isCurrent = document.getElementById('t-current').value === 'true';
+      const fileInput = document.getElementById('t-file');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        Swal.fire('Error', 'Please select a file to upload', 'error');
+        return;
+      }
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading...';
+
+      try {
+        console.log('Starting timetable upload:', { title, version });
+
+        // 1. Upload to Storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `timetables/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('nacos-assets')
+          .upload(fileName, file);
+        
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          throw new Error(`Upload failed: ${uploadError.message}`);
+        }
+
+        const { data: urlData } = supabase.storage.from('nacos-assets').getPublicUrl(fileName);
+        const fileUrl = urlData.publicUrl;
+
+        // 2. Get Admin ID
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+
+        // 3. If setting as current, unset others
+        if (isCurrent) {
+          await supabase.from('timetables').update({ is_current: false }).eq('is_current', true);
+        }
+
+        // 4. Insert into Database
+        const { error: insertError } = await supabase.from('timetables').insert({
+          title,
+          version,
+          description,
+          file_url: fileUrl,
+          is_current: isCurrent,
+          uploaded_by: adminData?.id
+        });
+
+        if (insertError) {
+          console.error('Database insert error:', insertError);
+          throw new Error(`Database save failed: ${insertError.message}`);
+        }
+
+        await logAdminAction('CREATE', 'timetable', null, { title, version });
+        
+        Swal.fire('Success', 'Timetable uploaded successfully!', 'success').then(() => {
+          bootstrap.Modal.getInstance(document.getElementById('addTimetableModal')).hide();
+          e.target.reset();
+          loadTimetables();
+          loadDashboardStats();
+        });
+
+      } catch (err) {
+        console.error('Full upload process error:', err);
+        Swal.fire('Error', err.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Upload';
+      }
+    });
+
+    // ============================================
+    // ACADEMIC RESOURCES
+    // ============================================
+
+    document.getElementById('addResourceForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const session = await checkAuth();
+      if (!session) return;
+
+      const title = document.getElementById('r-title').value.trim();
+      const resourceType = document.getElementById('r-type').value;
+      const url = document.getElementById('r-url').value.trim();
+      const category = document.getElementById('r-category').value;
+      const description = document.getElementById('r-description').value.trim();
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Adding...';
+
+      try {
+        console.log('Adding academic resource:', { title, resourceType });
+
+        // 1. Get Admin ID
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+
+        // 2. Insert into Database
+        const { error: insertError } = await supabase.from('academic_resources').insert({
+          title,
+          resource_type: resourceType,
+          url,
+          category,
+          description,
+          uploaded_by: adminData?.id
+        });
+
+        if (insertError) {
+          console.error('Database insert error:', insertError);
+          throw new Error(`Database save failed: ${insertError.message}`);
+        }
+
+        await logAdminAction('CREATE', 'academic_resource', null, { title });
+        
+        Swal.fire('Success', 'Resource added successfully!', 'success').then(() => {
+          bootstrap.Modal.getInstance(document.getElementById('addResourceModal')).hide();
+          e.target.reset();
+          loadResources();
+          loadDashboardStats();
+        });
+
+      } catch (err) {
+        console.error('Resource add error:', err);
+        Swal.fire('Error', err.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Add Resource';
+      }
+    });
+
+    // ============================================
+    // STUDENT VERIFICATION
+    // ============================================
+    
+    let currentStudentFilter = 'pending';
+    
+    async function loadStudents(filter = 'pending') {
+      currentStudentFilter = filter;
+      let query = supabase.from('students').select('*').order('created_at', { ascending: false });
+      
+      if (filter !== 'all') {
+        query = query.eq('status', filter);
+      }
+      
+      const { data, error } = await query;
+      const tbody = document.getElementById('students-table-body');
+      
+      if (error || !data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No ${filter} students found</td</tr>`;
+        return;
+      }
+      
+      tbody.innerHTML = data.map(s => {
+        let badgeClass = 'bg-warning';
+        if (s.status === 'approved') badgeClass = 'bg-success';
+        if (s.status === 'rejected') badgeClass = 'bg-danger';
+        
+        return `
+          <tr>
+            <td><strong>${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</strong></td>
+            <td>${escapeHtml(s.email)}</td>
+            <td>${escapeHtml(s.matric_number)}</td>
+            <td>${escapeHtml(s.department)}</td>
+            <td><span class="badge ${badgeClass}">${s.status || 'pending'}</span></td>
+            <td>
+              ${(!s.status || s.status === 'pending') ? `
+                <button class="btn btn-sm btn-success me-1" onclick="verifyStudent('${s.user_id}', true)"><i class="bi bi-check"></i> Approve</button>
+                <button class="btn btn-sm btn-danger" onclick="verifyStudent('${s.user_id}', false)"><i class="bi bi-x"></i> Reject</button>
+              ` : `
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s.user_id}')"><i class="bi bi-trash"></i></button>
+              `}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    window.verifyStudent = async function(userId, approved) {
+      const status = approved ? 'approved' : 'rejected';
+      const { error } = await supabase.from('students').update({ status }).eq('user_id', userId);
+      
+      if (error) {
+        Swal.fire('Error', 'Failed to update student status', 'error');
+      } else {
+        await logAdminAction('VERIFY_STUDENT', 'students', userId, { status });
+        Swal.fire('Success', `Student ${status}`, 'success');
+        loadStudents(currentStudentFilter);
+        loadDashboardStats();
+      }
+    };
+    
+    window.deleteStudent = async function(userId) {
+      const result = await Swal.fire({
+        title: 'Delete Student?',
+        text: 'This will permanently remove the student profile.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Delete'
+      });
+      
+      if (!result.isConfirmed) return;
+      
+      const { error } = await supabase.from('students').delete().eq('user_id', userId);
+      if (error) {
+        Swal.fire('Error', 'Failed to delete student', 'error');
+      } else {
+        await logAdminAction('DELETE_STUDENT', 'students', userId);
+        Swal.fire('Deleted', 'Student removed', 'success');
+        loadStudents(currentStudentFilter);
+        loadDashboardStats();
+      }
+    };
+    
+    // Initialize student filter buttons
+    document.querySelectorAll('[data-student-filter]').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-student-filter]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        loadStudents(this.dataset.studentFilter);
+      });
+    });
+    
+    // ============================================
+    // LOAD OTHER DATA (Simplified)
+    // ============================================
+    
+    async function loadPastQuestions() {
+      const { data, error } = await supabase.from('past_questions').select('*').order('created_at', { ascending: false });
+      const tbody = document.getElementById('questions-table-body');
+      if (error || !data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No past questions</td</tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(q => `
+        <tr>
+          <td><strong>${escapeHtml(q.course_code)}</strong></td>
+          <td>${escapeHtml(q.course_name)}</td>
+          <td><span class="badge-category">${q.level} Level</span></td>
+          <td>${q.semester}</td>
+          <td><a href="${escapeHtml(q.file_url)}" target="_blank" class="btn btn-sm btn-outline-primary">View</a></td>
+          <td><button class="btn btn-sm btn-outline-danger" onclick="deletePastQuestion('${q.id}')"><i class="bi bi-trash"></i></button></td>
+        </tr>
+      `).join('');
+    }
+    
+    window.deletePastQuestion = async function(id) {
+      const result = await Swal.fire({ title: 'Delete?', text: 'Cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Delete' });
+      if (!result.isConfirmed) return;
+      const { error } = await supabase.from('past_questions').delete().eq('id', id);
+      if (error) Swal.fire('Error', 'Failed to delete', 'error');
+      else { loadPastQuestions(); loadDashboardStats(); }
+    };
+    
+    async function loadTimetables() {
+      const { data, error } = await supabase.from('timetables').select('*').order('created_at', { ascending: false });
+      const tbody = document.getElementById('timetables-table-body');
+      if (error || !data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No timetables</td</tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(t => `
+        <tr>
+          <td>${escapeHtml(t.title)}</td>
+          <td><span class="badge-category">${escapeHtml(t.version)}</span></td>
+          <td>${t.is_current ? '<span class="badge bg-success">Current</span>' : ''}</td>
+          <td><a href="${escapeHtml(t.file_url)}" target="_blank" class="btn btn-sm btn-outline-primary">View</a></td>
+          <td><button class="btn btn-sm btn-outline-danger" onclick="deleteTimetable('${t.id}')"><i class="bi bi-trash"></i></button></td>
+        </tr>
+      `).join('');
+    }
+    
+    window.deleteTimetable = async function(id) {
+      const result = await Swal.fire({ title: 'Delete?', text: 'Cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Delete' });
+      if (!result.isConfirmed) return;
+      const { error } = await supabase.from('timetables').delete().eq('id', id);
+      if (error) Swal.fire('Error', 'Failed to delete', 'error');
+      else { loadTimetables(); loadDashboardStats(); }
+    };
+    
+    async function loadResources() {
+      const { data, error } = await supabase.from('academic_resources').select('*').order('created_at', { ascending: false });
+      const tbody = document.getElementById('resources-table-body');
+      if (error || !data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No resources</td</tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(r => `
+        <tr>
+          <td>${escapeHtml(r.title)}</td>
+          <td><span class="badge-category">${escapeHtml(r.resource_type)}</span></td>
+          <td><a href="${escapeHtml(r.url)}" target="_blank" class="text-truncate" style="max-width:200px;">${escapeHtml(r.url)}</a></td>
+          <td><button class="btn btn-sm btn-outline-danger" onclick="deleteResource('${r.id}')"><i class="bi bi-trash"></i></button></td>
+        </tr>
+      `).join('');
+    }
+    
+    window.deleteResource = async function(id) {
+      const result = await Swal.fire({ title: 'Delete?', text: 'Cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Delete' });
+      if (!result.isConfirmed) return;
+      const { error } = await supabase.from('academic_resources').delete().eq('id', id);
+      if (error) Swal.fire('Error', 'Failed to delete', 'error');
+      else { loadResources(); loadDashboardStats(); }
+    };
+    
+    async function loadCareerPaths() {
+      const { data, error } = await supabase.from('career_paths').select('*').order('created_at', { ascending: false });
+      const tbody = document.getElementById('careers-table-body');
+      if (error || !data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No career paths</td</tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(c => `
+        <tr>
+          <td><code>${escapeHtml(c.path_key)}</code></td>
+          <td><strong>${escapeHtml(c.title)}</strong></td>
+          <td>${escapeHtml(c.overview?.substring(0, 100) || '')}</td>
+          <td><button class="btn btn-sm btn-outline-danger" onclick="deleteCareerPath('${c.id}')"><i class="bi bi-trash"></i></button></td>
+        </tr>
+      `).join('');
+    }
+    
+    window.deleteCareerPath = async function(id) {
+      const result = await Swal.fire({ title: 'Delete?', text: 'Cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Delete' });
+      if (!result.isConfirmed) return;
+      const { error } = await supabase.from('career_paths').delete().eq('id', id);
+      if (error) Swal.fire('Error', 'Failed to delete', 'error');
+      else { loadCareerPaths(); loadDashboardStats(); }
+    };
+    
+    async function loadPayments() {
+      const { data, error } = await supabase.from('payment_verification').select('*, students(name, matric_no), events(title)').order('created_at', { ascending: false });
+      const tbody = document.getElementById('payments-table-body');
+      if (error || !data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No payments</td</tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(p => `
+        <tr>
+          <td>${escapeHtml(p.students?.name || 'N/A')}<br><small>${escapeHtml(p.students?.matric_no || '')}</small></td>
+          <td>${escapeHtml(p.events?.title || 'N/A')}</td>
+          <td>₦${Number(p.amount).toLocaleString()}</td>
+          <td><code>${escapeHtml(p.payment_reference)}</code></td>
+          <td><span class="badge ${p.status === 'verified' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : 'bg-warning'}">${p.status}</span></td>
+          <td>${p.status === 'pending' ? `<button class="btn btn-sm btn-success" onclick="verifyPayment('${p.id}', true)">Approve</button>` : ''}</td>
+        </tr>
+      `).join('');
+    }
+    
+    window.verifyPayment = async function(id, approved) {
+      const status = approved ? 'verified' : 'rejected';
+      const { error } = await supabase.from('payment_verification').update({ status }).eq('id', id);
+      if (error) Swal.fire('Error', 'Failed to update', 'error');
+      else { Swal.fire('Success', `Payment ${status}`, 'success'); loadPayments(); loadDashboardStats(); }
+    };
+    
+    // ============================================
+    // NAVIGATION & LOGOUT
+    // ============================================
+    
+    function showSection(section) {
+      document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      
+      const sectionEl = document.getElementById(`${section}-section`);
+      if (sectionEl) sectionEl.style.display = 'block';
+      
+      const navLink = document.querySelector(`.nav-link[data-section="${section}"]`);
+      if (navLink) navLink.classList.add('active');
+      
+      const titles = { dashboard: 'Dashboard', 'past-questions': 'Past Questions', timetables: 'Timetables', resources: 'Resources', 'career-paths': 'Career Paths', events: 'Events', payments: 'Payments', students: 'Student Verification' };
+      document.getElementById('page-title').textContent = titles[section] || section;
+    }
+    
+    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        showSection(link.dataset.section);
+      });
+    });
+    
+    document.getElementById('menu-toggle')?.addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('show');
+    });
+    
+    document.getElementById('logout-btn')?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const result = await Swal.fire({ title: 'Logout?', text: 'Are you sure?', icon: 'question', showCancelButton: true, confirmButtonText: 'Logout' });
+      if (result.isConfirmed) {
+        await signOut('admin-login.html');
+      }
+    });
+    
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    
+    async function init() {
+      const isAdmin = await requireAdmin();
+      if (!isAdmin) return;
+      
+      resetSessionTimeout();
+      
+      await Promise.all([
+        loadDashboardStats(),
+        loadPastQuestions(),
+        loadTimetables(),
+        loadResources(),
+        loadCareerPaths(),
+        loadEvents(),
+        loadPayments(),
+        loadStudents('pending')
+      ]);
+    }
+    
+    init();
+    
+  </script>
+</body>
+</html>

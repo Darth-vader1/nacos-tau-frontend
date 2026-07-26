@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Career Paths - NACOS | Thomas Adewumi University</title>
+  <meta name="description" content="Explore structured career guides in tech: Backend Engineering, Frontend Development, Graphics Design, Cybersecurity, AI/ML and more for Computer Science students">
+  <meta name="keywords" content="career paths, backend, frontend, cybersecurity, AI/ML, graphics design, tech careers, NACOS, TAU">
+
+  <!-- Favicons -->
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    .career-card {
+      border: none;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transition: transform 0.3s, box-shadow 0.3s;
+      overflow: hidden;
+      cursor: pointer;
+      height: 100%;
+    }
+    .career-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+    }
+    .career-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 20px;
+      transition: transform 0.3s;
+    }
+    .career-card:hover .career-icon {
+      transform: scale(1.05);
+    }
+    .skill-tag {
+      background: #e8f5e9;
+      color: #1b8c0c;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      margin: 3px;
+      display: inline-block;
+    }
+    .tool-tag {
+      background: #e3f2fd;
+      color: #1976d2;
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      margin: 3px;
+      display: inline-block;
+    }
+    .coming-soon {
+      background: linear-gradient(135deg, #1b8c0c 0%, #2d9b0f 100%);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 25px;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-block;
+    }
+    .roadmap-step {
+      position: relative;
+      padding-left: 45px;
+      margin-bottom: 25px;
+    }
+    .roadmap-number {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .roadmap-line {
+      position: absolute;
+      left: 15px;
+      top: 32px;
+      bottom: -25px;
+      width: 2px;
+      background: #e0e0e0;
+    }
+    .roadmap-step:last-child .roadmap-line {
+      display: none;
+    }
+    .spinner-border {
+      display: inline-block;
+      width: 2rem;
+      height: 2rem;
+      border: 0.25em solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spinner-border 0.75s linear infinite;
+    }
+    @keyframes spinner-border {
+      to { transform: rotate(360deg); }
+    }
+    .loading-skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+      border-radius: 20px;
+      height: 280px;
+    }
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .back-to-top {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: #1b8c0c;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 999;
+    }
+    .back-to-top.show {
+      opacity: 1;
+    }
+    .back-to-top:hover {
+      background: #0d5c08;
+    }
+    .breadcrumb-item a {
+      text-decoration: none;
+      color: #1b8c0c;
+    }
+    .breadcrumb-item.active {
+      color: #666;
+    }
+    .resource-link {
+      transition: all 0.2s;
+    }
+    .resource-link:hover {
+      background-color: #f8f9fa;
+      padding-left: 8px;
+    }
+  </style>
+</head>
+
+<body class="index-page">
+
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center" style="width: 100%; display: flex; justify-content: space-around;">
+      <a href="index.html" class="logo d-flex align-items-center me-auto">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
+        <h1 class="sitename"><span style="color: #1b8c0c;">NACOS</span><br><strong style="font-size: 12px;">Thomas Adewumi University</strong></h1>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="past-questions.html">Past Questions</a></li>
+          <li><a href="timetables.html">Timetables</a></li>
+          <li><a href="resources.html">Resources</a></li>
+          <li><a href="career-paths.html" class="active">Career Paths</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <section id="hero" class="hero section" style="padding-top: 120px;">
+      <div class="container">
+        <div class="section-title" data-aos="fade-up">
+          <h2>Career Paths</h2>
+          <p>Explore structured guides for different technology career paths</p>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="row mb-4" data-aos="fade-up">
+          <div class="col-md-6 mx-auto">
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0 rounded-start-pill"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control search-box border-start-0 rounded-end-pill" id="searchInput" placeholder="Search career paths..." style="border-radius: 0 50px 50px 0; padding: 12px 20px;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Career Cards Container -->
+        <div class="row g-4" id="careerPathsContainer" data-aos="fade-up">
+          <!-- Skeleton loaders will appear here -->
+        </div>
+
+        <!-- Career Detail View (initially hidden) -->
+        <div id="careerDetail" style="display: none;" class="mt-4">
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="#" onclick="hideCareerDetail(); return false;">Career Paths</a></li>
+              <li class="breadcrumb-item active" id="breadcrumbTitle">Career Details</li>
+            </ol>
+          </nav>
+          
+          <div class="card">
+            <div class="card-body p-4" id="careerContent">
+              <!-- Dynamic content will be inserted here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer" class="footer">
+    <div class="container">
+      <div class="row gy-4">
+        <div class="col-lg-6">
+          <div class="footer-contact pt-3">
+            <h4>Contact Us</h4>
+            <p>Thomas Adewumi University, Oko-Irese, Kwara State</p>
+            <p>Email: nacos@tau.edu.ng</p>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="footer-links pt-3">
+            <h4>Quick Links</h4>
+            <a href="index.html">Home</a>
+            <a href="past-questions.html">Past Questions</a>
+            <a href="timetables.html">Timetables</a>
+            <a href="resources.html">Resources</a>
+            <a href="career-paths.html">Career Paths</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Back to Top Button -->
+  <div class="back-to-top" id="backToTop">
+    <i class="bi bi-arrow-up"></i>
+  </div>
+<!--Vendor Js files-->
+  <script src="assets/js/api-config.js"></script>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/env.js"></script>
+  <script src="config.local.js"></script>
+  <script type="module" src="assets/js/supabase-config.js"></script>
+
+
+
+  <script type="module">
+    import { supabase } from './assets/js/supabase-config.js';
+  import { requireStudentAuth } from './assets/js/auth-check.js';
+  requireStudentAuth();
+
+
+
+    // ============================================
+    // CONFIGURATION
+    // ============================================
+    const defaultRoadmap = [
+      { step: 1, title: 'Getting Started', description: 'Learn the fundamentals and prerequisites' },
+      { step: 2, title: 'Core Concepts', description: 'Master the essential concepts and best practices' },
+      { step: 3, title: 'Build Projects', description: 'Apply your knowledge to real-world projects' },
+      { step: 4, title: 'Advanced Topics', description: 'Level up your skills with advanced concepts' },
+      { step: 5, title: 'Career Ready', description: 'Prepare for job interviews and employment' }
+    ];
+
+    // Career path metadata
+    const careerMetadata = {
+      backend: { 
+        title: 'Backend Engineering', 
+        icon: 'bi-server', 
+        color: '#1b8c0c', 
+        bgColor: '#e8f5e9',
+        description: 'Build the backbone of web applications, handling server logic, databases, and APIs.'
+      },
+      frontend: { 
+        title: 'Frontend Development', 
+        icon: 'bi-browser-chrome', 
+        color: '#1976d2', 
+        bgColor: '#e3f2fd',
+        description: 'Create beautiful, responsive user interfaces that users interact with directly.'
+      },
+      graphics: { 
+        title: 'Graphics Design', 
+        icon: 'bi-palette', 
+        color: '#7b1fa2', 
+        bgColor: '#f3e5f5',
+        description: 'Create visual content for brands, websites, and marketing materials.'
+      },
+      cybersecurity: { 
+        title: 'Cybersecurity', 
+        icon: 'bi-shield-lock', 
+        color: '#c62828', 
+        bgColor: '#ffebee',
+        description: 'Protect systems, networks, and data from digital attacks and unauthorized access.'
+      },
+      aiml: { 
+        title: 'AI / Machine Learning', 
+        icon: 'bi-robot', 
+        color: '#f57c00', 
+        bgColor: '#fff3e0',
+        description: 'Build intelligent systems that learn from data and make predictions.'
+      }
+    };
+
+    // ============================================
+    // STATE VARIABLES
+    // ============================================
+    let allCareers = [];
+    let filteredCareers = [];
+    let currentSearchTerm = '';
+    let isLoading = false;
+    let searchDebounceTimer = null;
+
+    // ============================================
+    // DOM ELEMENTS
+    // ============================================
+    const container = document.getElementById('careerPathsContainer');
+    const searchInput = document.getElementById('searchInput');
+    const careerDetailDiv = document.getElementById('careerDetail');
+    const careerContentDiv = document.getElementById('careerContent');
+    const breadcrumbTitle = document.getElementById('breadcrumbTitle');
+    const backToTop = document.getElementById('backToTop');
+
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check URL for career path parameter (deep linking)
+      const urlParams = new URLSearchParams(window.location.search);
+      const careerParam = urlParams.get('path');
+      if (careerParam) {
+        // Will load after data is fetched
+        loadCareerPaths(careerParam);
+      } else {
+        loadCareerPaths();
+      }
+      initSearch();
+      initBackToTop();
+      initAOS();
+    });
+
+    function initAOS() {
+      AOS.init({
+        duration: 800,
+        once: true,
+        offset: 100
+      });
+    }
+
+    function initBackToTop() {
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+          backToTop.classList.add('show');
+        } else {
+          backToTop.classList.remove('show');
+        }
+      });
+      
+      backToTop.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    // ============================================
+    // LOAD CAREER PATHS FROM SUPABASE
+    // ============================================
+    async function loadCareerPaths(highlightPath = null) {
+      showSkeletonLoaders();
+      isLoading = true;
+
+      try {
+        const { data, error } = await supabase
+          .from('career_paths')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        allCareers = data || [];
+        applySearchAndRender();
+        
+        // If there's a career path in URL, show it
+        if (highlightPath && allCareers.find(c => c.path_key === highlightPath)) {
+          showCareerDetail(highlightPath);
+        }
+        
+        // Track page view
+        trackPageView();
+        
+      } catch (error) {
+        console.error('Error loading career paths:', error);
+        container.innerHTML = `
+          <div class="col-12 text-center py-5">
+            <i class="bi bi-exclamation-triangle" style="font-size: 64px; color: #dc3545;"></i>
+            <h4 class="mt-3 text-danger">Failed to Load Career Paths</h4>
+            <p class="text-muted">Please check your internet connection and try again.</p>
+            <button class="btn btn-primary mt-3" onclick="location.reload()" style="background-color: #1b8c0c; border-color: #1b8c0c;">
+              <i class="bi bi-arrow-repeat me-2"></i>Retry
+            </button>
+          </div>
+        `;
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    function showSkeletonLoaders() {
+      const skeletons = Array(6).fill(0).map(() => `
+        <div class="col-lg-4 col-md-6">
+          <div class="loading-skeleton"></div>
+        </div>
+      `).join('');
+      container.innerHTML = skeletons;
+    }
+
+    // ============================================
+    // SEARCH FUNCTIONALITY
+    // ============================================
+    function initSearch() {
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+          currentSearchTerm = searchInput.value.trim().toLowerCase();
+          applySearchAndRender();
+        }, 300);
+      });
+    }
+
+    function applySearchAndRender() {
+      if (!currentSearchTerm) {
+        filteredCareers = [...allCareers];
+      } else {
+        filteredCareers = allCareers.filter(career =>
+          career.title?.toLowerCase().includes(currentSearchTerm) ||
+          career.overview?.toLowerCase().includes(currentSearchTerm) ||
+          career.path_key?.toLowerCase().includes(currentSearchTerm) ||
+          (career.skills_required && career.skills_required.some(skill => 
+            skill.toLowerCase().includes(currentSearchTerm))) ||
+          (career.tools_technologies && career.tools_technologies.some(tool => 
+            tool.toLowerCase().includes(currentSearchTerm)))
+        );
+      }
+      
+      renderCareerCards();
+    }
+
+    // ============================================
+    // RENDER CAREER CARDS
+    // ============================================
+    function renderCareerCards() {
+      if (filteredCareers.length === 0) {
+        container.innerHTML = `
+          <div class="col-12 text-center py-5">
+            <i class="bi bi-folder-x" style="font-size: 64px; color: #ccc;"></i>
+            <h4 class="mt-3">No Career Paths Found</h4>
+            <p class="text-muted">Try a different search term or check back later for more paths.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filteredCareers.map(career => {
+        const meta = careerMetadata[career.path_key] || {
+          title: career.title,
+          icon: 'bi-rocket',
+          color: '#666',
+          bgColor: '#f0f0f0'
+        };
+        
+        const skills = career.skills_required || [];
+        
+        return `
+          <div class="col-lg-4 col-md-6">
+            <div class="card career-card" onclick="window.showCareerDetail('${career.path_key}')">
+              <div class="card-body text-center p-4">
+                <div class="career-icon" style="background: ${meta.bgColor}; color: ${meta.color};">
+                  <i class="bi ${meta.icon}"></i>
+                </div>
+                <h5 class="card-title mt-2">${escapeHtml(career.title)}</h5>
+                <p class="card-text text-muted small mb-3">${escapeHtml(career.overview?.substring(0, 100) || '')}${(career.overview?.length || 0) > 100 ? '...' : ''}</p>
+                <div class="mb-3">
+                  ${skills.slice(0, 3).map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('')}
+                  ${skills.length > 3 ? `<span class="skill-tag">+${skills.length - 3}</span>` : ''}
+                </div>
+                <span class="coming-soon">
+                  <i class="bi bi-arrow-right me-1"></i>Explore Path
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ============================================
+    // CAREER DETAIL VIEW
+    // ============================================
+    window.showCareerDetail = function(pathKey) {
+      const career = allCareers.find(c => c.path_key === pathKey);
+      if (!career) return;
+
+      const meta = careerMetadata[pathKey] || {
+        title: career.title,
+        icon: 'bi-rocket',
+        color: '#666',
+        bgColor: '#f0f0f0'
+      };
+
+      const skills = career.skills_required || [];
+      const tools = career.tools_technologies || [];
+      const resources = career.external_resources || [];
+      
+      // Parse roadmap if it's a string, otherwise use default
+      let roadmap = defaultRoadmap;
+      if (career.learning_roadmap) {
+        try {
+          const parsedRoadmap = typeof career.learning_roadmap === 'string' 
+            ? JSON.parse(career.learning_roadmap) 
+            : career.learning_roadmap;
+          if (Array.isArray(parsedRoadmap) && parsedRoadmap.length > 0) {
+            roadmap = parsedRoadmap;
+          }
+        } catch (e) {
+          console.warn('Invalid roadmap JSON, using default');
+        }
+      }
+
+      // Update breadcrumb
+      breadcrumbTitle.textContent = career.title;
+
+      // Render detail view
+      careerContentDiv.innerHTML = `
+        <div class="text-center mb-4">
+          <div class="career-icon" style="background: ${meta.bgColor}; color: ${meta.color}; width: 100px; height: 100px; font-size: 48px; margin: 0 auto;">
+            <i class="bi ${meta.icon}"></i>
+          </div>
+          <h2 class="mt-3">${escapeHtml(career.title)}</h2>
+          <p class="text-muted">${escapeHtml(meta.description || '')}</p>
+        </div>
+
+        <div class="row">
+          <div class="col-lg-8">
+            <div class="card mb-4">
+              <div class="card-body">
+                <h4 class="mb-3"><i class="bi bi-info-circle me-2"></i>Overview</h4>
+                <p class="text-muted">${escapeHtml(career.overview || 'No overview available.')}</p>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body">
+                <h4 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>Learning Roadmap</h4>
+                <div class="roadmap">
+                  ${roadmap.map((item, index) => `
+                    <div class="roadmap-step">
+                      <div class="roadmap-number" style="background: ${meta.color}; color: white;">
+                        ${item.step || index + 1}
+                      </div>
+                      <div class="roadmap-line" style="background: ${meta.color}20;"></div>
+                      <h6 class="mb-1">${escapeHtml(item.title)}</h6>
+                      <p class="text-muted small mb-0">${escapeHtml(item.description || item.desc || '')}</p>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4">
+            <div class="card mb-4">
+              <div class="card-body">
+                <h4 class="mb-3"><i class="bi bi-trophy me-2"></i>Skills Required</h4>
+                <div>
+                  ${skills.length > 0 
+                    ? skills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('') 
+                    : '<p class="text-muted small mb-0">No skills listed</p>'}
+                </div>
+              </div>
+            </div>
+
+            <div class="card mb-4">
+              <div class="card-body">
+                <h4 class="mb-3"><i class="bi bi-wrench me-2"></i>Tools & Technologies</h4>
+                <div>
+                  ${tools.length > 0 
+                    ? tools.map(t => `<span class="tool-tag">${escapeHtml(t)}</span>`).join('') 
+                    : '<p class="text-muted small mb-0">No tools listed</p>'}
+                </div>
+              </div>
+            </div>
+
+            ${resources.length > 0 ? `
+              <div class="card">
+                <div class="card-body">
+                  <h4 class="mb-3"><i class="bi bi-link-45deg me-2"></i>External Resources</h4>
+                  <div class="list-group list-group-flush">
+                    ${resources.map(r => `
+                      <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="list-group-item list-group-item-action resource-link" onclick="event.stopPropagation(); trackResourceClick('${escapeHtml(career.path_key)}', '${escapeHtml(r.name)}')">
+                        <i class="bi bi-box-arrow-up-right me-2" style="color: ${meta.color};"></i>
+                        ${escapeHtml(r.name)}
+                      </a>
+                    `).join('')}
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+
+      // Hide container, show detail
+      container.style.display = 'none';
+      careerDetailDiv.style.display = 'block';
+      
+      // Update URL without reload
+      const url = new URL(window.location);
+      url.searchParams.set('path', pathKey);
+      window.history.pushState({}, '', url);
+      
+      // Scroll to top
+      window.scrollTo({ top: 300, behavior: 'smooth' });
+      
+      // Track career view
+      trackCareerView(pathKey, career.title);
+    };
+
+    // Make function global for onclick
+    window.showCareerDetail = showCareerDetail;
+
+    window.hideCareerDetail = function() {
+      careerDetailDiv.style.display = 'none';
+      container.style.display = 'block';
+      
+      // Remove from URL
+      const url = new URL(window.location);
+      url.searchParams.delete('path');
+      window.history.pushState({}, '', url);
+      
+      // Refresh AOS for new elements
+      AOS.refresh();
+    };
+
+    // ============================================
+    // TRACKING FUNCTIONS
+    // ============================================
+    function trackCareerView(pathKey, title) {
+      try {
+        const views = JSON.parse(localStorage.getItem('career_views') || '{}');
+        views[pathKey] = views[pathKey] || { count: 0, title: title };
+        views[pathKey].count++;
+        views[pathKey].lastView = new Date().toISOString();
+        localStorage.setItem('career_views', JSON.stringify(views));
+        
+        console.log(`Career viewed: ${title} (${pathKey})`);
+      } catch (error) {
+        console.error('Tracking error:', error);
+      }
+    }
+
+    window.trackResourceClick = function(pathKey, resourceName) {
+      try {
+        const clicks = JSON.parse(localStorage.getItem('career_resource_clicks') || '{}');
+        const key = `${pathKey}_${resourceName}`;
+        clicks[key] = clicks[key] || { count: 0, path: pathKey, resource: resourceName };
+        clicks[key].count++;
+        clicks[key].lastClick = new Date().toISOString();
+        localStorage.setItem('career_resource_clicks', JSON.stringify(clicks));
+        
+        console.log(`Resource clicked: ${resourceName} for ${pathKey}`);
+      } catch (error) {
+        console.error('Tracking error:', error);
+      }
+    };
+
+    function trackPageView() {
+      console.log(`Career paths page viewed at ${new Date().toISOString()}`);
+    }
+
+    // ============================================
+    // UTILITIES
+    // ============================================
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const careerParam = urlParams.get('path');
+      if (careerParam && allCareers.find(c => c.path_key === careerParam)) {
+        showCareerDetail(careerParam);
+      } else {
+        if (careerDetailDiv.style.display === 'block') {
+          hideCareerDetail();
+        }
+      }
+    });
+
+    // Refresh data every 15 minutes
+    setInterval(() => {
+      if (!isLoading && careerDetailDiv.style.display !== 'block') {
+        loadCareerPaths();
+      }
+    }, 15 * 60 * 1000);
+
+  </script>
+</body>
+</html>

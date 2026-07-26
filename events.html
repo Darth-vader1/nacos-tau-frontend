@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Events - NACOS</title>
+  <meta name="description" content="View and register for NACOS events">
+  <meta name="keywords" content="">
+
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    .event-card {
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .event-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }
+    .event-image {
+      height: 200px;
+      object-fit: cover;
+      width: 100%;
+    }
+    .event-date-badge {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: #1b8c0c;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 8px;
+      text-align: center;
+      min-width: 60px;
+    }
+    .event-date-badge .day {
+      font-size: 24px;
+      font-weight: bold;
+      display: block;
+      line-height: 1;
+    }
+    .event-date-badge .month {
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .btn-register {
+      background: #1b8c0c;
+      border-color: #1b8c0c;
+      color: white;
+    }
+    .btn-register:hover {
+      background: #0d5c08;
+      border-color: #0d5c08;
+      color: white;
+    }
+    .spots-badge {
+      background: #e8f5e9;
+      color: #1b8c0c;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+    }
+    .payment-badge {
+      background: #fff3e0;
+      color: #f57c00;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body class="index-page">
+
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center" style="width: 100%; display: flex; justify-content: space-around;">
+      <a href="index.html" class="logo d-flex align-items-center me-auto">
+        <img src="assets/img/nacos logo.jpg" alt="">
+        <h1 class="sitename"><span style="color: #1b8c0c;">NACOS</span><br><strong style="font-size: 12px;">Thomas Adewumi University</strong></h1>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="past-questions.html">Past Questions</a></li>
+          <li><a href="timetables.html">Timetables</a></li>
+          <li><a href="resources.html">Resources</a></li>
+          <li><a href="career-paths.html">Career Paths</a></li>
+          <li><a href="events.html" class="active">Events</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <section id="hero" class="hero section" style="padding-top: 120px;">
+      <div class="container">
+        <div class="section-title" data-aos="fade-up">
+          <h2>Upcoming Events</h2>
+          <p>Register for events and get your tickets</p>
+        </div>
+
+        <div class="row g-4" id="eventsContainer" data-aos="fade-up">
+          <div class="col-12 text-center">
+            <p class="text-muted">Loading events...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="eventModalTitle">Event Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="eventModalBody">
+        </div>
+        <div class="modal-footer" id="eventModalFooter">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer id="footer" class="footer">
+    <div class="container">
+      <div class="row gy-4">
+        <div class="col-lg-6">
+          <div class="footer-contact pt-3">
+            <h4>Contact Us</h4>
+            <p>Thomas Adewumi University</p>
+            <p>Email: nacos@tau.edu.ng</p>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="footer-links pt-3">
+            <h4>Quick Links</h4>
+            <a href="index.html">Home</a>
+            <a href="past-questions.html">Past Questions</a>
+            <a href="events.html">Events</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/js/api-config.js"></script>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/env.js"></script>
+  <script src="config.local.js"></script>
+  <script type="module" src="assets/js/supabase-config.js"></script>
+
+  <script type="module">
+    import { supabase } from './assets/js/supabase-config.js';
+
+    let currentEvent = null;
+    let userSession = null;
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    document.addEventListener('DOMContentLoaded', async function() {
+      const { data: { session } } = await supabase.auth.getSession();
+      userSession = session;
+      await loadEvents();
+    });
+
+    async function getStudentId() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data } = await supabase
+        .from('students')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      return data;
+    }
+
+    async function loadEvents() {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('is_active', true)
+        .order('date', { ascending: true });
+
+      const container = document.getElementById('eventsContainer');
+
+      if (error || !data || data.length === 0) {
+        container.innerHTML = `
+          <div class="col-12 text-center">
+            <i class="bi bi-calendar-x" style="font-size: 64px; color: #ccc;"></i>
+            <p class="text-muted mt-3">No upcoming events at the moment</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = data.map(event => {
+        const eventDate = new Date(event.date);
+        const day = eventDate.getDate();
+        const month = monthNames[eventDate.getMonth()];
+        const spotsLeft = event.max_attendees ? event.max_attendees - event.current_attendees : 'Unlimited';
+
+        return `
+          <div class="col-lg-6">
+            <div class="card event-card position-relative">
+              ${event.image_url ? `<img src="${escapeHtml(event.image_url)}" class="event-image" alt="${escapeHtml(event.title)}">` : `
+                <div class="event-image d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #1b8c0c 0%, #2d9b0f 100%);">
+                  <i class="bi bi-calendar-event" style="font-size: 64px; color: white;"></i>
+                </div>
+              `}
+              <div class="event-date-badge">
+                <span class="day">${day}</span>
+                <span class="month">${month}</span>
+              </div>
+              <div class="card-body p-4">
+                <h5 class="card-title">${escapeHtml(event.title)}</h5>
+                <p class="card-text text-muted small">${escapeHtml(event.description || '').substring(0, 100)}${(event.description || '').length > 100 ? '...' : ''}</p>
+                <div class="mb-3">
+                  <span class="badge bg-secondary me-2"><i class="bi bi-clock me-1"></i>${event.time}</span>
+                  <span class="badge bg-secondary me-2"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(event.location || 'TBA')}</span>
+                  ${event.max_attendees ? `<span class="spots-badge"><i class="bi bi-people me-1"></i>${spotsLeft} spots left</span>` : ''}
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  ${event.requires_payment ? `<span class="payment-badge"><i class="bi bi-credit-card me-1"></i>₦${Number(event.payment_amount).toLocaleString()}</span>` : '<span class="badge bg-success">Free</span>'}
+                  <button class="btn btn-register btn-sm" onclick="showEventDetails('${event.id}')">
+                    View Details
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.showEventDetails = async function(eventId) {
+      const { data: event, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .single();
+
+      if (error || !event) {
+        Swal.fire('Error', 'Failed to load event details', 'error');
+        return;
+      }
+
+      currentEvent = event;
+      const eventDate = new Date(event.date);
+      const formattedDate = eventDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const spotsLeft = event.max_attendees ? event.max_attendees - event.current_attendees : null;
+
+      document.getElementById('eventModalTitle').textContent = event.title;
+
+      let bodyHtml = `
+        ${event.image_url ? `<img src="${escapeHtml(event.image_url)}" class="img-fluid mb-3 rounded" alt="${escapeHtml(event.title)}">` : ''}
+        <p class="text-muted">${escapeHtml(event.description || 'No description available.')}</p>
+        <div class="row mt-3">
+          <div class="col-6">
+            <p class="mb-1"><strong><i class="bi bi-calendar me-2"></i>Date</strong></p>
+            <p class="text-muted">${formattedDate}</p>
+          </div>
+          <div class="col-6">
+            <p class="mb-1"><strong><i class="bi bi-clock me-2"></i>Time</strong></p>
+            <p class="text-muted">${event.time}</p>
+          </div>
+          <div class="col-6">
+            <p class="mb-1"><strong><i class="bi bi-geo-alt me-2"></i>Location</strong></p>
+            <p class="text-muted">${escapeHtml(event.location || 'To be announced')}</p>
+          </div>
+          <div class="col-6">
+            <p class="mb-1"><strong><i class="bi bi-tag me-2"></i>Fee</strong></p>
+            <p class="text-muted">${event.requires_payment ? '₦' + Number(event.payment_amount).toLocaleString() : 'Free'}</p>
+          </div>
+          ${spotsLeft !== null ? `
+          <div class="col-12">
+            <p class="mb-1"><strong><i class="bi bi-people me-2"></i>Availability</strong></p>
+            <p class="text-muted">${spotsLeft} spots remaining</p>
+          </div>
+          ` : ''}
+          ${event.requires_payment && event.payment_details ? `
+          <div class="col-12">
+            <p class="mb-1"><strong><i class="bi bi-info-circle me-2"></i>Payment Details</strong></p>
+            <p class="text-muted">${escapeHtml(event.payment_details)}</p>
+          </div>
+          ` : ''}
+        </div>
+      `;
+
+      document.getElementById('eventModalBody').innerHTML = bodyHtml;
+
+      let footerHtml = '';
+      if (userSession) {
+        footerHtml = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`;
+
+        const student = await getStudentId();
+        const { data: registration } = await supabase
+          .from('event_registrations')
+          .select('*')
+          .eq('event_id', eventId)
+          .eq('student_id', student.id)
+          .single();
+
+        if (registration) {
+          footerHtml += `
+            <button class="btn btn-success" disabled>
+              <i class="bi bi-check-circle me-1"></i>Registered
+            </button>
+          `;
+        } else if (spotsLeft === null || spotsLeft > 0) {
+          footerHtml += `
+            <button type="button" class="btn btn-register" onclick="registerForEvent('${eventId}')">
+              ${event.requires_payment ? 'Register & Pay' : 'Register'}
+            </button>
+          `;
+        } else {
+          footerHtml += `
+            <button class="btn btn-danger" disabled>
+              <i class="bi bi-x-circle me-1"></i>Event Full
+            </button>
+          `;
+        }
+      } else {
+        footerHtml = `
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <a href="student-login.html" class="btn btn-register">
+            Sign In to Register
+          </a>
+        `;
+      }
+
+      document.getElementById('eventModalFooter').innerHTML = footerHtml;
+
+      new bootstrap.Modal(document.getElementById('eventModal')).show();
+    };
+
+    window.registerForEvent = async function(eventId) {
+      if (!userSession) {
+        window.location.href = 'student-login.html';
+        return;
+      }
+
+      const student = await getStudentId();
+      if (!student) {
+        Swal.fire('Error', 'Student profile not found', 'error');
+        return;
+      }
+
+      const ticketNumber = 'NACOS-' + eventId.substring(0, 4).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+
+      const { error } = await supabase.from('event_registrations').insert({
+        event_id: eventId,
+        student_id: student.id,
+        payment_status: currentEvent.requires_payment ? 'pending' : 'confirmed',
+        ticket_number: ticketNumber
+      });
+
+      if (error) {
+        if (error.code === '23505') {
+          Swal.fire('Info', 'You are already registered for this event', 'info');
+        } else {
+          Swal.fire('Error', 'Failed to register: ' + error.message, 'error');
+        }
+        return;
+      }
+
+      if (currentEvent.requires_payment) {
+        Swal.fire({
+          title: 'Registration Successful!',
+          html: `
+            <p>Your ticket number is:</p>
+            <h4 class="text-primary">${ticketNumber}</h4>
+            <p class="text-muted mt-3">Please proceed to make payment and upload proof of payment for verification.</p>
+          `,
+          icon: 'success',
+          confirmButtonText: 'OK'
+        }).then(() => {
+          bootstrap.Modal.getInstance(document.getElementById('eventModal')).hide();
+          window.location.href = 'student-dashboard.html';
+        });
+      } else {
+        Swal.fire({
+          title: 'Registration Successful!',
+          html: `
+            <p>Your ticket number is:</p>
+            <h4 class="text-primary">${ticketNumber}</h4>
+            <p class="text-muted mt-3">Show this ticket at the event entrance.</p>
+          `,
+          icon: 'success',
+          confirmButtonText: 'OK'
+        }).then(() => {
+          bootstrap.Modal.getInstance(document.getElementById('eventModal')).hide();
+          loadEvents();
+        });
+      }
+    };
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

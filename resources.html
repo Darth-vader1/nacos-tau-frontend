@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Academic Resources - NACOS | Thomas Adewumi University</title>
+  <meta name="description" content="Access curated links to tutorials, documentation, and learning materials for Computer Science students at Thomas Adewumi University">
+  <meta name="keywords" content="academic resources, tutorials, documentation, programming, database, networking, NACOS, TAU">
+
+  <!-- Favicons -->
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    .resource-card {
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+      transition: transform 0.3s, box-shadow 0.3s;
+      height: 100%;
+      cursor: pointer;
+    }
+    .resource-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    }
+    .resource-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+    .filter-btn {
+      border-radius: 25px;
+      padding: 8px 24px;
+      margin: 5px;
+      border: 1px solid #ddd;
+      background: white;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      background: #1b8c0c;
+      color: white;
+      border-color: #1b8c0c;
+    }
+    .type-badge {
+      background: #f0f0f0;
+      color: #333;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .category-badge {
+      background: #e8f5e9;
+      color: #1b8c0c;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .search-box {
+      border-radius: 50px;
+      padding: 14px 25px;
+      border: 1px solid #e0e0e0;
+      transition: all 0.3s;
+    }
+    .search-box:focus {
+      border-color: #1b8c0c;
+      box-shadow: 0 0 0 4px rgba(27, 140, 12, 0.1);
+      outline: none;
+    }
+    .spinner-border {
+      display: inline-block;
+      width: 2rem;
+      height: 2rem;
+      border: 0.25em solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spinner-border 0.75s linear infinite;
+    }
+    @keyframes spinner-border {
+      to { transform: rotate(360deg); }
+    }
+    .loading-skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s infinite;
+      border-radius: 16px;
+      height: 220px;
+    }
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .stats-badge {
+      background: #f8f9fa;
+      padding: 6px 16px;
+      border-radius: 25px;
+      font-size: 14px;
+      color: #666;
+    }
+    .pagination {
+      justify-content: center;
+      margin-top: 30px;
+    }
+    .pagination .page-link {
+      color: #1b8c0c;
+      border-radius: 8px;
+      margin: 0 3px;
+    }
+    .pagination .active .page-link {
+      background-color: #1b8c0c;
+      border-color: #1b8c0c;
+      color: white;
+    }
+    .pagination .page-link:hover {
+      background-color: #e8f5e9;
+      border-color: #1b8c0c;
+      color: #1b8c0c;
+    }
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .no-results i {
+      font-size: 64px;
+      color: #ccc;
+      margin-bottom: 20px;
+    }
+    .back-to-top {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: #1b8c0c;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 999;
+    }
+    .back-to-top.show {
+      opacity: 1;
+    }
+    .back-to-top:hover {
+      background: #0d5c08;
+    }
+  </style>
+</head>
+
+<body class="index-page">
+
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center" style="width: 100%; display: flex; justify-content: space-around;">
+      <a href="index.html" class="logo d-flex align-items-center me-auto">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
+        <h1 class="sitename"><span style="color: #1b8c0c;">NACOS</span><br><strong style="font-size: 12px;">Thomas Adewumi University</strong></h1>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="past-questions.html">Past Questions</a></li>
+          <li><a href="timetables.html">Timetables</a></li>
+          <li><a href="resources.html" class="active">Resources</a></li>
+          <li><a href="career-paths.html">Career Paths</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <section id="hero" class="hero section" style="padding-top: 120px;">
+      <div class="container">
+        <div class="section-title" data-aos="fade-up">
+          <h2>Academic Resources</h2>
+          <p>Curated links to tutorials, documentation, and learning materials</p>
+        </div>
+
+        <div class="row mb-4" data-aos="fade-up">
+          <div class="col-md-8 mx-auto">
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0 rounded-start-pill"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control search-box border-start-0 rounded-end-pill" id="searchInput" placeholder="Search by title, description, or category...">
+            </div>
+          </div>
+        </div>
+
+        <div class="row mb-4" data-aos="fade-up">
+          <div class="col-12 text-center">
+            <div class="d-flex flex-wrap justify-content-center">
+              <button class="filter-btn active" data-filter="all">All</button>
+              <button class="filter-btn" data-filter="Programming">💻 Programming</button>
+              <button class="filter-btn" data-filter="Database">🗄️ Database</button>
+              <button class="filter-btn" data-filter="Networking">🌐 Networking</button>
+              <button class="filter-btn" data-filter="Mathematics">📐 Mathematics</button>
+              <button class="filter-btn" data-filter="Web Development">🎨 Web Development</button>
+              <button class="filter-btn" data-filter="AI/ML">🤖 AI/ML</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mb-3" data-aos="fade-up">
+          <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span class="stats-badge" id="resultCount">Loading...</span>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-secondary" id="gridViewBtn" title="Grid View"><i class="bi bi-grid-3x3-gap-fill"></i></button>
+              <button class="btn btn-outline-secondary" id="listViewBtn" title="List View"><i class="bi bi-list-ul"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4" id="resourcesContainer" data-aos="fade-up">
+          <!-- Skeleton loaders will appear here -->
+        </div>
+
+        <!-- Pagination -->
+        <div class="row" data-aos="fade-up">
+          <div class="col-12">
+            <nav aria-label="Page navigation">
+              <ul class="pagination" id="pagination"></ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer" class="footer">
+    <div class="container">
+      <div class="row gy-4">
+        <div class="col-lg-6">
+          <div class="footer-contact pt-3">
+            <h4>Contact Us</h4>
+            <p>Thomas Adewumi University, Oko-Irese, Kwara State</p>
+            <p>Email: nacos@tau.edu.ng</p>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="footer-links pt-3">
+            <h4>Quick Links</h4>
+            <a href="index.html">Home</a>
+            <a href="past-questions.html">Past Questions</a>
+            <a href="timetables.html">Timetables</a>
+            <a href="resources.html">Resources</a>
+            <a href="career-paths.html">Career Paths</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Back to Top Button -->
+  <div class="back-to-top" id="backToTop">
+    <i class="bi bi-arrow-up"></i>
+  </div>
+
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/env.js"></script>
+  <script src="config.local.js"></script>
+  <script type="module" src="assets/js/supabase-config.js"></script>
+
+
+
+  <script type="module">
+      import { requireStudentAuth } from './assets/js/auth-check.js';
+  requireStudentAuth();
+    import { supabase } from './assets/js/supabase-config.js';
+
+    // ============================================
+    // STATE VARIABLES
+    // ============================================
+    let allResources = [];
+    let filteredResources = [];
+    let currentFilter = 'all';
+    let currentPage = 1;
+    let itemsPerPage = 9;
+    let currentView = 'grid';
+    let isLoading = false;
+    let searchDebounceTimer = null;
+
+    // ============================================
+    // TYPE ICONS AND COLORS
+    // ============================================
+    const typeIcons = {
+      'Tutorial': 'bi-play-circle',
+      'Documentation': 'bi-book',
+      'Course': 'bi-mortarboard',
+      'Book': 'bi-bookshelf',
+      'Tool': 'bi-tools',
+      'Other': 'bi-link-45deg'
+    };
+
+    const typeColors = {
+      'Tutorial': { bg: '#e3f2fd', color: '#1976d2' },
+      'Documentation': { bg: '#f3e5f5', color: '#7b1fa2' },
+      'Course': { bg: '#e8f5e9', color: '#388e3c' },
+      'Book': { bg: '#fff3e0', color: '#f57c00' },
+      'Tool': { bg: '#fce4ec', color: '#c2185b' },
+      'Other': { bg: '#eceff1', color: '#546e7a' }
+    };
+
+    // ============================================
+    // DOM ELEMENTS
+    // ============================================
+    const container = document.getElementById('resourcesContainer');
+    const searchInput = document.getElementById('searchInput');
+    const resultCountSpan = document.getElementById('resultCount');
+    const paginationUl = document.getElementById('pagination');
+    const gridViewBtn = document.getElementById('gridViewBtn');
+    const listViewBtn = document.getElementById('listViewBtn');
+    const backToTop = document.getElementById('backToTop');
+
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get filter from URL if present
+      const urlParams = new URLSearchParams(window.location.search);
+      const categoryParam = urlParams.get('category');
+      if (categoryParam) {
+        const validCategories = ['Programming', 'Database', 'Networking', 'Mathematics', 'Web Development', 'AI/ML'];
+        if (validCategories.includes(categoryParam)) {
+          currentFilter = categoryParam;
+          // Update active button
+          document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.filter === currentFilter) {
+              btn.classList.add('active');
+            }
+          });
+        }
+      }
+      
+      loadResources();
+      initFilters();
+      initSearch();
+      initViewToggle();
+      initBackToTop();
+      initAOS();
+    });
+
+    function initAOS() {
+      AOS.init({
+        duration: 800,
+        once: true,
+        offset: 100
+      });
+    }
+
+    function initBackToTop() {
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+          backToTop.classList.add('show');
+        } else {
+          backToTop.classList.remove('show');
+        }
+      });
+      
+      backToTop.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    // ============================================
+    // LOAD RESOURCES FROM SUPABASE
+    // ============================================
+    async function loadResources() {
+      showSkeletonLoaders();
+      isLoading = true;
+
+      try {
+        const { data, error } = await supabase
+          .from('academic_resources')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        allResources = data || [];
+        applyFiltersAndRender();
+        
+        // Track page view for analytics
+        trackPageView();
+        
+      } catch (error) {
+        console.error('Error loading resources:', error);
+        container.innerHTML = `
+          <div class="col-12 text-center py-5">
+            <i class="bi bi-exclamation-triangle" style="font-size: 64px; color: #dc3545;"></i>
+            <h4 class="mt-3 text-danger">Failed to Load Resources</h4>
+            <p class="text-muted">Please check your internet connection and try again.</p>
+            <button class="btn btn-primary mt-3" onclick="location.reload()" style="background-color: #1b8c0c; border-color: #1b8c0c;">
+              <i class="bi bi-arrow-repeat me-2"></i>Retry
+            </button>
+          </div>
+        `;
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    function showSkeletonLoaders() {
+      const skeletons = Array(6).fill(0).map(() => `
+        <div class="col-lg-4 col-md-6">
+          <div class="loading-skeleton" style="height: 220px;"></div>
+        </div>
+      `).join('');
+      container.innerHTML = skeletons;
+    }
+
+    // ============================================
+    // FILTERING AND SEARCH
+    // ============================================
+    function applyFiltersAndRender() {
+      let filtered = [...allResources];
+
+      // Apply category filter
+      if (currentFilter !== 'all') {
+        filtered = filtered.filter(r => r.category === currentFilter);
+      }
+
+      // Apply search filter
+      const searchTerm = searchInput.value.trim().toLowerCase();
+      if (searchTerm) {
+        filtered = filtered.filter(r =>
+          r.title?.toLowerCase().includes(searchTerm) ||
+          (r.description && r.description.toLowerCase().includes(searchTerm)) ||
+          (r.category && r.category.toLowerCase().includes(searchTerm)) ||
+          (r.resource_type && r.resource_type.toLowerCase().includes(searchTerm))
+        );
+      }
+
+      filteredResources = filtered;
+      updateResultCount();
+      resetPagination();
+      renderCurrentPage();
+    }
+
+    function updateResultCount() {
+      const count = filteredResources.length;
+      resultCountSpan.innerHTML = `<i class="bi bi-files me-1"></i> ${count} resource${count !== 1 ? 's' : ''} found`;
+    }
+
+    function renderCurrentPage() {
+      const start = (currentPage - 1) * itemsPerPage;
+      const end = start + itemsPerPage;
+      const pageResources = filteredResources.slice(start, end);
+      
+      if (currentView === 'grid') {
+        renderGridView(pageResources);
+      } else {
+        renderListView(pageResources);
+      }
+      renderPagination();
+    }
+
+    function resetPagination() {
+      currentPage = 1;
+    }
+
+    // ============================================
+    // RENDER FUNCTIONS
+    // ============================================
+    function renderGridView(resources) {
+      if (!resources || resources.length === 0) {
+        container.innerHTML = `
+          <div class="col-12">
+            <div class="no-results">
+              <i class="bi bi-link-45deg"></i>
+              <h4>No Resources Found</h4>
+              <p class="text-muted">Try adjusting your search or filter criteria.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = resources.map(r => {
+        const iconClass = typeIcons[r.resource_type] || 'bi-link-45deg';
+        const colors = typeColors[r.resource_type] || { bg: '#eceff1', color: '#546e7a' };
+        
+        return `
+          <div class="col-lg-4 col-md-6">
+            <div class="card resource-card" onclick="window.open('${escapeHtml(r.url)}', '_blank')">
+              <div class="card-body p-4">
+                <div class="d-flex align-items-start mb-3">
+                  <div class="resource-icon me-3" style="background: ${colors.bg}; color: ${colors.color};">
+                    <i class="bi ${iconClass}"></i>
+                  </div>
+                  <div>
+                    <span class="type-badge">${escapeHtml(r.resource_type)}</span>
+                    ${r.category ? `<span class="category-badge ms-2">${escapeHtml(r.category)}</span>` : ''}
+                  </div>
+                </div>
+                <h5 class="card-title mb-2">${escapeHtml(r.title)}</h5>
+                ${r.description ? `<p class="card-text text-muted small mb-3">${escapeHtml(r.description.substring(0, 100))}${r.description.length > 100 ? '...' : ''}</p>` : ''}
+                <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary mt-2" onclick="event.stopPropagation(); trackResourceClick('${escapeHtml(r.id)}', '${escapeHtml(r.title)}')">
+                  <i class="bi bi-box-arrow-up-right me-1"></i> Open Link
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderListView(resources) {
+      if (!resources || resources.length === 0) {
+        renderGridView(resources);
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="col-12">
+          <div class="card">
+            <div class="list-group list-group-flush">
+              ${resources.map(r => `
+                <div class="list-group-item list-group-item-action" onclick="window.open('${escapeHtml(r.url)}', '_blank')" style="cursor: pointer;">
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="flex-grow-1">
+                      <h6 class="mb-1">${escapeHtml(r.title)}</h6>
+                      <small class="text-muted">
+                        <span class="type-badge me-2">${escapeHtml(r.resource_type)}</span>
+                        ${r.category ? `<span class="category-badge">${escapeHtml(r.category)}</span>` : ''}
+                      </small>
+                      ${r.description ? `<p class="small text-muted mb-0 mt-2">${escapeHtml(r.description.substring(0, 100))}${r.description.length > 100 ? '...' : ''}</p>` : ''}
+                    </div>
+                    <i class="bi bi-box-arrow-up-right text-muted"></i>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================
+    // PAGINATION
+    // ============================================
+    function renderPagination() {
+      const totalPages = Math.ceil(filteredResources.length / itemsPerPage);
+      
+      if (totalPages <= 1) {
+        paginationUl.innerHTML = '';
+        return;
+      }
+
+      let paginationHtml = '';
+      
+      paginationHtml += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+          <a class="page-link" href="#" data-page="${currentPage - 1}" aria-label="Previous">
+            <span aria-hidden="true">&laquo;</span>
+          </a>
+        </li>
+      `;
+      
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, currentPage + 2);
+      
+      if (startPage > 1) {
+        paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
+        if (startPage > 2) paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        paginationHtml += `
+          <li class="page-item ${currentPage === i ? 'active' : ''}">
+            <a class="page-link" href="#" data-page="${i}">${i}</a>
+          </li>
+        `;
+      }
+      
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`;
+      }
+      
+      paginationHtml += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+          <a class="page-link" href="#" data-page="${currentPage + 1}" aria-label="Next">
+            <span aria-hidden="true">&raquo;</span>
+          </a>
+        </li>
+      `;
+      
+      paginationUl.innerHTML = paginationHtml;
+      
+      document.querySelectorAll('.pagination .page-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const page = parseInt(link.dataset.page);
+          if (page && !isNaN(page) && page !== currentPage && page >= 1 && page <= totalPages) {
+            currentPage = page;
+            renderCurrentPage();
+            window.scrollTo({ top: 400, behavior: 'smooth' });
+          }
+        });
+      });
+    }
+
+    // ============================================
+    // VIEW TOGGLE
+    // ============================================
+    function initViewToggle() {
+      gridViewBtn.addEventListener('click', () => {
+        currentView = 'grid';
+        gridViewBtn.classList.add('active');
+        listViewBtn.classList.remove('active');
+        renderCurrentPage();
+      });
+      
+      listViewBtn.addEventListener('click', () => {
+        currentView = 'list';
+        listViewBtn.classList.add('active');
+        gridViewBtn.classList.remove('active');
+        renderCurrentPage();
+      });
+      
+      gridViewBtn.classList.add('active');
+    }
+
+    // ============================================
+    // EVENT HANDLERS
+    // ============================================
+    function initFilters() {
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          currentFilter = this.dataset.filter;
+          
+          // Update URL without reloading
+          const url = new URL(window.location);
+          if (currentFilter !== 'all') {
+            url.searchParams.set('category', currentFilter);
+          } else {
+            url.searchParams.delete('category');
+          }
+          window.history.pushState({}, '', url);
+          
+          applyFiltersAndRender();
+        });
+      });
+    }
+
+    function initSearch() {
+      searchInput.addEventListener('input', () => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+          applyFiltersAndRender();
+        }, 300);
+      });
+    }
+
+    // ============================================
+    // TRACKING FUNCTIONS
+    // ============================================
+    window.trackResourceClick = function(id, title) {
+      try {
+        // Track in localStorage for analytics
+        const clicks = JSON.parse(localStorage.getItem('resource_clicks') || '{}');
+        clicks[id] = clicks[id] || { count: 0, title: title };
+        clicks[id].count++;
+        clicks[id].lastClick = new Date().toISOString();
+        localStorage.setItem('resource_clicks', JSON.stringify(clicks));
+        
+        console.log(`Resource clicked: ${title} (${id})`);
+      } catch (error) {
+        console.error('Tracking error:', error);
+      }
+    };
+
+    function trackPageView() {
+      console.log(`Resources page viewed at ${new Date().toISOString()}`);
+    }
+
+    // ============================================
+    // UTILITIES
+    // ============================================
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Make resource click function global
+    window.openResource = function(url) {
+      window.open(url, '_blank');
+    };
+
+    // Refresh data every 10 minutes
+    setInterval(() => {
+      if (!isLoading) {
+        loadResources();
+      }
+    }, 10 * 60 * 1000);
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+Folder PATH listing
+Volume serial number is 0C7C-8863
+C:.
+¦   .env
+¦   .gitignore
+¦   admin-dashboard.html
+¦   admin-login.html
+¦   career-paths.html
+¦   config.local.js
+¦   events.html
+¦   google-form-webhook.js
+¦   google_forms_integration.md
+¦   index.html
+¦   LICENSE
+¦   past-questions.html
+¦   README.md
+¦   resources.html
+¦   setup_guide.md
+¦   structure.txt
+¦   student-dashboard.html
+¦   student-login.html
+¦   student-signup.html
+¦   test-config.html
+¦   timetables.html
+¦   
++---.vscode
+¦       settings.json
+¦       
++---assets
+¦   ¦   test.html
+¦   ¦   
+¦   +---css
+¦   ¦       main.css
+¦   ¦       
+¦   +---img
+¦   ¦   ¦   cash_image.png
+¦   ¦   ¦   hangout.png
+¦   ¦   ¦   nacos logo.jpg
+¦   ¦   ¦   tau sample image.jpg
+¦   ¦   ¦   tau_logo-removebg-preview.png
+¦   ¦   ¦   
+¦   ¦   +---events
+¦   ¦           futureee.jpg
+¦   ¦           gamee.jpg
+¦   ¦           hackk.jpg
+¦   ¦           nacos week flyer.png
+¦   ¦           pt 2.jpg
+¦   ¦           scrrr.jpg
+¦   ¦           sportss.jpg
+¦   ¦           symposium prt 1.png
+¦   ¦           
+¦   +---js
+¦   ¦       main.js
+¦   ¦       supabase-config.js
+¦   ¦       
+¦   +---scss
+¦   ¦       readme.txt
+¦   ¦       
+¦   +---vendor
+¦       +---aos
+¦       ¦       aos.cjs.js
+¦       ¦       aos.css
+¦       ¦       aos.esm.js
+¦       ¦       aos.js
+¦       ¦       aos.js.map
+¦       ¦       
+¦       +---bootstrap
+¦       ¦   +---css
+¦       ¦   ¦       bootstrap-grid.css
+¦       ¦   ¦       bootstrap-grid.css.map
+¦       ¦   ¦       bootstrap-grid.min.css
+¦       ¦   ¦       bootstrap-grid.min.css.map
+¦       ¦   ¦       bootstrap-grid.rtl.css
+¦       ¦   ¦       bootstrap-grid.rtl.css.map
+¦       ¦   ¦       bootstrap-grid.rtl.min.css
+¦       ¦   ¦       bootstrap-grid.rtl.min.css.map
+¦       ¦   ¦       bootstrap-reboot.css
+¦       ¦   ¦       bootstrap-reboot.css.map
+¦       ¦   ¦       bootstrap-reboot.min.css
+¦       ¦   ¦       bootstrap-reboot.min.css.map
+¦       ¦   ¦       bootstrap-reboot.rtl.css
+¦       ¦   ¦       bootstrap-reboot.rtl.css.map
+¦       ¦   ¦       bootstrap-reboot.rtl.min.css
+¦       ¦   ¦       bootstrap-reboot.rtl.min.css.map
+¦       ¦   ¦       bootstrap-utilities.css
+¦       ¦   ¦       bootstrap-utilities.css.map
+¦       ¦   ¦       bootstrap-utilities.min.css
+¦       ¦   ¦       bootstrap-utilities.min.css.map
+¦       ¦   ¦       bootstrap-utilities.rtl.css
+¦       ¦   ¦       bootstrap-utilities.rtl.css.map
+¦       ¦   ¦       bootstrap-utilities.rtl.min.css
+¦       ¦   ¦       bootstrap-utilities.rtl.min.css.map
+¦       ¦   ¦       bootstrap.css
+¦       ¦   ¦       bootstrap.css.map
+¦       ¦   ¦       bootstrap.min.css
+¦       ¦   ¦       bootstrap.min.css.map
+¦       ¦   ¦       bootstrap.rtl.css
+¦       ¦   ¦       bootstrap.rtl.css.map
+¦       ¦   ¦       bootstrap.rtl.min.css
+¦       ¦   ¦       bootstrap.rtl.min.css.map
+¦       ¦   ¦       prb.txt
+¦       ¦   ¦       
+¦       ¦   +---js
+¦       ¦           bootstrap.bundle.js
+¦       ¦           bootstrap.bundle.js.map
+¦       ¦           bootstrap.bundle.min.js
+¦       ¦           bootstrap.bundle.min.js.map
+¦       ¦           bootstrap.esm.js
+¦       ¦           bootstrap.esm.js.map
+¦       ¦           bootstrap.esm.min.js
+¦       ¦           bootstrap.esm.min.js.map
+¦       ¦           bootstrap.js
+¦       ¦           bootstrap.js.map
+¦       ¦           bootstrap.min.js
+¦       ¦           bootstrap.min.js.map
+¦       ¦           
+¦       +---bootstrap-icons
+¦       ¦   ¦   bootstrap-icons.css
+¦       ¦   ¦   bootstrap-icons.json
+¦       ¦   ¦   bootstrap-icons.min.css
+¦       ¦   ¦   bootstrap-icons.scss
+¦       ¦   ¦   
+¦       ¦   +---fonts
+¦       ¦           bootstrap-icons.woff
+¦       ¦           bootstrap-icons.woff2
+¦       ¦           
+¦       +---glightbox
+¦       ¦   +---css
+¦       ¦   ¦       glightbox.css
+¦       ¦   ¦       glightbox.min.css
+¦       ¦   ¦       
+¦       ¦   +---js
+¦       ¦           glightbox.js
+¦       ¦           glightbox.min.js
+¦       ¦           
+¦       +---php-email-form
+¦       ¦       validate.js
+¦       ¦       
+¦       +---swiper
+¦               swiper-bundle.min.css
+¦               swiper-bundle.min.js
+¦               swiper-bundle.min.js.map
+¦               
++---dashboard asseets
+¦   +---css
+¦   ¦       main.css
+¦   ¦       
+¦   +---js
+¦           events.js
+¦           main.js
+¦           signin.js
+¦           signup.js
+¦           
++---database
+¦       schema.sql
+¦       
++---forms
+¦       contact.php
+¦       newsletter.php
+¦       readme.txt
+¦       
++---netlify

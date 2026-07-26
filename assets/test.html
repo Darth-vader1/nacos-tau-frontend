@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NACOS - Database Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .loading { color: blue; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎓 NACOS Platform - Database Connection Test</h1>
+    
+    <div class="card">
+        <h2>Testing Supabase Connection...</h2>
+        <div id="connection-status" class="loading">Connecting...</div>
+    </div>
+
+    <div class="card">
+        <h2>📚 Resource Categories</h2>
+        <div id="categories">Loading...</div>
+    </div>
+
+    <div class="card">
+        <h2>💼 Career Paths</h2>
+        <div id="career-paths">Loading...</div>
+    </div>
+
+    <div class="card">
+        <h2>🔧 Configuration Check</h2>
+        <div id="config-check"></div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './js/supabase-config.js';
+        
+        async function testConnection() {
+            const connectionDiv = document.getElementById('connection-status');
+            const categoriesDiv = document.getElementById('categories');
+            const careerDiv = document.getElementById('career-paths');
+            const configDiv = document.getElementById('config-check');
+            
+            // Show config info
+            configDiv.innerHTML = `
+                <strong>Supabase URL:</strong> ${supabase.supabaseUrl}<br>
+                <strong>Status:</strong> Client initialized ✅
+            `;
+            
+            // Test 1: Simple connection test
+            try {
+                const { data, error } = await supabase.from('resource_categories').select('count', { count: 'exact', head: true });
+                
+                if (error) throw error;
+                connectionDiv.innerHTML = '<span class="success">✅ Connected to Supabase successfully!</span>';
+                connectionDiv.className = 'success';
+            } catch (error) {
+                connectionDiv.innerHTML = `<span class="error">❌ Connection failed: ${error.message}</span>`;
+                connectionDiv.className = 'error';
+                return;
+            }
+            
+            // Test 2: Fetch categories
+            try {
+                const { data, error } = await supabase
+                    .from('resource_categories')
+                    .select('*')
+                    .order('name');
+                
+                if (error) throw error;
+                
+                if (data && data.length > 0) {
+                    let html = '<table><tr><th>Name</th><th>Description</th></tr>';
+                    data.forEach(cat => {
+                        html += `<tr><td><strong>${cat.name}</strong></td><td>${cat.description || 'No description'}</td></tr>`;
+                    });
+                    html += '</table>';
+                    categoriesDiv.innerHTML = html;
+                } else {
+                    categoriesDiv.innerHTML = 'No categories found. Run the SQL insert script.';
+                }
+            } catch (error) {
+                categoriesDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+            
+            // Test 3: Fetch career paths
+            try {
+                const { data, error } = await supabase
+                    .from('career_paths')
+                    .select('path_key, title, overview')
+                    .order('title');
+                
+                if (error) throw error;
+                
+                if (data && data.length > 0) {
+                    let html = '<table><tr><th>Career Path</th><th>Title</th><th>Overview</th></tr>';
+                    data.forEach(career => {
+                        html += `<tr>
+                            <td><code>${career.path_key}</code></td>
+                            <td><strong>${career.title}</strong></td>
+                            <td>${career.overview.substring(0, 100)}...</td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                    careerDiv.innerHTML = html;
+                } else {
+                    careerDiv.innerHTML = 'No career paths found. Run the SQL insert script.';
+                }
+            } catch (error) {
+                careerDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+        
+        testConnection();
+    </script>
+</body>
+</html>

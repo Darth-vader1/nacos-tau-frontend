@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Student Dashboard | NACOS - Thomas Adewumi University</title>
+  <meta name="description" content="Access your NACOS student dashboard to view past questions, timetables, career resources, and upcoming events.">
+  <meta name="keywords" content="NACOS, TAU, student dashboard, computing students, Nigeria">
+  <meta http-equiv="cache-control" content="no-cache">
+
+  <!-- Favicons -->
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    /* Reset & Base */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #f8fbfc;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Header Styles */
+    .header {
+      background: white;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+      padding: 10px 0;
+    }
+
+    .logo img {
+      height: 50px;
+      border-radius: 8px;
+    }
+
+    .logo h1 {
+      font-size: 1.1rem;
+      margin-left: 10px;
+    }
+
+    .logo strong {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    /* Dashboard Container */
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 120px 20px 40px;
+    }
+
+    /* Profile Card */
+    .profile-card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 30px;
+      transition: transform 0.3s;
+    }
+
+    .profile-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .profile-image {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #1b8c0c;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+
+    .profile-name {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: #1b8c0c;
+      margin-bottom: 10px;
+    }
+
+    .profile-detail {
+      font-size: 1rem;
+      color: #666;
+      margin-bottom: 5px;
+    }
+
+    /* Section Cards */
+    .section-card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+
+    .section-title-custom {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1b8c0c;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e8f5e9;
+    }
+
+    /* Quick Links Grid */
+    .quick-link-card {
+      background: #f8fbfc;
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.3s;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+    }
+
+    .quick-link-card:hover {
+      background: #1b8c0c;
+      transform: translateY(-5px);
+    }
+
+    .quick-link-card:hover i,
+    .quick-link-card:hover h4,
+    .quick-link-card:hover p {
+      color: white !important;
+    }
+
+    .quick-link-card i {
+      font-size: 2.5rem;
+      color: #1b8c0c;
+      margin-bottom: 10px;
+    }
+
+    .quick-link-card h4 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .quick-link-card p {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    /* Resource Cards */
+    .resource-card {
+      background: #f8fbfc;
+      border-radius: 15px;
+      padding: 15px;
+      transition: all 0.3s;
+      height: 100%;
+    }
+
+    .resource-card:hover {
+      background: #1b8c0c;
+      transform: translateY(-3px);
+    }
+
+    .resource-card:hover h6,
+    .resource-card:hover p {
+      color: white !important;
+    }
+
+    /* Buttons */
+    .btn-outline-custom {
+      border: 2px solid #1b8c0c;
+      color: #1b8c0c;
+      background: transparent;
+      padding: 10px 25px;
+      border-radius: 10px;
+      transition: all 0.3s;
+    }
+
+    .btn-outline-custom:hover {
+      background: #1b8c0c;
+      color: white;
+    }
+
+    /* Loading States */
+    .loading-spinner {
+      text-align: center;
+      padding: 50px;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #e8f5e9;
+      border-top-color: #1b8c0c;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Error States */
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    /* Modal Styles */
+    .modal-content {
+      border-radius: 20px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .dashboard-container {
+        padding: 100px 15px 30px;
+      }
+      
+      .profile-name {
+        font-size: 1.4rem;
+      }
+      
+      .section-title-custom {
+        font-size: 1.3rem;
+      }
+    }
+
+    /* Hide preloader completely */
+    #preloader {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container d-flex justify-content-between align-items-center">
+      <a href="index.html" class="logo d-flex align-items-center text-decoration-none">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
+        <h1 class="sitename">
+          <span style="color: #1b8c0c;">Nigerian Association of Computing Students</span>
+          <br>
+          <strong style="font-size: 12px;">Thomas Adewumi University</strong>
+        </h1>
+      </a>
+      <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#logoutModal">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div class="dashboard-container">
+      
+      <!-- Loading State -->
+      <div id="loadingState" class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Loading your dashboard...</p>
+      </div>
+
+      <!-- Dashboard Content (Hidden Initially) -->
+      <div id="dashboardContent" style="display: none;">
+        
+        <!-- Profile Section -->
+        <div class="profile-card">
+          <img id="profileImage" class="profile-image" src="assets/img/tau_logo-removebg-preview.png" alt="Profile Picture">
+          <h2 id="studentName" class="profile-name">Loading...</h2>
+          <p id="studentMatric" class="profile-detail">
+            <i class="bi bi-card-text"></i> <span>Loading...</span>
+          </p>
+          <p id="studentDepartment" class="profile-detail">
+            <i class="bi bi-building"></i> <span>Loading...</span>
+          </p>
+          <p id="studentEmail" class="profile-detail">
+            <i class="bi bi-envelope"></i> <span>Loading...</span>
+          </p>
+          <button class="btn-outline-custom mt-3" data-bs-toggle="modal" data-bs-target="#updatePfpModal">
+            <i class="bi bi-camera"></i> Update Profile Picture
+          </button>
+        </div>
+
+ <!-- Events Section -->
+<section id="eventsSection" class="services section light-background" style="width: 100%;">
+    <div class="container section-title" data-aos="fade-up">
+        <h2>Upcoming Events</h2>
+        <p>Check out our upcoming events and activities!</p>
+    </div>
+    <div class="container">
+        <div id="eventsContainer" class="row g-4">
+            <!-- Events will be loaded dynamically here -->
+            <div class="col-12 text-center">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Loading events...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+        <!-- Quick Resources Section -->
+        <div class="section-card">
+          <h3 class="section-title-custom">
+            <i class="bi bi-link-45deg"></i> Quick Resources
+          </h3>
+          <div id="resourcesContainer" class="row g-4">
+            <!-- Resources will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Quick Links Section -->
+        <div class="section-card">
+          <h3 class="section-title-custom">
+            <i class="bi bi-grid-3x3-gap-fill"></i> Quick Access
+          </h3>
+          <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+              <a href="past-questions.html" class="quick-link-card">
+                <i class="bi bi-file-earmark-pdf"></i>
+                <h4>Past Questions</h4>
+                <p>Access past exam questions</p>
+              </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <a href="timetables.html" class="quick-link-card">
+                <i class="bi bi-calendar-week"></i>
+                <h4>Timetables</h4>
+                <p>View class schedules</p>
+              </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <a href="resources.html" class="quick-link-card">
+                <i class="bi bi-link-45deg"></i>
+                <h4>Resources</h4>
+                <p>Browse learning materials</p>
+              </a>
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <a href="career-paths.html" class="quick-link-card">
+                <i class="bi bi-graph-up"></i>
+                <h4>Career Paths</h4>
+                <p>Explore tech careers</p>
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Logout Modal -->
+  <div class="modal fade" id="logoutModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Logout</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to logout?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmLogoutBtn">Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Profile Picture Modal -->
+  <div class="modal fade" id="updatePfpModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Update Profile Picture</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="profilePicForm">
+            <div class="mb-3">
+              <label class="form-label">Choose Image</label>
+              <input type="file" class="form-control" id="profilePicInput" accept="image/jpeg,image/png,image/jpg" required>
+              <small class="text-muted">Max size: 2MB. Allowed: JPG, PNG</small>
+            </div>
+            <button type="submit" class="btn btn-success w-100">Upload</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="assets/js/api-config.js"></script>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="config.local.js"></script>
+  <script type="module" src="assets/js/supabase-config.js"></script>
+
+  <script type="module">
+    import { supabase, checkAuth, signOut } from './assets/js/supabase-config.js';
+
+    // DOM Elements
+    const loadingState = document.getElementById('loadingState');
+    const dashboardContent = document.getElementById('dashboardContent');
+    const studentNameEl = document.getElementById('studentName');
+    const studentMatricEl = document.getElementById('studentMatric').querySelector('span');
+    const studentDepartmentEl = document.getElementById('studentDepartment').querySelector('span');
+    const studentEmailEl = document.getElementById('studentEmail').querySelector('span');
+    const profileImageEl = document.getElementById('profileImage');
+    const resourcesContainer = document.getElementById('resourcesContainer');
+    const eventsContainer = document.getElementById('eventsContainer');
+
+    let currentUser = null;
+    let studentData = null;
+
+    // Helper Functions
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showError(message) {
+      Swal.fire({
+        title: 'Error',
+        text: message,
+        icon: 'error',
+        confirmButtonText: 'OK'
+      });
+    }
+
+    function showSuccess(message) {
+      Swal.fire({
+        title: 'Success',
+        text: message,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    }
+
+    // Check Authentication
+    async function checkAuthentication() {
+      try {
+        const session = await checkAuth();
+        
+        if (!session) {
+          showError('Please log in to access your dashboard.');
+          setTimeout(() => {
+            window.location.href = 'student-login.html';
+          }, 1500);
+          return false;
+        }
+        
+        currentUser = session.user;
+        return true;
+        
+      } catch (error) {
+        console.error('Auth error:', error);
+        window.location.href = 'student-login.html';
+        return false;
+      }
+    }
+
+    // Load Student Data
+    async function loadStudentData() {
+      try {
+        const { data, error } = await supabase
+          .from('students')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .maybeSingle();
+        
+        if (error) throw error;
+        
+        if (data) {
+          studentData = data;
+          studentNameEl.textContent = data.name || `${data.first_name} ${data.last_name}` || 'Student';
+          studentMatricEl.textContent = data.matric_no || 'N/A';
+          studentDepartmentEl.textContent = data.department || data.course || 'Not Assigned';
+          studentEmailEl.textContent = data.email || currentUser.email;
+          
+          if (data.profile_picture_url) {
+            profileImageEl.src = data.profile_picture_url;
+          }
+        } else {
+          studentNameEl.textContent = currentUser.email?.split('@')[0] || 'Student';
+          studentEmailEl.textContent = currentUser.email;
+        }
+        
+      } catch (error) {
+        console.error('Error loading student:', error);
+        studentNameEl.textContent = 'Welcome Student';
+      }
+    }
+
+    // Load Resources
+    async function loadResources() {
+      try {
+        const { data, error } = await supabase
+          .from('academic_resources')
+          .select('*')
+          .limit(4)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          resourcesContainer.innerHTML = data.map(resource => `
+            <div class="col-lg-3 col-md-6">
+              <div class="resource-card">
+                <a href="${escapeHtml(resource.url)}" target="_blank" class="text-decoration-none">
+                  <i class="bi bi-link-45deg" style="font-size: 2rem; color: #1b8c0c;"></i>
+                  <h6 class="mt-2" style="color: #333;">${escapeHtml(resource.title.substring(0, 40))}</h6>
+                  <p class="small text-muted">${escapeHtml(resource.resource_type)}</p>
+                </a>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          resourcesContainer.innerHTML = '<div class="col-12 text-center"><p class="text-muted">No resources available</p></div>';
+        }
+        
+      } catch (error) {
+        console.error('Error loading resources:', error);
+        resourcesContainer.innerHTML = '<div class="col-12 text-center"><p class="text-muted">Unable to load resources</p></div>';
+      }
+    }
+
+// Add this function to your student-dashboard.html script
+async function loadEvents() {
+    const eventsContainer = document.getElementById('eventsContainer');
+    if (!eventsContainer) return;
+    
+    try {
+        // Get current date in YYYY-MM-DD format
+        const today = new Date().toISOString().split('T')[0];
+        
+        const { data: events, error } = await supabase
+            .from('events')
+            .select('*')
+            .eq('is_active', true)
+            .gte('date', today)  // Only future events
+            .order('date', { ascending: true })
+            .limit(5);
+        
+        if (error) throw error;
+        
+        if (events && events.length > 0) {
+            eventsContainer.innerHTML = events.map(event => `
+                <div class="col-lg-6 mb-3" style="width: 100%;">
+                    <div class="service-item item-cyan position-relative">
+                        ${event.image_url ? `<img src="${event.image_url}" class="img-fluid icon" alt="" style="border: none; max-width: 100px; margin-bottom: 10px;">` : ''}
+                        <div>
+                            <h3>${escapeHtml(event.title)}</h3>
+                            <p><em><i class="bi bi-calendar-check"></i> ${formatDate(event.date)}</em></p>
+                            ${event.description ? `<p class="small">${escapeHtml(event.description)}</p>` : ''}
+                            ${event.location ? `<p><i class="bi bi-geo-alt"></i> ${escapeHtml(event.location)}</p>` : ''}
+                            ${event.requires_payment ? `<span class="badge bg-warning">₦${event.payment_amount}</span>` : '<span class="badge bg-success">Free</span>'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            eventsContainer.innerHTML = '<div class="col-12"><p class="text-muted text-center">No upcoming events at this time. Check back soon!</p></div>';
+        }
+        
+    } catch (error) {
+        console.error('Error loading events:', error);
+        eventsContainer.innerHTML = '<div class="col-12"><p class="text-muted text-center">Unable to load events.</p></div>';
+    }
+}
+
+// Helper function to format date
+function formatDate(dateString) {
+    if (!dateString) return 'Date TBA';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-NG', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+// Call this function in your initDashboard or loadDashboard function
+// Make sure to add it after your other load functions
+
+    // Update Profile Picture
+    const profilePicForm = document.getElementById('profilePicForm');
+    if (profilePicForm) {
+      profilePicForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('profilePicInput');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+          showError('Please select an image file');
+          return;
+        }
+        
+        if (!file.type.startsWith('image/')) {
+          showError('Please select a valid image file (JPG, PNG)');
+          return;
+        }
+        
+        if (file.size > 2 * 1024 * 1024) {
+          showError('File size must be less than 2MB');
+          return;
+        }
+        
+        const submitBtn = profilePicForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading...';
+        
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `profile-pictures/${currentUser.id}_${Date.now()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('nacos-assets')
+            .upload(fileName, file);
+          
+          if (uploadError) throw uploadError;
+          
+          const { data: urlData } = supabase.storage
+            .from('nacos-assets')
+            .getPublicUrl(fileName);
+          
+          const { error: updateError } = await supabase
+            .from('students')
+            .update({ profile_picture_url: urlData.publicUrl })
+            .eq('user_id', currentUser.id);
+          
+          if (updateError) throw updateError;
+          
+          profileImageEl.src = urlData.publicUrl;
+          showSuccess('Profile picture updated successfully!');
+          
+          const modal = bootstrap.Modal.getInstance(document.getElementById('updatePfpModal'));
+          modal.hide();
+          profilePicForm.reset();
+          
+        } catch (error) {
+          console.error('Upload error:', error);
+          showError('Failed to upload image. Please try again.');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = 'Upload';
+        }
+      });
+    }
+
+    // Logout Handler
+    document.getElementById('confirmLogoutBtn').addEventListener('click', async () => {
+      await signOut('student-login.html');
+    });
+
+    // Initialize Dashboard
+    async function init() {
+      const isAuthenticated = await checkAuthentication();
+      if (!isAuthenticated) return;
+      
+      await Promise.all([
+        loadStudentData(),
+        loadResources(),
+        loadEvents()
+      ]);
+      
+      // Show content, hide loading
+      loadingState.style.display = 'none';
+      dashboardContent.style.display = 'block';
+    }
+    
+    init();
+    
+    // Auto-refresh session every 30 minutes
+    setInterval(async () => {
+      const { error } = await supabase.auth.refreshSession();
+      if (error) console.error('Session refresh failed:', error);
+    }, 30 * 60 * 1000);
+    
+  </script>
+
+</body>
+</html>
