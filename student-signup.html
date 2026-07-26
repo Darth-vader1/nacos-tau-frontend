@@ -216,7 +216,7 @@
                         <div class="form-group">
                             <label for="matric_no">Matric Number:</label>
                             <input type="text" class="form-control" id="matric_no" placeholder="e.g. TAU/CS/20/001" required>
-                            <small class="text-muted">Format: TAU/CS/20/001</small>
+                            <small class="text-muted">Format: 23/10msc014</small>
                         </div>
 
                         <div class="form-group">
@@ -226,6 +226,10 @@
                                 <option value="Software Engineering">Software Engineering</option>
                                 <option value="Computer Science">Computer Science</option>
                                 <option value="Cyber Security">Cyber Security</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Data Science">Data Science</option>
+                                <option value="Artificial Intelligence">Artificial Intelligence</option>
+                            </select>
                         </div>
 
                         <div class="form-group">
@@ -322,7 +326,6 @@
 <!-- Config and Supabase -->
 <script src="assets/js/env.js"></script>
 <script type="module" src="assets/js/supabase-config.js"></script>
-<script type="module" src="assets/js/api-config.js"></script>
 
 <!-- Input Fix -->
 <script>
@@ -375,9 +378,13 @@
     // ============================================
 
     function validateMatricNumber(matric) {
-        // Supports TAU/CS/20/001 format
-        const matRegex = /^TAU\/[A-Z]{2,4}\/\d{2,4}\/\d{3,4}$/i;
-        return matRegex.test(matric.trim());
+        const trimmed = matric.trim().toUpperCase();
+        const patterns = [
+            /^TAU\/[A-Z]{2,4}\/\d{2,4}\/\d{3,4}$/i,
+            /^[A-Z]{2,4}\/\d{2,4}\/\d{3,4}$/i,
+            /^\d{2}\/\d{2}[A-Z]{2,4}\d{3,4}$/i
+        ];
+        return patterns.some(pattern => pattern.test(trimmed));
     }
 
     function validateEmail(email) {
@@ -420,7 +427,7 @@
         }
 
         if (!validateMatricNumber(matricNoInput.value.trim())) {
-            showError(matricNoInput, 'Invalid matric number format. Use TAU/CS/20/001');
+            showError(matricNoInput, 'Invalid matric number format. Use TAU/CS/20/001 or 23/10MSC014');
             isValid = false;
         } else {
             clearError(matricNoInput);
