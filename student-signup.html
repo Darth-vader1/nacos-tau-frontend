@@ -226,9 +226,6 @@
                                 <option value="Software Engineering">Software Engineering</option>
                                 <option value="Computer Science">Computer Science</option>
                                 <option value="Cyber Security">Cyber Security</option>
-                                <option value="Information Technology">Information Technology</option>
-                                <option value="Data Science">Data Science</option>
-                                <option value="Artificial Intelligence">Artificial Intelligence</option>
                             </select>
                         </div>
 
@@ -548,7 +545,7 @@
     });
 
     // ============================================
-    // FORM SUBMISSION
+    // FORM SUBMISSION - UPDATED VERSION
     // ============================================
 
     form.addEventListener('submit', async (e) => {
@@ -595,12 +592,36 @@
 
             if (signUpError) {
                 console.error('❌ Auth error:', signUpError);
+                
+                if (signUpError.message?.includes('rate limit')) {
+                    await Swal.fire({
+                        title: '⏳ Too Many Attempts',
+                        text: 'Please wait 10-15 minutes before trying again.',
+                        icon: 'warning',
+                        confirmButtonColor: '#1b8c0c',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+                
                 throw signUpError;
             }
 
             console.log('✅ Auth user created:', authData.user.id);
 
-            // 2. Create student profile in database
+            // 2. Wait a moment for the auth user to be fully registered
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // 3. Get the session token
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session) {
+                throw new Error('No active session. Please try again.');
+            }
+
+            console.log('✅ Session obtained');
+
+            // 4. Create student profile in database
             const { error: insertError } = await supabase
                 .from('students')
                 .insert({
@@ -608,24 +629,44 @@
                     email: email,
                     first_name: firstNameInput.value.trim(),
                     last_name: lastNameInput.value.trim(),
-                    name: fullName, // ← Fixed: Added name field
-                    matric_no: matricNo, // ← Fixed: Correct column name
+                    name: fullName,
+                    matric_no: matricNo,
                     department: department,
-                    status: 'active', // Changed to 'active' for immediate access
+                    status: 'active',
                     created_at: new Date().toISOString()
                 });
 
             if (insertError) {
                 console.error('❌ Insert error:', insertError);
                 
-                // If DB insert fails, try to delete the auth user
-                try {
-                    await supabase.auth.admin.deleteUser(authData.user.id);
-                } catch (deleteError) {
-                    console.error('Cleanup error:', deleteError);
+                // If RLS error (42501), try without the header
+                if (insertError.code === '42501') {
+                    console.log('⚠️ RLS error, trying without custom header...');
+                    
+                    // Try without custom header
+                    const { error: retryError } = await supabase
+                        .from('students')
+                        .insert({
+                            user_id: authData.user.id,
+                            email: email,
+                            first_name: firstNameInput.value.trim(),
+                            last_name: lastNameInput.value.trim(),
+                            name: fullName,
+                            matric_no: matricNo,
+                            department: department,
+                            status: 'active',
+                            created_at: new Date().toISOString()
+                        });
+                    
+                    if (retryError) {
+                        console.error('❌ Retry also failed:', retryError);
+                        throw new Error('RLS policy is blocking the insert. Please contact admin.');
+                    }
+                    
+                    console.log('✅ Student profile created (retry success)');
+                } else {
+                    throw new Error('Failed to create student profile. Please contact admin.');
                 }
-
-                throw new Error('Failed to create student profile. Please try again.');
             }
 
             console.log('✅ Student profile created');

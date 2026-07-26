@@ -359,7 +359,7 @@
             <div class="stat-card">
               <div class="d-flex justify-content-between align-items-center">
                 <div>
-                  <p class="text-muted mb-1 small">Pending Students</p>
+                  <p class="text-muted mb-1 small">Active Students</p>
                   <h3 class="mb-0" id="stat-students">0</h3>
                 </div>
                 <div class="stat-icon" style="background: #fce4ec; color: #c2185b;">
@@ -568,8 +568,8 @@
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-people me-2"></i>Student Verification</span>
             <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-secondary" data-student-filter="pending">Pending</button>
-              <button class="btn btn-outline-secondary" data-student-filter="approved">Approved</button>
+              <button class="btn btn-outline-secondary" data-student-filter="active">Active</button>
+              <button class="btn btn-outline-secondary" data-student-filter="rejected">Rejected</button>
               <button class="btn btn-outline-secondary" data-student-filter="all">All</button>
             </div>
           </div>
@@ -1094,7 +1094,7 @@
           supabase.from('past_questions').select('id', { count: 'exact', head: true }),
           supabase.from('timetables').select('id', { count: 'exact', head: true }),
           supabase.from('academic_resources').select('id', { count: 'exact', head: true }),
-          supabase.from('students').select('id', { count: 'exact', head: true }).eq('status', 'pending')
+          supabase.from('students').select('id', { count: 'exact', head: true }).eq('status', 'active')
         ]);
         
         document.getElementById('stat-questions').textContent = questions.count || 0;
@@ -1576,9 +1576,9 @@ window.deleteEvent = async function(id) {
     // STUDENT VERIFICATION
     // ============================================
     
-    let currentStudentFilter = 'pending';
+    let currentStudentFilter = 'active';
     
-    async function loadStudents(filter = 'pending') {
+    async function loadStudents(filter = 'active') {
       currentStudentFilter = filter;
       let query = supabase.from('students').select('*').order('created_at', { ascending: false });
       
@@ -1596,23 +1596,18 @@ window.deleteEvent = async function(id) {
       
       tbody.innerHTML = data.map(s => {
         let badgeClass = 'bg-warning';
-        if (s.status === 'approved') badgeClass = 'bg-success';
+        if (s.status === 'active') badgeClass = 'bg-success';
         if (s.status === 'rejected') badgeClass = 'bg-danger';
         
         return `
           <tr>
             <td><strong>${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</strong></td>
             <td>${escapeHtml(s.email)}</td>
-            <td>${escapeHtml(s.matric_number)}</td>
+            <td>${escapeHtml(s.matric_no)}</td>
             <td>${escapeHtml(s.department)}</td>
-            <td><span class="badge ${badgeClass}">${s.status || 'pending'}</span></td>
+            <td><span class="badge ${badgeClass}">${s.status || 'active'}</span></td>
             <td>
-              ${(!s.status || s.status === 'pending') ? `
-                <button class="btn btn-sm btn-success me-1" onclick="verifyStudent('${s.user_id}', true)"><i class="bi bi-check"></i> Approve</button>
-                <button class="btn btn-sm btn-danger" onclick="verifyStudent('${s.user_id}', false)"><i class="bi bi-x"></i> Reject</button>
-              ` : `
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s.user_id}')"><i class="bi bi-trash"></i></button>
-              `}
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s.id}')"><i class="bi bi-trash"></i></button>
             </td>
           </tr>
         `;
@@ -1620,7 +1615,7 @@ window.deleteEvent = async function(id) {
     }
     
     window.verifyStudent = async function(userId, approved) {
-      const status = approved ? 'approved' : 'rejected';
+      const status = approved ? 'active' : 'rejected';
       const { error } = await supabase.from('students').update({ status }).eq('user_id', userId);
       
       if (error) {
@@ -1644,10 +1639,27 @@ window.deleteEvent = async function(id) {
       });
       
       if (!result.isConfirmed) return;
-      
-      const { error } = await supabase.from('students').delete().eq('user_id', userId);
-      if (error) {
-        Swal.fire('Error', 'Failed to delete student', 'error');
+
+      const API_URL = window.location.hostname === 'localhost'
+        ? 'http://localhost:5000/api'
+        : 'https://nacos-backend.up.railway.app/api';
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        Swal.fire('Error', 'You must be logged in to delete students', 'error');
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/students/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      const body = await response.json();
+      if (!response.ok) {
+        Swal.fire('Error', body.error || 'Failed to delete student', 'error');
       } else {
         await logAdminAction('DELETE_STUDENT', 'students', userId);
         Swal.fire('Deleted', 'Student removed', 'success');
@@ -1853,7 +1865,7 @@ window.deleteEvent = async function(id) {
         loadCareerPaths(),
         loadEvents(),
         loadPayments(),
-        loadStudents('pending')
+        loadStudents('active')
       ]);
     }
     
