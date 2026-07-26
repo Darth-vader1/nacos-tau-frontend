@@ -145,8 +145,7 @@ export async function requireAdmin() {
             alert(errorMessage);
         }
         
-        window.location.href = '
-        ';
+        window.location.href = 'index.html';
         return false;
     }
     return true;
@@ -186,7 +185,13 @@ supabase.auth.onAuthStateChange((event, session) => {
     }
 });
 
-// Only log in development
+window.supabase = supabase;
+window.checkAuth = checkAuth;
+window.requireAuth = requireAuth;
+window.checkAdmin = checkAdmin;
+window.requireAdmin = requireAdmin;
+window.signOut = signOut;
+
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     console.log('✅ Supabase client initialized');
 }

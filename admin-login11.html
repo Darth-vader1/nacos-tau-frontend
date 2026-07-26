@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Admin Login | NACOS - Thomas Adewumi University</title>
+    <meta name="description" content="Admin login for NACOS TAU Chapter management.">
+
+    <!-- Favicons -->
+    <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+    <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap -->
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Roboto', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .admin-login-container {
+            max-width: 420px;
+            width: 100%;
+            padding: 20px;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .admin-login-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 35px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .admin-login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #1b8c0c, #2ecc71, #1b8c0c);
+            background-size: 200% 100%;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .admin-login-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .admin-login-logo img {
+            height: 70px;
+            background: white;
+            padding: 5px;
+            border-radius: 12px;
+        }
+
+        .admin-login-logo .badge-admin {
+            display: inline-block;
+            background: #1b8c0c;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 8px;
+        }
+
+        .admin-login-logo h2 {
+            color: #1b8c0c;
+            font-weight: 700;
+            margin-top: 15px;
+            font-size: 24px;
+        }
+
+        .admin-login-logo p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 0;
+        }
+
+        .admin-login-logo .lock-icon {
+            font-size: 48px;
+            color: #1b8c0c;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .form-control {
+            border-radius: 12px;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: #1b8c0c;
+            box-shadow: 0 0 0 0.2rem rgba(27, 140, 12, 0.15);
+        }
+
+        .form-control-icon {
+            position: relative;
+        }
+
+        .form-control-icon i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #adb5bd;
+        }
+
+        .form-control-icon .form-control {
+            padding-left: 45px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .btn-admin-login {
+            background: linear-gradient(135deg, #1b8c0c, #2ecc71);
+            color: white;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            transition: all 0.3s;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-admin-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(27, 140, 12, 0.4);
+            color: white;
+        }
+
+        .btn-admin-login:disabled {
+            opacity: 0.7;
+            transform: none;
+        }
+
+        .text-link {
+            color: #1b8c0c;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .text-link:hover {
+            text-decoration: underline;
+            color: #166a0a;
+        }
+
+        .admin-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #1b8c0c;
+        }
+
+        .admin-info small {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .admin-info .key {
+            color: #1b8c0c;
+            font-weight: 600;
+        }
+
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.15em;
+        }
+
+        .back-to-site {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-to-site a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .back-to-site a:hover {
+            color: white;
+        }
+
+        #preloader {
+            display: none !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 576px) {
+            .admin-login-card {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="admin-login-container">
+        <div class="admin-login-card">
+            <div class="admin-login-logo">
+                <i class="bi bi-shield-lock-fill lock-icon"></i>
+                <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
+                <span class="badge-admin">🔒 Admin Access</span>
+                <h2>Admin Login</h2>
+                <p>Secure access to NACOS management panel</p>
+            </div>
+
+            <form id="adminLoginForm">
+                <div class="mb-3">
+                    <label for="adminEmail" class="form-label">Admin Email</label>
+                    <div class="form-control-icon">
+                        <i class="bi bi-envelope"></i>
+                        <input type="email" class="form-control" id="adminEmail" 
+                               placeholder="admin@tau.edu.ng" 
+                               value="nacos@tau.edu.ng"
+                               required autofocus>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="adminPassword" class="form-label">Password</label>
+                    <div class="form-control-icon">
+                        <i class="bi bi-lock"></i>
+                        <input type="password" class="form-control" id="adminPassword" 
+                               placeholder="Enter your secure password" required>
+                    </div>
+                </div>
+
+                <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberAdmin">
+                        <label class="form-check-label" for="rememberAdmin">Remember me</label>
+                    </div>
+                    <a href="forgot-password.html" class="text-link">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn-admin-login" id="adminLoginBtn">
+                    <span id="adminLoginText"><i class="bi bi-box-arrow-in-right"></i> Sign In</span>
+                    <span id="adminLoginSpinner" style="display: none;">
+                        <span class="spinner-border spinner-border-sm" role="status"></span>
+                        Authenticating...
+                    </span>
+                </button>
+
+                <div class="admin-info">
+                    <small>
+                        <i class="bi bi-info-circle"></i> 
+                        Only authorized NACOS executives and administrators have access.
+                        <br><strong class="key">Default Admin:</strong> nacos@tau.edu.ng
+                    </small>
+                </div>
+
+                <div class="text-center mt-3">
+                    <a href="student-login.html" class="text-link">
+                        <i class="bi bi-arrow-left"></i> Student Login
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="back-to-site">
+            <a href="index.html">
+                <i class="bi bi-house"></i> Back to NACOS Website
+            </a>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SCRIPTS                                      -->
+    <!-- ============================================ -->
+
+    <!-- Environment variables -->
+    <script src="assets/js/env.js"></script>
+
+    <!-- Admin Login Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔐 Admin Login Page Loaded');
+
+            const ADMIN_EMAIL = 'nacos@tau.edu.ng';
+            const ADMIN_PASSWORD = 'socan@tau!';
+
+            // Check if already logged in as admin
+            const adminSession = localStorage.getItem('admin_session');
+            if (adminSession) {
+                try {
+                    const session = JSON.parse(adminSession);
+                    if (session && session.email === ADMIN_EMAIL) {
+                        console.log('✅ Already logged in as admin');
+                        window.location.href = 'admin-dashboard.html';
+                    }
+                } catch (e) {
+                    localStorage.removeItem('admin_session');
+                }
+            }
+
+            // Form elements
+            const form = document.getElementById('adminLoginForm');
+            const emailInput = document.getElementById('adminEmail');
+            const passwordInput = document.getElementById('adminPassword');
+            const rememberCheck = document.getElementById('rememberAdmin');
+            const loginBtn = document.getElementById('adminLoginBtn');
+            const loginText = document.getElementById('adminLoginText');
+            const loginSpinner = document.getElementById('adminLoginSpinner');
+
+            // Load remembered admin email
+            const rememberedAdmin = localStorage.getItem('remembered_admin');
+            if (rememberedAdmin) {
+                emailInput.value = rememberedAdmin;
+                rememberCheck.checked = true;
+            }
+
+            // Handle form submission
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const email = emailInput.value.trim().toLowerCase();
+                const password = passwordInput.value;
+                const remember = rememberCheck.checked;
+
+                console.log('🔐 Admin login attempt:', email);
+
+                // Validate email
+                if (!email || !password) {
+                    Swal.fire({
+                        title: 'Missing Information',
+                        text: 'Please enter both email and password.',
+                        icon: 'warning',
+                        confirmButtonColor: '#1b8c0c'
+                    });
+                    return;
+                }
+
+                // Only allow the specific admin email
+                if (email !== ADMIN_EMAIL) {
+                    Swal.fire({
+                        title: 'Access Denied',
+                        text: 'This login is for authorized administrators only.',
+                        icon: 'error',
+                        confirmButtonColor: '#1b8c0c'
+                    });
+                    return;
+                }
+
+                // Show loading state
+                loginBtn.disabled = true;
+                loginText.style.display = 'none';
+                loginSpinner.style.display = 'inline';
+
+                try {
+                    // Validate password
+                    if (password !== ADMIN_PASSWORD) {
+                        throw new Error('Invalid password');
+                    }
+
+                    // Create admin session
+                    const session = {
+                        email: email,
+                        name: 'Admin User',
+                        role: 'super_admin',
+                        loggedInAt: new Date().toISOString()
+                    };
+
+                    localStorage.setItem('admin_session', JSON.stringify(session));
+
+                    if (remember) {
+                        localStorage.setItem('remembered_admin', email);
+                    } else {
+                        localStorage.removeItem('remembered_admin');
+                    }
+
+                    console.log('✅ Admin login successful');
+
+                    // Show success message
+                    await Swal.fire({
+                        title: 'Welcome Admin!',
+                        text: 'Access granted to NACOS Management Panel.',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        timerProgressBar: true
+                    });
+
+                    // Redirect to admin dashboard
+                    window.location.href = 'admin-dashboard.html';
+
+                } catch (error) {
+                    console.error('❌ Admin login error:', error);
+
+                    Swal.fire({
+                        title: 'Access Denied',
+                        text: 'Invalid admin credentials. Please try again.',
+                        icon: 'error',
+                        confirmButtonColor: '#1b8c0c',
+                        confirmButtonText: 'Try Again'
+                    });
+
+                    // Clear password
+                    passwordInput.value = '';
+                    passwordInput.focus();
+
+                } finally {
+                    // Reset button state
+                    loginBtn.disabled = false;
+                    loginText.style.display = 'inline';
+                    loginSpinner.style.display = 'none';
+                }
+            });
+
+            // Enter key support
+            document.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && document.activeElement === passwordInput) {
+                    form.dispatchEvent(new Event('submit'));
+                }
+            });
+
+            // Password visibility toggle (optional)
+            // Could add eye icon to toggle password visibility
+        });
+    </script>
+
+</body>
+</html>

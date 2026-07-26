@@ -1,12 +1,10 @@
-// frontend/assets/js/api-config.js
+import { supabase } from './supabase-config.js';
+
 const API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:5000/api'
-   :'https://nacos-backend.up.railway.app/api'; // Update with your Render URL
+    : 'https://nacos-backend.up.railway.app/api';
 
 export const api = {
-    // ============================================
-    // AUTH ENDPOINTS
-    // ============================================
     auth: {
         async verify() {
             const { data: { session } } = await supabase.auth.getSession();
@@ -21,14 +19,12 @@ export const api = {
         },
 
         async login(email, password) {
-            // First, try Supabase auth
             const { data, error } = await supabase.auth.signInWithPassword({
                 email, password
             });
             
             if (error) throw error;
             
-            // Then verify with backend
             const response = await fetch(`${API_URL}/auth/verify`, {
                 headers: {
                     'Authorization': `Bearer ${data.session.access_token}`
@@ -73,9 +69,6 @@ export const api = {
         }
     },
 
-    // ============================================
-    // STUDENT ENDPOINTS
-    // ============================================
     students: {
         async getProfile() {
             const { data: { session } } = await supabase.auth.getSession();
@@ -101,9 +94,6 @@ export const api = {
         }
     },
 
-    // ============================================
-    // EVENTS ENDPOINTS
-    // ============================================
     events: {
         async getUpcoming() {
             const response = await fetch(`${API_URL}/events/upcoming`);
@@ -122,9 +112,6 @@ export const api = {
         }
     },
 
-    // ============================================
-    // RESOURCES ENDPOINTS
-    // ============================================
     resources: {
         async getAll(params = {}) {
             const queryString = new URLSearchParams(params).toString();
@@ -144,9 +131,6 @@ export const api = {
         }
     },
 
-    // ============================================
-    // PAYMENT ENDPOINTS
-    // ============================================
     payments: {
         async submit(data) {
             const { data: { session } } = await supabase.auth.getSession();
@@ -172,9 +156,6 @@ export const api = {
         }
     },
 
-    // ============================================
-    // CAREER ENDPOINTS
-    // ============================================
     career: {
         async getAll(params = {}) {
             const queryString = new URLSearchParams(params).toString();
@@ -204,9 +185,6 @@ export const api = {
         }
     },
 
-    // ============================================
-    // VOTING ENDPOINTS
-    // ============================================
     voting: {
         async getPositions() {
             const { data: { session } } = await supabase.auth.getSession();
@@ -242,3 +220,5 @@ export const api = {
         }
     }
 };
+
+window.api = api;
