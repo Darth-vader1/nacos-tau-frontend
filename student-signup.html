@@ -674,13 +674,13 @@
             // Success
             await Swal.fire({
                 title: 'Registration Successful! 🎉',
-                text: `Welcome ${fullName}! Your account has been created. Please verify your email and login.`,
+                text: `Welcome ${fullName}! Your account is active and you're now being redirected to your dashboard.`,
                 icon: 'success',
                 confirmButtonColor: '#1b8c0c',
-                confirmButtonText: 'Go to Login'
+                confirmButtonText: 'Continue'
             });
 
-            window.location.href = 'student-login.html';
+            window.location.href = 'student-dashboard.html';
 
         } catch (err) {
             console.error('❌ Signup error:', err);
