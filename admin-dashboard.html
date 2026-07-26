@@ -23,7 +23,65 @@
   <link href="assets/vendor/aos/aos.css" rel="stylesheet">
   <link href="assets/css/main.css" rel="stylesheet">
 
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- SweetAlert2 primary CDN + 2-level fallback (cdnjs mirror → alert/confirm shim).
+         Admin panels depend heavily on Swal.fire; this guarantees the UI never breaks
+         just because one CDN is unreachable. -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"
+            crossorigin="anonymous" referrerpolicy="no-referrer"
+            onerror="this.dataset.failed='1'"></script>
+    <script>(function(){
+      function installShim(){
+        if (window.Swal && typeof window.Swal.fire === 'function') return;
+        window.Swal = {
+          mixin: function(){ return this; },
+          fire: function (a, b, c) {
+            if (a && typeof a === 'object') {
+              var parts = [];
+              if (a.title) parts.push(a.title);
+              if (a.text)  parts.push(a.text);
+              if (a.html)  parts.push(String(a.html).replace(/<[^>]+>/g,' '));
+              var msg = parts.join('\n');
+              var icon = a.icon || (a.confirmButtonText ? 'question' : 'info');
+              var isErr = icon === 'error' || icon === 'warning';
+              var confirmed;
+              if (isErr) { alert(msg); confirmed = false; }
+              else if (a.confirmButtonText || a.showCancelButton || a.icon === 'question') { confirmed = confirm(msg); }
+              else { alert(msg); confirmed = false; }
+              var result = { isConfirmed: confirmed, isDismissed: !confirmed, value: undefined };
+              if (typeof a.didClose === 'function') try { a.didClose(result); } catch(_){}
+              if (typeof a.didOpen  === 'function') try { a.didOpen (document.body); } catch(_){}
+              return Promise.resolve(result);
+            }
+            var msg = String(a || '');
+            if (b === 'error' || b === 'warning')       { alert(msg); return Promise.resolve({isConfirmed:false,isDismissed:true}); }
+            if (typeof c === 'string' && c === 'error')  { alert(msg); return Promise.resolve({isConfirmed:false,isDismissed:true}); }
+            if (typeof b === 'string' && arguments.length === 3) {
+              var ok = confirm(msg + '\n\n' + b);
+              return Promise.resolve({isConfirmed:ok,isDismissed:!ok});
+            }
+            alert(msg);
+            return Promise.resolve({isConfirmed:false,isDismissed:true});
+          },
+          close: function(){}
+        };
+      }
+      function tryCdn(url){
+        var s = document.createElement('script');
+        s.src = url; s.async=false; s.crossOrigin='anonymous';
+        s.onload  = function(){ if (!window.Swal || typeof window.Swal.fire !== 'function') installShim(); };
+        s.onerror = installShim;
+        document.head.appendChild(s);
+      }
+      if (window.Swal && typeof window.Swal.fire === 'function') return;
+      var failed = document.querySelector('script[data-failed="1"]');
+      if (failed) {
+        tryCdn('https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.17.2/sweetalert2.all.min.js');
+      } else {
+        setTimeout(function(){
+          if (!window.Swal || typeof window.Swal.fire !== 'function') installShim();
+        }, 4000);
+      }
+    })();</script>
 
   <style>
     :root {
