@@ -241,6 +241,24 @@
       font-weight: 500;
     }
     
+    /* Resource fields styling */
+    .resource-item {
+      position: relative;
+    }
+    
+    .resource-item .remove-resource {
+      height: 31px;
+      padding: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #add-resource-btn {
+      font-size: 13px;
+    }
+    
     .spinner-border-sm {
       width: 1rem;
       height: 1rem;
@@ -1017,31 +1035,63 @@
           <div class="modal-body">
             <div class="row">
               <div class="col-md-6">
-                <label class="form-label">Path Key</label>
-                <input type="text" class="form-control" id="cp-key" required placeholder="e.g., backend">
+                <label class="form-label">Title *</label>
+                <input type="text" class="form-control" id="cp-title" required>
               </div>
               <div class="col-md-6">
-                <label class="form-label">Title</label>
-                <input type="text" class="form-control" id="cp-title" required>
+                <label class="form-label">Category *</label>
+                <select class="form-control" id="cp-category" required>
+                  <option value="">Select Category</option>
+                  <option value="Development">Development</option>
+                  <option value="Data Science">Data Science</option>
+                  <option value="DevOps">DevOps</option>
+                  <option value="Security">Cybersecurity</option>
+                  <option value="Design">Design</option>
+                  <option value="Mobile">Mobile Development</option>
+                  <option value="AI/ML">AI/Machine Learning</option>
+                  <option value="Cloud">Cloud Computing</option>
+                </select>
               </div>
             </div>
             <div class="mb-3">
-              <label class="form-label">Overview</label>
-              <textarea class="form-control" id="cp-overview" rows="2" required></textarea>
+              <label class="form-label">Description *</label>
+              <textarea class="form-control" id="cp-overview" rows="2" required placeholder="Describe this career path..."></textarea>
             </div>
             <div class="row">
               <div class="col-md-6">
                 <label class="form-label">Skills (comma-separated)</label>
-                <input type="text" class="form-control" id="cp-skills">
+                <input type="text" class="form-control" id="cp-skills" placeholder="e.g., JavaScript, Node.js, PostgreSQL">
               </div>
               <div class="col-md-6">
                 <label class="form-label">Tools (comma-separated)</label>
-                <input type="text" class="form-control" id="cp-tools">
+                <input type="text" class="form-control" id="cp-tools" placeholder="e.g., VS Code, Git, Docker">
               </div>
             </div>
+            
+            <!-- External Resources Section -->
             <div class="mb-3">
-              <label class="form-label">External Resources (JSON)</label>
-              <textarea class="form-control" id="cp-resources" rows="2" placeholder='[{"name":"Resource","url":"https://..."}]'></textarea>
+              <label class="form-label">External Resources</label>
+              <div id="cp-resources-container">
+                <!-- Initial resource field -->
+                <div class="resource-item mb-2">
+                  <div class="row g-2">
+                    <div class="col-md-5">
+                      <input type="text" class="form-control form-control-sm resource-name" placeholder="Resource name (e.g., Node.js Docs)">
+                    </div>
+                    <div class="col-md-6">
+                      <input type="url" class="form-control form-control-sm resource-url" placeholder="https://...">
+                    </div>
+                    <div class="col-md-1">
+                      <button type="button" class="btn btn-sm btn-outline-danger remove-resource" style="display:none;">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="add-resource-btn">
+                <i class="bi bi-plus"></i> Add Another Resource
+              </button>
             </div>
           </div>
           <div class="modal-footer">
@@ -1462,7 +1512,8 @@ ALTER TABLE public.payment_verification ENABLE ROW LEVEL SECURITY;`
           <td>${ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</td>
           <td>${ev.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
           <td>
-            <button class="btn btn-sm btn-outline-danger" onclick="deleteEventItem('${ev.id}')"><i class="bi bi-trash"></i></button>
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${ev.id}')"><i class="bi bi-trash"></i></button>
           </td>
         </tr>
       `).join('');
@@ -1832,7 +1883,7 @@ window.deleteEvent = async function(id) {
         await apiAdmin.create('academic_resources', {
           title,
           resource_type: resourceType,
-          url,
+          file_url: url,  // Map url input to file_url column
           category,
           description,
           uploaded_by: adminData?.id
@@ -1853,6 +1904,155 @@ window.deleteEvent = async function(id) {
       } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = 'Add Resource';
+      }
+    });
+
+    // ============================================
+    // CAREER PATHS
+    // ============================================
+
+    // Dynamic Resource Fields Management
+    const resourcesContainer = document.getElementById('cp-resources-container');
+    const addResourceBtn = document.getElementById('add-resource-btn');
+
+    // Add new resource field
+    addResourceBtn?.addEventListener('click', function() {
+      const resourceItem = document.createElement('div');
+      resourceItem.className = 'resource-item mb-2';
+      resourceItem.innerHTML = `
+        <div class="row g-2">
+          <div class="col-md-5">
+            <input type="text" class="form-control form-control-sm resource-name" placeholder="Resource name (e.g., Node.js Docs)">
+          </div>
+          <div class="col-md-6">
+            <input type="url" class="form-control form-control-sm resource-url" placeholder="https://...">
+          </div>
+          <div class="col-md-1">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-resource">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+      
+      // Add remove functionality
+      resourceItem.querySelector('.remove-resource').addEventListener('click', function() {
+        resourceItem.remove();
+        updateRemoveButtons();
+      });
+      
+      resourcesContainer.appendChild(resourceItem);
+      updateRemoveButtons();
+    });
+
+    // Update remove button visibility (show only if more than 1 resource)
+    function updateRemoveButtons() {
+      if (!resourcesContainer) return; // Safety check
+      const items = resourcesContainer.querySelectorAll('.resource-item');
+      items.forEach((item, index) => {
+        const removeBtn = item.querySelector('.remove-resource');
+        if (removeBtn) {
+          removeBtn.style.display = items.length > 1 ? 'block' : 'none';
+        }
+      });
+    }
+
+    // Add remove functionality to initial field (only if it exists)
+    const initialRemoveBtn = document.querySelector('.remove-resource');
+    if (initialRemoveBtn) {
+      initialRemoveBtn.addEventListener('click', function() {
+        this.closest('.resource-item').remove();
+        updateRemoveButtons();
+      });
+    }
+
+    document.getElementById('addCareerPathForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const session = await checkAuth();
+      if (!session) return;
+
+      const title = document.getElementById('cp-title').value.trim();
+      const category = document.getElementById('cp-category').value;
+      const description = document.getElementById('cp-overview').value.trim();
+      const skillsInput = document.getElementById('cp-skills').value.trim();
+      const toolsInput = document.getElementById('cp-tools').value.trim();
+
+      if (!title || !description || !category) {
+        Swal.fire('Error', 'Title, description, and category are required', 'error');
+        return;
+      }
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Adding...';
+
+      try {
+        console.log('Adding career path:', { title, category });
+
+        // Parse comma-separated skills and tools
+        const skills = skillsInput ? skillsInput.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const tools = toolsInput ? toolsInput.split(',').map(t => t.trim()).filter(Boolean) : [];
+        
+        // Collect resources from dynamic fields
+        const resources = [];
+        const resourceItems = document.querySelectorAll('.resource-item');
+        resourceItems.forEach(item => {
+          const name = item.querySelector('.resource-name').value.trim();
+          const url = item.querySelector('.resource-url').value.trim();
+          
+          // Only add if both name and URL are provided
+          if (name && url) {
+            resources.push({ name, url });
+          }
+        });
+
+        // Insert into Database via generic admin API
+        await apiAdmin.create('career_paths', {
+          title,
+          description,
+          category,
+          skills,
+          tools,
+          resources,
+          required_education: 'Computer Science Degree or equivalent',
+          is_active: true
+        });
+
+        await logAdminAction('CREATE', 'career_path', null, { title, category });
+        
+        Swal.fire('Success', 'Career path added successfully!', 'success').then(() => {
+          bootstrap.Modal.getInstance(document.getElementById('addCareerPathModal')).hide();
+          e.target.reset();
+          
+          // Reset resource fields to just one empty field
+          resourcesContainer.innerHTML = `
+            <div class="resource-item mb-2">
+              <div class="row g-2">
+                <div class="col-md-5">
+                  <input type="text" class="form-control form-control-sm resource-name" placeholder="Resource name (e.g., Node.js Docs)">
+                </div>
+                <div class="col-md-6">
+                  <input type="url" class="form-control form-control-sm resource-url" placeholder="https://...">
+                </div>
+                <div class="col-md-1">
+                  <button type="button" class="btn btn-sm btn-outline-danger remove-resource" style="display:none;">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          
+          loadCareerPaths();
+          loadDashboardStats();
+        });
+
+      } catch (err) {
+        console.error('Career path add error:', err);
+        Swal.fire('Error', err.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Add Career Path';
       }
     });
 
@@ -2080,7 +2280,7 @@ window.deleteEvent = async function(id) {
         <tr>
           <td>${escapeHtml(r.title)}</td>
           <td><span class="badge-category">${escapeHtml(r.resource_type)}</span></td>
-          <td><a href="${escapeHtml(r.url)}" target="_blank" class="text-truncate" style="max-width:200px;">${escapeHtml(r.url)}</a></td>
+          <td><a href="${escapeHtml(r.file_url)}" target="_blank" class="text-truncate" style="max-width:200px;">${escapeHtml(r.file_url)}</a></td>
           <td><button class="btn btn-sm btn-outline-danger" onclick="deleteResource('${r.id}')"><i class="bi bi-trash"></i></button></td>
         </tr>
       `).join('');
@@ -2114,9 +2314,9 @@ window.deleteEvent = async function(id) {
       }
       tbody.innerHTML = data.map(c => `
         <tr>
-          <td><code>${escapeHtml(c.path_key)}</code></td>
           <td><strong>${escapeHtml(c.title)}</strong></td>
-          <td>${escapeHtml(c.overview?.substring(0, 100) || '')}</td>
+          <td><span class="badge-category">${escapeHtml(c.category || 'N/A')}</span></td>
+          <td>${escapeHtml(c.description?.substring(0, 80) || '')}</td>
           <td><button class="btn btn-sm btn-outline-danger" onclick="deleteCareerPath('${c.id}')"><i class="bi bi-trash"></i></button></td>
         </tr>
       `).join('');
