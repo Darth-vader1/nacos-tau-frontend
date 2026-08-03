@@ -215,8 +215,8 @@
 
                         <div class="form-group">
                             <label for="matric_no">Matric Number:</label>
-                            <input type="text" class="form-control" id="matric_no" placeholder="e.g. TAU/CS/20/001" required>
-                            <small class="text-muted">Format: 23/10msc014</small>
+                            <input type="text" class="form-control" id="matric_no" placeholder="e.g. 23/10MSC014" required>
+                            <small class="text-muted">Format: YY/NNDDD### (e.g. 23/10msc014)</small>
                         </div>
 
                         <div class="form-group">
@@ -376,12 +376,7 @@
 
     function validateMatricNumber(matric) {
         const trimmed = matric.trim().toUpperCase();
-        const patterns = [
-            /^TAU\/[A-Z]{2,4}\/\d{2,4}\/\d{3,4}$/i,
-            /^[A-Z]{2,4}\/\d{2,4}\/\d{3,4}$/i,
-            /^\d{2}\/\d{2}[A-Z]{2,4}\d{3,4}$/i
-        ];
-        return patterns.some(pattern => pattern.test(trimmed));
+        return /^\d{2}\/\d{2}[A-Z]{2,4}\d{3,4}$/i.test(trimmed);
     }
 
     function validateEmail(email) {
@@ -391,19 +386,36 @@
     }
 
     function validatePasswordStrength(password) {
-        if (password.length < 6) {
-            return { level: 'weak', message: 'Password must be at least 6 characters' };
-        }
-        let strength = 0;
-        if (password.length >= 8) strength++;
-        if (password.match(/[a-z]+/)) strength++;
-        if (password.match(/[A-Z]+/)) strength++;
-        if (password.match(/[0-9]+/)) strength++;
-        if (password.match(/[$@#&!]+/)) strength++;
+        // Mirror the backend authValidationChains.register rules AND validatePassword() in validators.js
+        //  - min 8 characters
+        //  - uppercase letter
+        //  - lowercase letter
+        //  - digit
+        //  - special character: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : ' " , . < > / ? \ | ` ~
+        const rules = [
+            { ok: password.length >= 8,                                     text: 'at least 8 characters' },
+            { ok: /[A-Z]/.test(password),                                   text: 'one uppercase letter (A-Z)' },
+            { ok: /[a-z]/.test(password),                                   text: 'one lowercase letter (a-z)' },
+            { ok: /\d/.test(password),                                      text: 'one number (0-9)' },
+            { ok: /[!@#$%^&*()_+\-=\[\]{};:'",.<>/?\\|`~]/.test(password), text: 'one special character (e.g. !@#$%^&*)' }
+        ];
 
-        if (strength <= 2) return { level: 'weak', message: 'Weak password' };
-        if (strength === 3) return { level: 'medium', message: 'Medium password' };
-        return { level: 'strong', message: 'Strong password' };
+        const passed = rules.filter(r => r.ok).length;
+        const failed = rules.filter(r => !r.ok);
+
+        if (failed.length > 0) {
+            return {
+                level: 'weak',
+                message: `Password needs: ${failed.map(f => f.text).join(', ')}`,
+                passed,
+                failed
+            };
+        }
+
+        if (passed === 5 && password.length >= 12) {
+            return { level: 'strong', message: 'Strong password — all requirements met', passed, failed };
+        }
+        return { level: 'medium', message: 'Acceptable — all requirements met', passed, failed };
     }
 
     function validateForm() {
@@ -424,7 +436,7 @@
         }
 
         if (!validateMatricNumber(matricNoInput.value.trim())) {
-            showError(matricNoInput, 'Invalid matric number format. Use TAU/CS/20/001 or 23/10MSC014');
+            showError(matricNoInput, 'Invalid matric number format. Use YY/NNDDD### (e.g. 23/10MSC014)');
             isValid = false;
         } else {
             clearError(matricNoInput);
@@ -445,10 +457,12 @@
         }
 
         const passwordStrength = validatePasswordStrength(passwordInput.value);
-        if (passwordStrength.level === 'weak' && passwordInput.value.length > 0) {
+        // Reject anything that does not satisfy ALL 5 backend rules so the form
+        // can never produce "Validation failed" with no visible client-side reason.
+        if (passwordInput.value.length > 0 && passwordStrength.failed?.length > 0) {
             showError(passwordInput, passwordStrength.message);
             isValid = false;
-        } else {
+        } else if (passwordInput.value.length > 0) {
             clearError(passwordInput);
         }
 
@@ -545,8 +559,16 @@
     });
 
     // ============================================
-    // FORM SUBMISSION - UPDATED VERSION
+    // FORM SUBMISSION - Backend /api/auth/register first (avoids Supabase RLS-insert issues)
     // ============================================
+
+    function getApiBaseUrl() {
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:5000/api';
+        }
+        return 'https://nacos-backend.up.railway.app/api';
+    }
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -561,39 +583,62 @@
             return;
         }
 
-        const fullName = `${firstNameInput.value.trim()} ${lastNameInput.value.trim()}`;
+        const firstName = firstNameInput.value.trim();
+        const lastName = lastNameInput.value.trim();
+        const fullName = `${firstName} ${lastName}`;
         const email = emailInput.value.trim().toLowerCase();
         const password = passwordInput.value;
         const matricNo = matricNoInput.value.trim().toUpperCase();
         const department = departmentInput.value;
 
-        console.log('📝 Registering:', { email, matricNo, fullName, department });
+        console.log('📝 Registering via backend:', { email, matricNo, fullName, department });
 
         // Show loading state
         signupButton.disabled = true;
         signupButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating account...';
 
         try {
-            // 1. Create user in Supabase Auth
-            const { data: authData, error: signUpError } = await supabase.auth.signUp({
-                email: email,
-                password: password,
-                options: {
-                    data: {
-                        full_name: fullName,
-                        first_name: firstNameInput.value.trim(),
-                        last_name: lastNameInput.value.trim(),
-                        matric_no: matricNo,
-                        department: department,
-                        role: 'student'
-                    }
-                }
+            // 1. Create user + profile via the backend service-role route
+            //    (no RLS needed because the backend uses the service_role Supabase client)
+            const registerResponse = await fetch(`${getApiBaseUrl()}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email,
+                    password,
+                    firstName,
+                    lastName,
+                    matricNo,
+                    department,
+                    course: department // treat department as primary course for now
+                })
             });
 
-            if (signUpError) {
-                console.error('❌ Auth error:', signUpError);
-                
-                if (signUpError.message?.includes('rate limit')) {
+            const registerBody = await registerResponse.json().catch(() => ({}));
+
+            if (!registerResponse.ok) {
+                // Backend error: prefer validator's per-field detail map (from express-validator validate())
+                // otherwise fall back to generic error / status text.
+                console.log('🔍 Backend validation response:', JSON.stringify(registerBody, null, 2));
+                const serverError = registerBody?.error || `Registration failed (HTTP ${registerResponse.status})`;
+                const fieldErrors = registerBody?.fields && typeof registerBody.fields === 'object'
+                  ? Object.entries(registerBody.fields)
+                      .map(([field, messages]) => {
+                        const list = Array.isArray(messages) ? messages : [messages];
+                        const fieldKey = (field == null || field === 'undefined' || field === 'unknown' || field === '')
+                          ? 'General'
+                          : field;
+                        const pretty = fieldKey === 'matricNo' ? 'Matric number'
+                                     : fieldKey === 'firstName' ? 'First name'
+                                     : fieldKey === 'lastName' ? 'Last name'
+                                     : fieldKey === 'General' ? 'General'
+                                     : fieldKey.charAt(0).toUpperCase() + fieldKey.slice(1);
+                        return `• ${pretty}: ${list.join('; ')}`;
+                      })
+                      .join('\n')
+                  : null;
+
+                if (/rate limit|too many/i.test(serverError)) {
                     await Swal.fire({
                         title: '⏳ Too Many Attempts',
                         text: 'Please wait 10-15 minutes before trying again.',
@@ -603,82 +648,59 @@
                     });
                     return;
                 }
-                
-                throw signUpError;
+
+                const combined = fieldErrors
+                  ? `${serverError}\n\n${fieldErrors}`
+                  : serverError;
+
+                throw new Error(combined);
             }
 
-            console.log('✅ Auth user created:', authData.user.id);
+            console.log('✅ Backend registration success:', registerBody);
 
-            // 2. Create student profile in database without requiring an active session
-            const { error: insertError } = await supabase
-                .from('students')
-                .insert({
-                    user_id: authData.user.id,
-                    email: email,
-                    first_name: firstNameInput.value.trim(),
-                    last_name: lastNameInput.value.trim(),
-                    name: fullName,
-                    matric_no: matricNo,
-                    department: department,
-                    status: 'active',
-                    created_at: new Date().toISOString()
+            // 2. Bootstrap the Supabase browser session after successful backend provisioning.
+            //    Preferred path: the backend already minted a session via the admin API
+            //    (setSession avoids a second password round-trip / any confirmation-race).
+            //    Fallback path: if the session mint was skipped (transient Supabase issue),
+            //    do a regular password sign-in — this now reliably succeeds because the
+            //    backend calls auth.admin.createUser(..., { email_confirm: true }).
+            let loginSession = null;
+            const prebuilt = registerBody?.data?.session;
+            if (prebuilt && prebuilt.access_token && prebuilt.refresh_token) {
+                console.log('🔐 Using backend-minted session (setSession path)');
+                const { data: setData, error: setError } = await supabase.auth.setSession({
+                    access_token: prebuilt.access_token,
+                    refresh_token: prebuilt.refresh_token
                 });
-
-            if (insertError) {
-                console.error('❌ Insert error:', insertError);
-                
-                // If RLS error (42501), try without the header
-                if (insertError.code === '42501') {
-                    console.log('⚠️ RLS error, trying without custom header...');
-                    
-                    // Try without custom header
-                    const { error: retryError } = await supabase
-                        .from('students')
-                        .insert({
-                            user_id: authData.user.id,
-                            email: email,
-                            first_name: firstNameInput.value.trim(),
-                            last_name: lastNameInput.value.trim(),
-                            name: fullName,
-                            matric_no: matricNo,
-                            department: department,
-                            status: 'active',
-                            created_at: new Date().toISOString()
-                        });
-                    
-                    if (retryError) {
-                        console.error('❌ Retry also failed:', retryError);
-                        throw new Error('RLS policy is blocking the insert. Please contact admin.');
-                    }
-                    
-                    console.log('✅ Student profile created (retry success)');
+                if (setError) {
+                    console.warn('⚠️ setSession failed, falling back to password login:', setError);
                 } else {
-                    throw new Error('Failed to create student profile. Please contact admin.');
+                    loginSession = setData?.session || prebuilt;
                 }
             }
 
-            console.log('✅ Student profile created');
-
-            // Auto sign-in after registration
-            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
-
-            if (loginError) {
-                console.error('❌ Auto-login failed:', loginError);
-                await Swal.fire({
-                    title: 'Registration Complete',
-                    text: `Welcome ${fullName}! Your account is active, but we could not automatically sign you in. Please log in manually.`,
-                    icon: 'success',
-                    confirmButtonColor: '#1b8c0c',
-                    confirmButtonText: 'Go to Login'
+            if (!loginSession) {
+                console.log('🔑 No backend session; auto-signing in with password (fallback)');
+                const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
                 });
-                window.location.href = 'student-login.html';
-                return;
+                if (loginError) {
+                    console.error('❌ Auto-login failed:', loginError);
+                    await Swal.fire({
+                        title: 'Registration Complete',
+                        text: `Welcome ${fullName}! Your account is active, but we could not automatically sign you in. Please log in manually.`,
+                        icon: 'success',
+                        confirmButtonColor: '#1b8c0c',
+                        confirmButtonText: 'Go to Login'
+                    });
+                    window.location.href = 'student-login.html';
+                    return;
+                }
+                loginSession = loginData?.session;
             }
 
-            console.log('✅ Auto-login successful', loginData?.session);
+            console.log('✅ Auto-login successful', loginSession);
 
             await Swal.fire({
                 title: 'Registration Successful! 🎉',
@@ -694,13 +716,14 @@
             console.error('❌ Signup error:', err);
 
             let errorMessage = 'An error occurred during registration. Please try again.';
-            
-            if (err.message?.includes('User already registered')) {
+            const msg = err.message || '';
+
+            if (msg.includes('User already registered') || msg.includes('already registered')) {
                 errorMessage = 'This email is already registered. Please login instead.';
-            } else if (err.message?.includes('duplicate key value')) {
+            } else if (msg.includes('duplicate key value') || msg.includes('matric number is already registered')) {
                 errorMessage = 'This email or matric number is already registered.';
-            } else if (err.message) {
-                errorMessage = err.message;
+            } else if (msg) {
+                errorMessage = msg;
             }
 
             await Swal.fire({

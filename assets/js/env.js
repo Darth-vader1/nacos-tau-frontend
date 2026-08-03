@@ -26,6 +26,25 @@ window.API_URL = isLocal
     ? 'http://localhost:5000/api'
     : 'https://nacos-backend.up.railway.app/api';
 
+// Supabase Storage bucket used for past questions, timetables, event images,
+// and other uploaded assets. Must match the bucket name in the Supabase project
+// (Storage → Browse). If the bucket doesn't exist and "Allow new public buckets"
+// is enabled, the frontend will auto-create it on first upload.
+window.SUPABASE_STORAGE_BUCKET = 'nacos-assets';
+
+// Exact names of the 7 dedicated buckets provisioned in the Supabase project.
+// The resolveBucketFor() helper maps logical flow folders to these names so
+// uploads never land in the legacy monolithic bucket by accident.
+window.SUPABASE_DEDICATED_BUCKETS = Object.freeze({
+  pastQuestions: 'past-questions',
+  timetables: 'timetables',
+  resources: 'resources',
+  eventImages: 'event-images',
+  paymentProofs: 'payment-proofs',
+  profilePictures: 'profile-pictures',
+  votingPhotos: 'voting-photos'
+});
+
 // ============================================
 // LOGGING
 // ============================================
@@ -35,10 +54,24 @@ console.log('🔗 Supabase URL:', window.SUPABASE_URL);
 console.log('🔑 Supabase Anon Key:', window.SUPABASE_ANON_KEY ? '✅ Set (starts with sb_publishable)' : '❌ Missing');
 console.log('🔗 API URL:', window.API_URL);
 console.log('📡 Environment:', isLocal ? 'Development' : 'Production');
+console.log('📦 Legacy Storage Bucket:', window.SUPABASE_STORAGE_BUCKET);
+console.log('📦 Dedicated Buckets:', Object.values(window.SUPABASE_DEDICATED_BUCKETS || {}).join(', '));
 
 window.__CONFIG = {
     supabaseUrl: window.SUPABASE_URL,
     supabaseAnonKey: window.SUPABASE_ANON_KEY,
     apiUrl: window.API_URL,
+    storageBucket: window.SUPABASE_STORAGE_BUCKET,
+    dedicatedBuckets: window.SUPABASE_DEDICATED_BUCKETS,
+    bucketMap: {
+        events: 'event-images',
+        past_questions: 'past-questions',
+        timetables: 'timetables',
+        resources: 'resources',
+        academic_resources: 'resources',
+        profile_pictures: 'profile-pictures',
+        payment_proofs: 'payment-proofs',
+        voting_photos: 'voting-photos'
+    },
     environment: isLocal ? 'development' : 'production'
 };

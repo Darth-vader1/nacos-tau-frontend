@@ -419,7 +419,7 @@
   <script src="assets/js/main.js"></script>
 
   <script type="module">
-    import { supabase, checkAuth, signOut } from './assets/js/supabase-config.js';
+    import { supabase, checkAuth, signOut, uploadFileToStorage } from './assets/js/supabase-config.js';
 
     // DOM Elements
     const loadingState = document.getElementById('loadingState');
@@ -637,27 +637,16 @@ function formatDate(dateString) {
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading...';
         
         try {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `profile-pictures/${currentUser.id}_${Date.now()}.${fileExt}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('nacos-assets')
-            .upload(fileName, file);
-          
-          if (uploadError) throw uploadError;
-          
-          const { data: urlData } = supabase.storage
-            .from('nacos-assets')
-            .getPublicUrl(fileName);
+          const up = await uploadFileToStorage('profile-pictures', file);
           
           const { error: updateError } = await supabase
             .from('students')
-            .update({ profile_picture_url: urlData.publicUrl })
+            .update({ profile_picture_url: up.fileUrl })
             .eq('user_id', currentUser.id);
           
           if (updateError) throw updateError;
           
-          profileImageEl.src = urlData.publicUrl;
+          profileImageEl.src = up.fileUrl;
           showSuccess('Profile picture updated successfully!');
           
           const modal = bootstrap.Modal.getInstance(document.getElementById('updatePfpModal'));
@@ -679,12 +668,36 @@ function formatDate(dateString) {
       await signOut('student-login.html');
     });
 
+    async function ensureStorageBuckets({ force = false } = {}) {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data?.session?.access_token) return;
+        const token = data.session.access_token;
+        const url = (window.__CONFIG?.apiUrl || window.API_URL || '/api') + '/storage/ensure-buckets';
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ force })
+        });
+        if (resp.status === 401 || resp.status === 403) return; // student accounts aren't admins — skip silently
+        if (!resp.ok) return;
+        const json = await resp.json();
+        if (json && Array.isArray(json.verifiedBuckets) && typeof window.writeVerifiedBuckets === 'function') {
+          window.writeVerifiedBuckets(json.verifiedBuckets);
+        }
+      } catch { /* ignore — uploads still work via real storage validation */ }
+    }
+
     // Initialize Dashboard
     async function init() {
       const isAuthenticated = await checkAuthentication();
       if (!isAuthenticated) return;
       
       await Promise.all([
+        ensureStorageBuckets(),
         loadStudentData(),
         loadResources(),
         loadEvents()

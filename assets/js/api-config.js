@@ -91,6 +91,39 @@ export const api = {
                 body: JSON.stringify(data)
             });
             return response.json();
+        },
+
+        async list(params = {}) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                return { success: false, error: 'Not authenticated' };
+            }
+            const qs = new URLSearchParams();
+            const { page, limit, search, status, department } = params;
+            if (page != null && page !== '' && !Number.isNaN(Number(page))) qs.set('page', String(page));
+            if (limit != null && limit !== '' && !Number.isNaN(Number(limit))) qs.set('limit', String(limit));
+            if (search && String(search).trim() !== '') qs.set('search', String(search).trim());
+            // Omit status when "all" — absence means "no status filter" (all rows).
+            const s = (typeof status === 'string') ? status.trim().toLowerCase() : '';
+            if (s && s !== 'all') qs.set('status', s);
+            if (department && String(department).trim() !== '') qs.set('department', String(department).trim());
+            const url = `${API_URL}/students${qs.toString() ? `?${qs.toString()}` : ''}`;
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            return response.json();
+        },
+
+        async remove(studentId) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                return { success: false, error: 'Not authenticated' };
+            }
+            const response = await fetch(`${API_URL}/students/${encodeURIComponent(studentId)}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            return response.json();
         }
     },
 

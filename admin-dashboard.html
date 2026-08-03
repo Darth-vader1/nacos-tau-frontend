@@ -624,7 +624,7 @@
       <div id="students-section" class="content-section" style="display: none;">
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <span><i class="bi bi-people me-2"></i>Student Verification</span>
+            <span><i class="bi bi-people me-2"></i>Students Directory</span>
             <div class="btn-group btn-group-sm">
               <button class="btn btn-outline-secondary" data-student-filter="active">Active</button>
               <button class="btn btn-outline-secondary" data-student-filter="rejected">Rejected</button>
@@ -1061,7 +1061,13 @@
   <script src="assets/js/main.js"></script>
 
   <script type="module">
-    import { supabase, requireAdmin, checkAuth, signOut } from './assets/js/supabase-config.js';
+    import { supabase, requireAdmin, checkAuth, signOut, DEFAULT_BUCKET_NAME, ensureBucket, uploadFileToStorage } from './assets/js/supabase-config.js';
+    import { api } from './assets/js/api-config.js';
+
+    // Convenience: also expose on window for code paths that reference
+    // window.api (delete event handlers registered via onclick="..." etc
+    // run in the outer scope, not inside this ES module).
+    window.api = api;
 
     // ============================================
     // UTILITY FUNCTIONS
@@ -1078,6 +1084,143 @@
       if (!dateString) return 'N/A';
       const date = new Date(dateString);
       return date.toLocaleDateString('en-NG');
+    }
+
+    // ============================================
+    // TABLE MISSING (404) DETECTION
+    // Supabase returns a generic error object with code/context when a
+    // relation (table) does not exist. Detect that shape and return a
+    // human-readable + executable SQL snippet so the admin can create it
+    // in one click from the Supabase SQL Editor.
+    // ============================================
+
+    const TABLE_DEFS = {
+      past_questions: `CREATE TABLE IF NOT EXISTS public.past_questions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text,
+  course_code text,
+  course_name text,
+  level text,
+  semester text,
+  file_url text NOT NULL,
+  file_type text,
+  uploaded_by uuid REFERENCES public.admin_users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.past_questions ENABLE ROW LEVEL SECURITY;`,
+      timetables: `CREATE TABLE IF NOT EXISTS public.timetables (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  version text,
+  description text,
+  file_url text NOT NULL,
+  is_current boolean DEFAULT false,
+  uploaded_by uuid REFERENCES public.admin_users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.timetables ENABLE ROW LEVEL SECURITY;`,
+      academic_resources: `CREATE TABLE IF NOT EXISTS public.academic_resources (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  resource_type text,
+  category text,
+  url text,
+  description text,
+  uploaded_by uuid REFERENCES public.admin_users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.academic_resources ENABLE ROW LEVEL SECURITY;`,
+      career_paths: `CREATE TABLE IF NOT EXISTS public.career_paths (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  path_key text UNIQUE NOT NULL,
+  title text NOT NULL,
+  overview text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.career_paths ENABLE ROW LEVEL SECURITY;`,
+      events: `CREATE TABLE IF NOT EXISTS public.events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  event_type text DEFAULT 'general',
+  date date,
+  time text,
+  location text,
+  max_attendees int,
+  current_attendees int DEFAULT 0,
+  requires_payment boolean DEFAULT false,
+  payment_amount numeric(10,2),
+  payment_details text,
+  is_active boolean DEFAULT true,
+  image_url text,
+  created_by uuid REFERENCES public.admin_users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;`,
+      payment_verification: `CREATE TABLE IF NOT EXISTS public.payment_verification (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id uuid REFERENCES public.students(id) ON DELETE CASCADE,
+  event_id uuid REFERENCES public.events(id) ON DELETE CASCADE,
+  amount numeric(10,2),
+  payment_reference text,
+  proof_url text,
+  status text DEFAULT 'pending',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.payment_verification ENABLE ROW LEVEL SECURITY;`
+    };
+
+    function isMissingTableError(error, tableName) {
+      if (!error) return false;
+      const message = String(error.message || '').toLowerCase();
+      const hint = String(error.hint || '').toLowerCase();
+      const code = String(error.code || '').toLowerCase();
+      const details = String(error.details || '').toLowerCase();
+      const haystack = [message, hint, code, details, JSON.stringify(error)].join(' ');
+      const n = String(tableName).toLowerCase();
+
+      const rawMessage = String(error.message || '');
+      const rawHint = String(error.hint || '');
+
+      const quotedTableNames = [
+        ...rawMessage.matchAll(/['"](?:public\.|storage\.|auth\.|pg_catalog\.)?([^'"]+)['"]/gi),
+        ...rawHint.matchAll(/['"](?:public\.|storage\.|auth\.|pg_catalog\.)?([^'"]+)['"]/gi)
+      ].map(m => (m[1] || '').toLowerCase());
+      const hasTableName = quotedTableNames.includes(n);
+
+      const relationPattern = /relation.*does not exist/i.test(haystack) && hasTableName;
+
+      const pgrst205Pattern =
+        (code === 'pgrst205' || /could not find the table/i.test(message)) &&
+        (hasTableName || quotedTableNames.some(q => q === n || q.endsWith('.' + n) || n.endsWith('.' + q)));
+
+      const genericPattern =
+        (/['"]([^'"]+)['"] does not exist/i.test(rawMessage) && RegExp.$1.toLowerCase() === n) ||
+        (haystack.includes(`"${n}"`) && (haystack.includes('undefined_table') || haystack.includes('404')));
+
+      return relationPattern || pgrst205Pattern || genericPattern;
+    }
+
+    function missingTableRowHtml(tableName, colSpan) {
+      const preId = `sql-snippet-${tableName.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+      const sql = TABLE_DEFS[tableName]
+        ? `<pre id="${preId}" class="bg-light border rounded p-3 mt-2 text-start text-dark mb-0" style="max-height:260px; overflow:auto; white-space: pre-wrap; font-size:12px; line-height:1.45;">${escapeHtml(TABLE_DEFS[tableName])}</pre>`
+        : '';
+      const copyBtn = TABLE_DEFS[tableName]
+        ? `<button class="btn btn-sm btn-outline-primary mt-3" type="button" onclick="(function(){const el=document.getElementById('${preId}');if(!el)return;navigator.clipboard.writeText(el.innerText||el.textContent).then(()=>{const orig=this.innerText;this.innerText='Copied!';setTimeout(()=>{this.innerText=orig;},1200);}.bind(this)).catch(()=>{});}).call(this)">Copy SQL</button>`
+        : '';
+      return `
+        <tr>
+          <td colspan="${colSpan}" class="py-4">
+            <div class="text-center">
+              <div class="text-danger fw-semibold mb-2">⚠️ Database table <code>${escapeHtml(tableName)}</code> is missing.</div>
+              <div class="text-muted small mb-2">Run this SQL in Supabase → SQL Editor:</div>
+              ${sql}
+              ${copyBtn}
+            </div>
+          </td>
+        </tr>
+      `;
     }
     
     // ============================================
@@ -1107,6 +1250,67 @@
     });
     
     // ============================================
+    // ADMIN WRITE API CLIENT
+    // ============================================
+    //
+    // All admin-dashboard writes (insert/update/delete) previously went
+    // through the browser's anon-key Supabase client, which requires
+    // per-table RLS INSERT/UPDATE/DELETE policies — if those policies are
+    // missing (common on fresh projects), every write fails with Postgres
+    // error 42501 "new row violates row-level security policy for table X".
+    //
+    // This apiAdmin client routes all writes to the backend's generic
+    // admin pass-through (/api/admin/*), authenticated via the current
+    // user's session JWT (Bearer token). The backend runs authenticate +
+    // requireAdmin, then performs the write via the service_role client
+    // (which RLS never applies to).
+
+    const ADMIN_API_BASE = () => (window.__CONFIG?.apiUrl || window.API_URL || '/api') + '/admin';
+
+    async function fetchSessionToken() {
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data?.session?.access_token) return null;
+      return data.session.access_token;
+    }
+
+    async function apiAdminRequest(method, path, body) {
+      const token = await fetchSessionToken();
+      if (!token) {
+        const err = new Error('Not authenticated: no session token available for admin write.');
+        console.error('[apiAdmin] auth error:', err);
+        throw err;
+      }
+      const url = ADMIN_API_BASE() + path;
+      const resp = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: body === undefined ? undefined : JSON.stringify(body)
+      });
+      let json = null;
+      try {
+        const text = await resp.text();
+        if (text) json = JSON.parse(text);
+      } catch {}
+      if (!resp.ok) {
+        const msg = json?.error || `HTTP ${resp.status} on ${method} ${path}`;
+        console.error(`[apiAdmin] ${method} ${path} failed (${resp.status}):`, json ?? msg);
+        throw new Error(msg);
+      }
+      return json || { success: true };
+    }
+
+    const apiAdmin = {
+      create: (table, body) => apiAdminRequest('POST', `/${table}`, body),
+      update: (table, id, body) => apiAdminRequest('PUT', `/${table}/${encodeURIComponent(id)}`, body),
+      remove: (table, id) => apiAdminRequest('DELETE', `/${table}/${encodeURIComponent(id)}`),
+      batchUpdate: (table, filterEq, patch) =>
+        apiAdminRequest('POST', `/${table}/batch-update`, { filter: { eq: filterEq }, patch })
+    };
+
+    // ============================================
     // AUDIT LOGGING
     // ============================================
     
@@ -1128,15 +1332,19 @@
           ipAddress = ipData.ip;
         } catch (e) {}
         
-        await supabase.from('audit_logs').insert({
-          admin_id: adminData?.id,
-          action: action,
-          entity_type: entityType,
-          entity_id: entityId,
-          details: details,
-          ip_address: ipAddress,
-          user_agent: navigator.userAgent
-        });
+        try {
+          await apiAdmin.create('audit_logs', {
+            admin_id: adminData?.id,
+            action: action,
+            entity_type: entityType,
+            entity_id: entityId,
+            details: details,
+            ip_address: ipAddress,
+            user_agent: navigator.userAgent
+          });
+        } catch (auditWriteErr) {
+          console.warn('[logAdminAction] backend audit write failed; audit_logs RLS policy may also be missing.', auditWriteErr);
+        }
       } catch (error) {
         console.error('Audit log failed:', error);
       }
@@ -1148,17 +1356,72 @@
     
     async function loadDashboardStats() {
       try {
-        const [questions, timetables, resources, students] = await Promise.all([
+        // Prefer backend student count (service_role bypasses RLS); fall back
+        // to the anon supabase count query so the admin never sees a stale 0.
+        let activeCount = 0;
+        try {
+          const activeStudentsRes = await api.students.list({
+            status: 'active',
+            page: 1,
+            limit: 1
+          });
+          if (activeStudentsRes?.success) {
+            activeCount = activeStudentsRes.data?.pagination?.total ?? 0;
+            console.log(`[loadDashboardStats] active-students count (backend): ${activeCount}`);
+          } else {
+            console.warn('[loadDashboardStats] backend student count failed — falling back to anon supabase count:', activeStudentsRes?.error || activeStudentsRes);
+            const fallback = await supabase
+              .from('students')
+              .select('id', { count: 'exact', head: true })
+              .eq('status', 'active');
+            activeCount = fallback.count || 0;
+          }
+        } catch (apiErr) {
+          console.warn('[loadDashboardStats] backend student count threw — falling back to anon supabase count:', apiErr);
+          const fallback = await supabase
+            .from('students')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'active');
+          activeCount = fallback.count || 0;
+        }
+
+        const [questions, timetables, resources] = await Promise.all([
           supabase.from('past_questions').select('id', { count: 'exact', head: true }),
           supabase.from('timetables').select('id', { count: 'exact', head: true }),
-          supabase.from('academic_resources').select('id', { count: 'exact', head: true }),
-          supabase.from('students').select('id', { count: 'exact', head: true }).eq('status', 'active')
+          supabase.from('academic_resources').select('id', { count: 'exact', head: true })
         ]);
-        
-        document.getElementById('stat-questions').textContent = questions.count || 0;
-        document.getElementById('stat-timetables').textContent = timetables.count || 0;
-        document.getElementById('stat-resources').textContent = resources.count || 0;
-        document.getElementById('stat-students').textContent = students.count || 0;
+
+        const applyStatCount = (elementId, result, tableName) => {
+          const el = document.getElementById(elementId);
+          if (!el) return;
+          el.classList.remove('text-danger');
+          el.removeAttribute('title');
+          if (isMissingTableError(result?.error, tableName)) {
+            const sql = TABLE_DEFS[tableName] || '';
+            console.error(`[loadDashboardStats] table "${tableName}" is missing — run CREATE TABLE in Supabase SQL Editor:\n${sql}\n`);
+            el.textContent = '⚠️ 0';
+            el.classList.add('text-danger');
+            el.title = `Table "${tableName}" does not exist. Run this in Supabase SQL Editor:\n\n${sql}`;
+            el.style.cursor = 'help';
+            return;
+          }
+          if (result?.error) {
+            console.warn(`[loadDashboardStats] count query for "${tableName}" failed:`, result.error);
+          }
+          el.style.cursor = '';
+          el.textContent = result?.count ?? 0;
+        };
+
+        applyStatCount('stat-questions', questions, 'past_questions');
+        applyStatCount('stat-timetables', timetables, 'timetables');
+        applyStatCount('stat-resources', resources, 'academic_resources');
+
+        const studentsEl = document.getElementById('stat-students');
+        if (studentsEl) {
+          studentsEl.classList.remove('text-danger');
+          studentsEl.style.cursor = '';
+          studentsEl.textContent = activeCount;
+        }
       } catch (error) {
         console.error('Error loading stats:', error);
       }
@@ -1175,9 +1438,16 @@
         .order('date', { ascending: false });
       
       const tbody = document.getElementById('events-table-body');
+      const colSpan = 6;
       
+      if (isMissingTableError(error, 'events')) {
+        console.error('[loadEvents] table missing:', error);
+        tbody.innerHTML = missingTableRowHtml('events', colSpan);
+        return;
+      }
       if (error || !data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No events yet</td</tr>';
+        if (error) console.warn('[loadEvents] query error:', error);
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading events: ${escapeHtml(error.message || String(error))}` : 'No events yet'}</td></tr>`;
         return;
       }
       
@@ -1262,12 +1532,7 @@ document.getElementById('editEventForm')?.addEventListener('submit', async (e) =
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
     
     try {
-        const { error } = await supabase
-            .from('events')
-            .update(updateData)
-            .eq('id', eventId);
-        
-        if (error) throw error;
+        await apiAdmin.update('events', eventId, updateData);
         
         await logAdminAction('UPDATE', 'event', eventId, { title: updateData.title });
         
@@ -1305,15 +1570,15 @@ window.deleteEvent = async function(id) {
         .eq('id', id)
         .single();
     
-    const { error } = await supabase.from('events').delete().eq('id', id);
-    
-    if (error) {
-        Swal.fire('Error', 'Failed to delete event', 'error');
-    } else {
+    try {
+        await apiAdmin.remove('events', id);
         await logAdminAction('DELETE', 'event', id, { title: item?.title });
         Swal.fire('Deleted', 'Event removed successfully!', 'success');
         loadEvents();
         loadDashboardStats();
+    } catch (error) {
+        console.error('Error deleting event:', error);
+        Swal.fire('Error', 'Failed to delete event: ' + error.message, 'error');
     }
 };
     
@@ -1344,17 +1609,9 @@ window.deleteEvent = async function(id) {
           if (imageFile.size > 2 * 1024 * 1024) throw new Error('Image must be less than 2MB');
           const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
           if (!allowedTypes.includes(imageFile.type)) throw new Error('Invalid file type');
-          
-          const fileExt = imageFile.name.split('.').pop();
-          const fileName = `events/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('nacos-assets')
-            .upload(fileName, imageFile);
-          if (uploadError) throw uploadError;
-          
-          const { data: urlData } = supabase.storage.from('nacos-assets').getPublicUrl(fileName);
-          imageUrl = urlData.publicUrl;
+
+          const up = await uploadFileToStorage('events', imageFile);
+          imageUrl = up.fileUrl;
         }
         
         const { data: adminData } = await supabase
@@ -1363,7 +1620,7 @@ window.deleteEvent = async function(id) {
           .eq('user_id', session.user.id)
           .single();
         
-        const { error: insertError } = await supabase.from('events').insert({
+        const insertRes = await apiAdmin.create('events', {
           title, description, event_type: eventType, date, time, location,
           max_attendees: maxAttendees ? parseInt(maxAttendees) : null,
           requires_payment: requiresPayment,
@@ -1374,7 +1631,9 @@ window.deleteEvent = async function(id) {
           is_active: true
         });
         
-        if (insertError) throw insertError;
+        if (insertRes && !insertRes.success) {
+          throw new Error((insertRes && insertRes.error) ? insertRes.error : 'Insert returned unsuccessful');
+        }
         
         await logAdminAction('CREATE', 'event', null, { title });
         Swal.fire('Success', 'Event created', 'success').then(() => {
@@ -1421,21 +1680,10 @@ window.deleteEvent = async function(id) {
       try {
         console.log('Starting past question upload:', { courseCode, fileName: file.name });
 
-        // 1. Upload to Storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `past_questions/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('nacos-assets')
-          .upload(fileName, file);
-        
-        if (uploadError) {
-          console.error('Storage upload error:', uploadError);
-          throw new Error(`Upload failed: ${uploadError.message}`);
-        }
-
-        const { data: urlData } = supabase.storage.from('nacos-assets').getPublicUrl(fileName);
-        const fileUrl = urlData.publicUrl;
+        // 1. Upload to Storage (auto-creates the bucket if missing and allowed)
+        const up = await uploadFileToStorage('past_questions', file);
+        const fileUrl = up.fileUrl;
+        const fileExt = (file.name.split('.').pop() || '').toLowerCase();
 
         // 2. Get Admin ID
         const { data: adminData } = await supabase
@@ -1445,7 +1693,7 @@ window.deleteEvent = async function(id) {
           .single();
 
         // 3. Insert into Database
-        const { error: insertError } = await supabase.from('past_questions').insert({
+        await apiAdmin.create('past_questions', {
           title,
           course_code: courseCode,
           course_name: courseName,
@@ -1455,11 +1703,6 @@ window.deleteEvent = async function(id) {
           file_type: fileExt,
           uploaded_by: adminData?.id
         });
-
-        if (insertError) {
-          console.error('Database insert error:', insertError);
-          throw new Error(`Database save failed: ${insertError.message}`);
-        }
 
         await logAdminAction('CREATE', 'past_question', null, { courseCode, title });
         
@@ -1507,21 +1750,10 @@ window.deleteEvent = async function(id) {
       try {
         console.log('Starting timetable upload:', { title, version });
 
-        // 1. Upload to Storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `timetables/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('nacos-assets')
-          .upload(fileName, file);
-        
-        if (uploadError) {
-          console.error('Storage upload error:', uploadError);
-          throw new Error(`Upload failed: ${uploadError.message}`);
-        }
-
-        const { data: urlData } = supabase.storage.from('nacos-assets').getPublicUrl(fileName);
-        const fileUrl = urlData.publicUrl;
+        // 1. Upload to Storage (auto-creates the bucket if missing and allowed)
+        const up = await uploadFileToStorage('timetables', file);
+        const fileUrl = up.fileUrl;
+        const fileExt = (file.name.split('.').pop() || '').toLowerCase();
 
         // 2. Get Admin ID
         const { data: adminData } = await supabase
@@ -1532,11 +1764,15 @@ window.deleteEvent = async function(id) {
 
         // 3. If setting as current, unset others
         if (isCurrent) {
-          await supabase.from('timetables').update({ is_current: false }).eq('is_current', true);
+          try {
+            await apiAdmin.batchUpdate('timetables', { is_current: true }, { is_current: false });
+          } catch (batchErr) {
+            console.warn('[addTimeline] batch-update failed (non-fatal, proceeding with insert anyway):', batchErr);
+          }
         }
 
         // 4. Insert into Database
-        const { error: insertError } = await supabase.from('timetables').insert({
+        await apiAdmin.create('timetables', {
           title,
           version,
           description,
@@ -1544,11 +1780,6 @@ window.deleteEvent = async function(id) {
           is_current: isCurrent,
           uploaded_by: adminData?.id
         });
-
-        if (insertError) {
-          console.error('Database insert error:', insertError);
-          throw new Error(`Database save failed: ${insertError.message}`);
-        }
 
         await logAdminAction('CREATE', 'timetable', null, { title, version });
         
@@ -1598,7 +1829,7 @@ window.deleteEvent = async function(id) {
           .single();
 
         // 2. Insert into Database
-        const { error: insertError } = await supabase.from('academic_resources').insert({
+        await apiAdmin.create('academic_resources', {
           title,
           resource_type: resourceType,
           url,
@@ -1606,11 +1837,6 @@ window.deleteEvent = async function(id) {
           description,
           uploaded_by: adminData?.id
         });
-
-        if (insertError) {
-          console.error('Database insert error:', insertError);
-          throw new Error(`Database save failed: ${insertError.message}`);
-        }
 
         await logAdminAction('CREATE', 'academic_resource', null, { title });
         
@@ -1638,91 +1864,113 @@ window.deleteEvent = async function(id) {
     
     async function loadStudents(filter = 'active') {
       currentStudentFilter = filter;
-      let query = supabase.from('students').select('*').order('created_at', { ascending: false });
-      
-      if (filter !== 'all') {
-        query = query.eq('status', filter);
-      }
-      
-      const { data, error } = await query;
       const tbody = document.getElementById('students-table-body');
-      
-      if (error || !data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No ${filter} students found</td</tr>`;
-        return;
+
+      try {
+        // Phase 1 — backend API (preferred: service_role bypasses RLS,
+        // respects requireAdmin, and returns the full superset of rows).
+        let apiError = null;
+        let studentsArr = null;
+        try {
+          const res = await api.students.list({
+            status: filter,
+            page: 1,
+            limit: 500
+          });
+          if (res?.success && Array.isArray(res?.data?.students)) {
+            studentsArr = res.data.students;
+            console.log(`[loadStudents] (${filter}) backend returned ${studentsArr.length} row(s)`);
+          } else {
+            apiError = res?.error || `API returned non-success (${JSON.stringify(res)})`;
+          }
+        } catch (e) {
+          apiError = e?.message || String(e);
+        }
+
+        // Phase 2 — fallback to anon supabase select. This is the path that
+        // previously returned 2 rows (your stat card number) so if the API
+        // is misconfigured we still surface rows. Rows you see here may be
+        // filtered by RLS, which is why we prefer the backend API.
+        if (studentsArr == null) {
+          console.warn(`[loadStudents] (${filter}) backend path failed, falling back to anon supabase.from('students'): ${apiError}`);
+          let query = supabase.from('students').select('*').order('created_at', { ascending: false });
+          if (filter !== 'all') query = query.eq('status', filter);
+          const { data, error } = await query;
+          if (error) throw new Error(`Anon fallback query failed: ${error.message}`);
+          studentsArr = data || [];
+          console.log(`[loadStudents] (${filter}) fallback anon supabase returned ${studentsArr.length} row(s)`);
+        }
+
+        if (!studentsArr.length) {
+          const statusLabel = (filter === 'all') ? 'all statuses' : `${filter}`;
+          const reason = `No students found (${statusLabel})`
+            + (apiError ? ` · backend API error: ${escapeHtml(apiError)}` : '');
+          tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">${reason}</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = studentsArr.map(s => {
+          let badgeClass = 'bg-warning';
+          if (s.status === 'active') badgeClass = 'bg-success';
+          if (s.status === 'rejected') badgeClass = 'bg-danger';
+          
+          return `
+            <tr>
+              <td><strong>${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</strong></td>
+              <td>${escapeHtml(s.email)}</td>
+              <td>${escapeHtml(s.matric_no)}</td>
+              <td>${escapeHtml(s.department)}</td>
+              <td><span class="badge ${badgeClass}">${s.status || 'active'}</span></td>
+              <td>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s.id}')"><i class="bi bi-trash"></i> Delete</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('[loadStudents] fatal:', error);
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Failed to load students: ${escapeHtml(error?.message || String(error))}</td></tr>`;
       }
-      
-      tbody.innerHTML = data.map(s => {
-        let badgeClass = 'bg-warning';
-        if (s.status === 'active') badgeClass = 'bg-success';
-        if (s.status === 'rejected') badgeClass = 'bg-danger';
-        
-        return `
-          <tr>
-            <td><strong>${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</strong></td>
-            <td>${escapeHtml(s.email)}</td>
-            <td>${escapeHtml(s.matric_no)}</td>
-            <td>${escapeHtml(s.department)}</td>
-            <td><span class="badge ${badgeClass}">${s.status || 'active'}</span></td>
-            <td>
-              <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s.id}')"><i class="bi bi-trash"></i></button>
-            </td>
-          </tr>
-        `;
-      }).join('');
     }
     
-    window.verifyStudent = async function(userId, approved) {
-      const status = approved ? 'active' : 'rejected';
-      const { error } = await supabase.from('students').update({ status }).eq('user_id', userId);
-      
-      if (error) {
-        Swal.fire('Error', 'Failed to update student status', 'error');
-      } else {
-        await logAdminAction('VERIFY_STUDENT', 'students', userId, { status });
-        Swal.fire('Success', `Student ${status}`, 'success');
-        loadStudents(currentStudentFilter);
-        loadDashboardStats();
-      }
-    };
+    // Note: student verify / approve workflow is intentionally disabled.
+    // All registered students are auto-activated on signup and redirected to their dashboard.
+    // Admins can still ban / un-ban via a future PUT /students/:id/ban endpoint if needed.
     
-    window.deleteStudent = async function(userId) {
-      const result = await Swal.fire({
-        title: 'Delete Student?',
-        text: 'This will permanently remove the student profile.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Delete'
-      });
-      
-      if (!result.isConfirmed) return;
+    window.deleteStudent = async function(studentId) {
+      try {
+        const result = await Swal.fire({
+          title: 'Delete Student?',
+          text: 'This will permanently remove the student profile.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#dc3545',
+          confirmButtonText: 'Delete'
+        });
+        
+        if (!result.isConfirmed) return;
 
-      const API_URL = window.location.hostname === 'localhost'
-        ? 'http://localhost:5000/api'
-        : 'https://nacos-backend.up.railway.app/api';
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        Swal.fire('Error', 'You must be logged in to delete students', 'error');
-        return;
-      }
-
-      const response = await fetch(`${API_URL}/students/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          Swal.fire('Error', 'You must be logged in to delete students', 'error');
+          return;
         }
-      });
 
-      const body = await response.json();
-      if (!response.ok) {
-        Swal.fire('Error', body.error || 'Failed to delete student', 'error');
-      } else {
-        await logAdminAction('DELETE_STUDENT', 'students', userId);
+        // Use the shared API client (window.api.students.remove) which goes
+        // through the backend DELETE /api/students/:id endpoint — admin-gated
+        // via requireAdmin, and uses service_role for the DB + Auth calls.
+        const res = await api.students.remove(studentId);
+        if (!res?.success) {
+          Swal.fire('Error', res?.error || 'Failed to delete student', 'error');
+          return;
+        }
+        await logAdminAction('DELETE_STUDENT', 'students', studentId);
         Swal.fire('Deleted', 'Student removed', 'success');
         loadStudents(currentStudentFilter);
         loadDashboardStats();
+      } catch (error) {
+        console.error('[deleteStudent] fatal:', error);
+        Swal.fire('Error', error?.message || 'Failed to delete student', 'error');
       }
     };
     
@@ -1742,8 +1990,15 @@ window.deleteEvent = async function(id) {
     async function loadPastQuestions() {
       const { data, error } = await supabase.from('past_questions').select('*').order('created_at', { ascending: false });
       const tbody = document.getElementById('questions-table-body');
+      const colSpan = 6;
+      if (isMissingTableError(error, 'past_questions')) {
+        console.error('[loadPastQuestions] table missing:', error);
+        tbody.innerHTML = missingTableRowHtml('past_questions', colSpan);
+        return;
+      }
       if (error || !data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No past questions</td</tr>';
+        if (error) console.warn('[loadPastQuestions] query error:', error);
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading past questions: ${escapeHtml(error.message || String(error))}` : 'No past questions'}</td></tr>`;
         return;
       }
       tbody.innerHTML = data.map(q => `
@@ -1761,16 +2016,27 @@ window.deleteEvent = async function(id) {
     window.deletePastQuestion = async function(id) {
       const result = await Swal.fire({ title: 'Delete?', text: 'Cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Delete' });
       if (!result.isConfirmed) return;
-      const { error } = await supabase.from('past_questions').delete().eq('id', id);
-      if (error) Swal.fire('Error', 'Failed to delete', 'error');
-      else { loadPastQuestions(); loadDashboardStats(); }
+      try {
+        await apiAdmin.remove('past_questions', id);
+        loadPastQuestions(); loadDashboardStats();
+      } catch (error) {
+        console.error('Error deleting past question:', error);
+        Swal.fire('Error', 'Failed to delete: ' + error.message, 'error');
+      }
     };
     
     async function loadTimetables() {
       const { data, error } = await supabase.from('timetables').select('*').order('created_at', { ascending: false });
       const tbody = document.getElementById('timetables-table-body');
+      const colSpan = 5;
+      if (isMissingTableError(error, 'timetables')) {
+        console.error('[loadTimetables] table missing:', error);
+        tbody.innerHTML = missingTableRowHtml('timetables', colSpan);
+        return;
+      }
       if (error || !data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No timetables</td</tr>';
+        if (error) console.warn('[loadTimetables] query error:', error);
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading timetables: ${escapeHtml(error.message || String(error))}` : 'No timetables'}</td></tr>`;
         return;
       }
       tbody.innerHTML = data.map(t => `
@@ -1787,16 +2053,27 @@ window.deleteEvent = async function(id) {
     window.deleteTimetable = async function(id) {
       const result = await Swal.fire({ title: 'Delete?', text: 'Cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Delete' });
       if (!result.isConfirmed) return;
-      const { error } = await supabase.from('timetables').delete().eq('id', id);
-      if (error) Swal.fire('Error', 'Failed to delete', 'error');
-      else { loadTimetables(); loadDashboardStats(); }
+      try {
+        await apiAdmin.remove('timetables', id);
+        loadTimetables(); loadDashboardStats();
+      } catch (error) {
+        console.error('Error deleting timetable:', error);
+        Swal.fire('Error', 'Failed to delete: ' + error.message, 'error');
+      }
     };
     
     async function loadResources() {
       const { data, error } = await supabase.from('academic_resources').select('*').order('created_at', { ascending: false });
       const tbody = document.getElementById('resources-table-body');
+      const colSpan = 4;
+      if (isMissingTableError(error, 'academic_resources')) {
+        console.error('[loadResources] table missing:', error);
+        tbody.innerHTML = missingTableRowHtml('academic_resources', colSpan);
+        return;
+      }
       if (error || !data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No resources</td</tr>';
+        if (error) console.warn('[loadResources] query error:', error);
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading resources: ${escapeHtml(error.message || String(error))}` : 'No resources'}</td></tr>`;
         return;
       }
       tbody.innerHTML = data.map(r => `
@@ -1812,16 +2089,27 @@ window.deleteEvent = async function(id) {
     window.deleteResource = async function(id) {
       const result = await Swal.fire({ title: 'Delete?', text: 'Cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Delete' });
       if (!result.isConfirmed) return;
-      const { error } = await supabase.from('academic_resources').delete().eq('id', id);
-      if (error) Swal.fire('Error', 'Failed to delete', 'error');
-      else { loadResources(); loadDashboardStats(); }
+      try {
+        await apiAdmin.remove('academic_resources', id);
+        loadResources(); loadDashboardStats();
+      } catch (error) {
+        console.error('Error deleting resource:', error);
+        Swal.fire('Error', 'Failed to delete: ' + error.message, 'error');
+      }
     };
     
     async function loadCareerPaths() {
       const { data, error } = await supabase.from('career_paths').select('*').order('created_at', { ascending: false });
       const tbody = document.getElementById('careers-table-body');
+      const colSpan = 4;
+      if (isMissingTableError(error, 'career_paths')) {
+        console.error('[loadCareerPaths] table missing:', error);
+        tbody.innerHTML = missingTableRowHtml('career_paths', colSpan);
+        return;
+      }
       if (error || !data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No career paths</td</tr>';
+        if (error) console.warn('[loadCareerPaths] query error:', error);
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading career paths: ${escapeHtml(error.message || String(error))}` : 'No career paths'}</td></tr>`;
         return;
       }
       tbody.innerHTML = data.map(c => `
@@ -1837,19 +2125,70 @@ window.deleteEvent = async function(id) {
     window.deleteCareerPath = async function(id) {
       const result = await Swal.fire({ title: 'Delete?', text: 'Cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Delete' });
       if (!result.isConfirmed) return;
-      const { error } = await supabase.from('career_paths').delete().eq('id', id);
-      if (error) Swal.fire('Error', 'Failed to delete', 'error');
-      else { loadCareerPaths(); loadDashboardStats(); }
+      try {
+        await apiAdmin.remove('career_paths', id);
+        loadCareerPaths(); loadDashboardStats();
+      } catch (error) {
+        console.error('Error deleting career path:', error);
+        Swal.fire('Error', 'Failed to delete: ' + error.message, 'error');
+      }
     };
     
     async function loadPayments() {
-      const { data, error } = await supabase.from('payment_verification').select('*, students(name, matric_no), events(title)').order('created_at', { ascending: false });
       const tbody = document.getElementById('payments-table-body');
-      if (error || !data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No payments</td</tr>';
+      const colSpan = 6;
+
+      const paymentsQuery = supabase.from('payment_verification').select('*').order('created_at', { ascending: false });
+      const { data: payments, error: pError } = await paymentsQuery;
+
+      if (isMissingTableError(pError, 'payment_verification')) {
+        console.error('[loadPayments] table missing:', pError);
+        tbody.innerHTML = missingTableRowHtml('payment_verification', colSpan);
         return;
       }
-      tbody.innerHTML = data.map(p => `
+      if (pError || !payments || payments.length === 0) {
+        if (pError) {
+          const extra = Array.isArray(pError.details)
+            ? ` — details (copy these for support): ${JSON.stringify(pError.details)}`
+            : pError.details ? ` — details: ${JSON.stringify(pError.details)}` : '';
+          console.warn(`[loadPayments] query error code=${pError.code || ''}: ${pError.message || pError}${extra}`, pError);
+        }
+        const errMsg = pError ? `Error loading payments: ${escapeHtml(pError.message || String(pError))}` : 'No payments';
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${errMsg}</td></tr>`;
+        return;
+      }
+
+      const studentIds = [...new Set(payments.map(p => p.student_id).filter(Boolean))];
+      const eventIds = [...new Set(payments.map(p => p.event_id).filter(Boolean))];
+
+      const studentMap = new Map();
+      const eventMap = new Map();
+      const parallelCalls = [];
+      if (studentIds.length) {
+        parallelCalls.push(
+          supabase.from('students').select('id, name, matric_no').in('id', studentIds).then(({ data, error }) => {
+            if (error) { console.warn('[loadPayments] students join error:', error); return; }
+            for (const s of data || []) studentMap.set(s.id, { name: s.name, matric_no: s.matric_no });
+          })
+        );
+      }
+      if (eventIds.length) {
+        parallelCalls.push(
+          supabase.from('events').select('id, title').in('id', eventIds).then(({ data, error }) => {
+            if (error) { console.warn('[loadPayments] events join error:', error); return; }
+            for (const e of data || []) eventMap.set(e.id, { title: e.title });
+          })
+        );
+      }
+      await Promise.all(parallelCalls);
+
+      const merged = payments.map(p => ({
+        ...p,
+        students: p.student_id ? (studentMap.get(p.student_id) || null) : null,
+        events: p.event_id ? (eventMap.get(p.event_id) || null) : null
+      }));
+
+      tbody.innerHTML = merged.map(p => `
         <tr>
           <td>${escapeHtml(p.students?.name || 'N/A')}<br><small>${escapeHtml(p.students?.matric_no || '')}</small></td>
           <td>${escapeHtml(p.events?.title || 'N/A')}</td>
@@ -1863,9 +2202,14 @@ window.deleteEvent = async function(id) {
     
     window.verifyPayment = async function(id, approved) {
       const status = approved ? 'verified' : 'rejected';
-      const { error } = await supabase.from('payment_verification').update({ status }).eq('id', id);
-      if (error) Swal.fire('Error', 'Failed to update', 'error');
-      else { Swal.fire('Success', `Payment ${status}`, 'success'); loadPayments(); loadDashboardStats(); }
+      try {
+        await apiAdmin.update('payment_verification', id, { status });
+        Swal.fire('Success', `Payment ${status}`, 'success');
+        loadPayments(); loadDashboardStats();
+      } catch (error) {
+        console.error('Error in verifyPayment:', error);
+        Swal.fire('Error', 'Failed to update: ' + error.message, 'error');
+      }
     };
     
     // ============================================
@@ -1909,6 +2253,42 @@ window.deleteEvent = async function(id) {
     // INITIALIZATION
     // ============================================
     
+    async function ensureStorageBuckets({ force = false } = {}) {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data?.session?.access_token) return;
+        const token = data.session.access_token;
+        const url = (window.__CONFIG?.apiUrl || window.API_URL || '/api') + '/storage/ensure-buckets';
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ force })
+        });
+        if (resp.status === 401 || resp.status === 403) return; // student account: silently skip
+        if (!resp.ok) {
+          console.warn('[storage] ensure-buckets returned status', resp.status);
+          return;
+        }
+        const json = await resp.json();
+        if (json && Array.isArray(json.verifiedBuckets) && typeof window.writeVerifiedBuckets === 'function') {
+          window.writeVerifiedBuckets(json.verifiedBuckets);
+          console.log(`[storage] verified buckets cached (${json.verifiedBuckets.length}): ${json.verifiedBuckets.join(', ')}`);
+        }
+        if (json && Array.isArray(json.perBucket)) {
+          const created = json.perBucket.filter(r => r.status === 'created');
+          if (created.length) console.warn('[storage] new buckets created:', created);
+          const errs = json.perBucket.filter(r => r.status === 'error');
+          if (errs.length) console.error('[storage] bucket errors:', errs);
+        }
+      } catch (err) {
+        console.warn('[storage] ensure-buckets call failed (non-fatal, uploads continue with real storage validation):', err);
+      }
+    }
+    window.ensureStorageBuckets = ensureStorageBuckets;
+
     async function init() {
       const isAdmin = await requireAdmin();
       if (!isAdmin) return;
@@ -1916,6 +2296,7 @@ window.deleteEvent = async function(id) {
       resetSessionTimeout();
       
       await Promise.all([
+        ensureStorageBuckets(),
         loadDashboardStats(),
         loadPastQuestions(),
         loadTimetables(),
