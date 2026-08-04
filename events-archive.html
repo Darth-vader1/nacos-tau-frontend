@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Past Events Archive | NACOS - Thomas Adewumi University</title>
+  <meta name="description" content="Browse through all past NACOS events and activities at Thomas Adewumi University.">
+  <meta name="keywords" content="NACOS, TAU, events, past events, archive, computing students">
+
+  <!-- Favicons -->
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #f8fbfc;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Header Styles */
+    .header {
+      background: white;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+      padding: 10px 0;
+    }
+
+    .logo img {
+      height: 50px;
+      border-radius: 8px;
+    }
+
+    .logo h1 {
+      font-size: 1.1rem;
+      margin-left: 10px;
+    }
+
+    .logo strong {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    /* Main Container */
+    .main-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 120px 20px 60px;
+    }
+
+    /* Page Header */
+    .page-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+
+    .page-title i {
+      color: #1b8c0c;
+    }
+
+    .page-subtitle {
+      font-size: 1.1rem;
+      color: #666;
+    }
+
+    /* Filter Section */
+    .filters-section {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      margin-bottom: 30px;
+    }
+
+    .filter-label {
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 8px;
+      display: block;
+      font-size: 0.9rem;
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 10px;
+      border: 2px solid #e0e6e8;
+      padding: 12px 15px;
+      transition: all 0.3s;
+      min-height: 48px;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: #1b8c0c;
+      box-shadow: 0 0 0 0.2rem rgba(27, 140, 12, 0.15);
+    }
+
+    /* Event Card */
+    .event-card {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s;
+      cursor: pointer;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .event-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 20px rgba(27, 140, 12, 0.2);
+    }
+
+    .event-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      background: #e8f5e9;
+    }
+
+    .event-image-placeholder {
+      width: 100%;
+      height: 200px;
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      color: #1b8c0c;
+    }
+
+    .event-content {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .event-date {
+      color: #1b8c0c;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .event-title {
+      color: #2c3e50;
+      font-weight: 700;
+      margin-bottom: 10px;
+      font-size: 1.15rem;
+      line-height: 1.4;
+    }
+
+    .event-desc {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+      flex: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.6;
+    }
+
+    .event-location {
+      color: #888;
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+    }
+
+    .event-location i {
+      margin-right: 5px;
+    }
+
+    .event-type-badge {
+      display: inline-block;
+      background: #e8f5e9;
+      color: #1b8c0c;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    /* Pagination */
+    .pagination {
+      justify-content: center;
+      margin-top: 40px;
+    }
+
+    .pagination .page-link {
+      color: #1b8c0c;
+      border-color: #dee2e6;
+      border-radius: 8px;
+      margin: 0 3px;
+      padding: 10px 15px;
+      min-width: 48px;
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .pagination .page-item.active .page-link {
+      background-color: #1b8c0c;
+      border-color: #1b8c0c;
+    }
+
+    .pagination .page-link:hover {
+      background-color: #e8f5e9;
+      border-color: #1b8c0c;
+      color: #1b8c0c;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+    }
+
+    .empty-state i {
+      font-size: 5rem;
+      color: #ccc;
+      margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+      color: #666;
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+    }
+
+    .empty-state p {
+      color: #999;
+      font-size: 1.1rem;
+    }
+
+    /* Loading State */
+    .loading-state {
+      text-align: center;
+      padding: 80px 20px;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #e8f5e9;
+      border-top-color: #1b8c0c;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Buttons */
+    .btn-outline-custom {
+      border: 2px solid #1b8c0c;
+      color: #1b8c0c;
+      background: transparent;
+      padding: 10px 25px;
+      border-radius: 10px;
+      transition: all 0.3s;
+      min-height: 48px;
+    }
+
+    .btn-outline-custom:hover {
+      background: #1b8c0c;
+      color: white;
+    }
+
+    .btn-primary-custom {
+      background: #1b8c0c;
+      color: white;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 10px;
+      transition: all 0.3s;
+      min-height: 48px;
+    }
+
+    .btn-primary-custom:hover {
+      background: #156b08;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .main-container {
+        padding: 100px 15px 40px;
+      }
+
+      .page-title {
+        font-size: 1.8rem;
+      }
+
+      .event-card {
+        margin-bottom: 20px;
+      }
+
+      .filters-section {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container d-flex justify-content-between align-items-center">
+      <a href="index.html" class="logo d-flex align-items-center text-decoration-none">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
+        <h1 class="sitename">
+          <span style="color: #1b8c0c;">Nigerian Association of Computing Students</span>
+          <br>
+          <strong style="font-size: 12px;">Thomas Adewumi University</strong>
+        </h1>
+      </a>
+      <a href="student-dashboard.html" class="btn btn-outline-custom">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-container">
+    
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1 class="page-title">
+        <i class="bi bi-archive"></i> Past Events Archive
+      </h1>
+      <p class="page-subtitle">Browse through all previous NACOS events and activities</p>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label for="searchInput" class="filter-label">
+            <i class="bi bi-search"></i> Search Events
+          </label>
+          <input type="text" 
+                 id="searchInput" 
+                 class="form-control" 
+                 placeholder="Search by title or description..."
+                 aria-label="Search events">
+        </div>
+        
+        <div class="col-md-2">
+          <label for="yearFilter" class="filter-label">
+            <i class="bi bi-calendar3"></i> Year
+          </label>
+          <select id="yearFilter" class="form-select" aria-label="Filter by year">
+            <option value="">All Years</option>
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label for="monthFilter" class="filter-label">
+            <i class="bi bi-calendar2-month"></i> Month
+          </label>
+          <select id="monthFilter" class="form-select" aria-label="Filter by month">
+            <option value="">All Months</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label for="typeFilter" class="filter-label">
+            <i class="bi bi-tag"></i> Event Type
+          </label>
+          <select id="typeFilter" class="form-select" aria-label="Filter by event type">
+            <option value="">All Types</option>
+            <option value="seminar">Seminar</option>
+            <option value="workshop">Workshop</option>
+            <option value="competition">Competition</option>
+            <option value="social">Social</option>
+            <option value="conference">Conference</option>
+            <option value="training">Training</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row mt-3">
+        <div class="col-12 text-end">
+          <button id="clearFiltersBtn" class="btn btn-outline-custom" onclick="clearFilters()">
+            <i class="bi bi-x-circle"></i> Clear Filters
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Info -->
+    <div id="resultsInfo" class="mb-3 text-muted" style="display: none;">
+      <!-- Results count will be shown here -->
+    </div>
+
+    <!-- Events Grid -->
+    <div id="eventsGrid" class="row g-4 mb-4">
+      <!-- Events will be loaded here -->
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="loading-state">
+      <div class="spinner"></div>
+      <p class="text-muted">Loading events...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <i class="bi bi-calendar-x"></i>
+      <h3>No Events Found</h3>
+      <p>No events match your current filters. Try adjusting your search criteria.</p>
+      <button class="btn btn-primary-custom mt-3" onclick="clearFilters()">
+        <i class="bi bi-arrow-clockwise"></i> Clear Filters
+      </button>
+    </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Events pagination">
+      <ul id="pagination" class="pagination">
+        <!-- Pagination buttons will be loaded here -->
+      </ul>
+    </nav>
+
+  </main>
+
+  <!-- Event Details Modal -->
+  <div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius: 20px;">
+        <div class="modal-header">
+          <h5 class="modal-title" id="eventModalTitle">Event Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="eventDetailsContent">
+          <!-- Event details will be inserted here -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script type="module">
+    import { supabase } from './assets/js/supabase-config.js';
+
+    // ================================================================
+    // State Management
+    // ================================================================
+    let currentPage = 1;
+    let filters = {
+      search: '',
+      year: '',
+      month: '',
+      type: ''
+    };
+    let searchDebounceTimer = null;
+
+    // ================================================================
+    // DOM Elements
+    // ================================================================
+    const eventsGrid = document.getElementById('eventsGrid');
+    const loadingState = document.getElementById('loadingState');
+    const emptyState = document.getElementById('emptyState');
+    const paginationEl = document.getElementById('pagination');
+    const resultsInfo = document.getElementById('resultsInfo');
+    const searchInput = document.getElementById('searchInput');
+    const yearFilter = document.getElementById('yearFilter');
+    const monthFilter = document.getElementById('monthFilter');
+    const typeFilter = document.getElementById('typeFilter');
+
+    // ================================================================
+    // Helper Functions
+    // ================================================================
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+
+    function isSafeWebUrl(v) {
+      if (!v || typeof v !== 'string') return false;
+      try {
+        const u = new URL(v, window.location.origin);
+        return u.protocol === 'https:' || u.protocol === 'http:';
+      } catch {
+        return false;
+      }
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return 'Date TBA';
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+      } catch {
+        return dateString;
+      }
+    }
+
+    function debounce(func, delay) {
+      return function(...args) {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => func.apply(this, args), delay);
+      };
+    }
+
+    // ================================================================
+    // Load Events from API
+    // ================================================================
+    async function loadPastEvents() {
+      try {
+        showLoading();
+
+        // Build query parameters
+        const params = new URLSearchParams({
+          page: currentPage,
+          limit: 20
+        });
+
+        if (filters.search) params.append('search', filters.search);
+        if (filters.year) params.append('year', filters.year);
+        if (filters.month) params.append('month', filters.month);
+        if (filters.type) params.append('type', filters.type);
+
+        // Fetch from backend API
+        const response = await fetch(`http://localhost:5000/api/events/past?${params}`);
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const { events, pagination } = result.data;
+          renderEvents(events);
+          renderPagination(pagination);
+          showResultsInfo(pagination);
+        } else {
+          throw new Error(result.message || 'Failed to load events');
+        }
+      } catch (error) {
+        console.error('Error loading events:', error);
+        showError();
+      }
+    }
+
+    // ================================================================
+    // Render Events
+    // ================================================================
+    function renderEvents(events) {
+      hideLoading();
+
+      if (!events || events.length === 0) {
+        showEmpty();
+        return;
+      }
+
+      hideEmpty();
+      eventsGrid.innerHTML = events.map(event => {
+        const safeImage = isSafeWebUrl(event.image_url) ? event.image_url : null;
+        const title = escapeHtml(event.title || 'Untitled Event');
+        const date = escapeHtml(formatDate(event.date));
+        const desc = event.description ? escapeHtml(event.description) : 'No description available';
+        const location = event.location ? escapeHtml(event.location) : '';
+        const type = event.event_type ? escapeHtml(event.event_type) : 'General';
+
+        return `
+          <div class="col-md-6 col-lg-4">
+            <div class="event-card" onclick="showEventDetails('${escapeHtml(event.id)}')" 
+                 role="button" tabindex="0" aria-label="View details for ${title}">
+              ${safeImage 
+                ? `<img src="${escapeHtml(safeImage)}" alt="${title}" class="event-image">`
+                : `<div class="event-image-placeholder">
+                     <i class="bi bi-calendar-event"></i>
+                   </div>`
+              }
+              <div class="event-content">
+                <span class="event-date">
+                  <i class="bi bi-calendar"></i> ${date}
+                </span>
+                <h3 class="event-title">${title}</h3>
+                <p class="event-desc">${desc}</p>
+                ${location ? `
+                  <p class="event-location">
+                    <i class="bi bi-geo-alt"></i> ${location}
+                  </p>
+                ` : ''}
+                <span class="event-type-badge">${type}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ================================================================
+    // Render Pagination
+    // ================================================================
+    function renderPagination(pagination) {
+      if (!pagination || pagination.totalPages <= 1) {
+        paginationEl.innerHTML = '';
+        return;
+      }
+
+      const { page, totalPages } = pagination;
+      let html = '';
+
+      // Previous button
+      if (page > 1) {
+        html += `
+          <li class="page-item">
+            <button class="page-link" onclick="changePage(${page - 1})" aria-label="Previous page">
+              <i class="bi bi-chevron-left"></i> Previous
+            </button>
+          </li>
+        `;
+      }
+
+      // Page numbers
+      const maxVisible = 5;
+      let startPage = Math.max(1, page - 2);
+      let endPage = Math.min(totalPages, page + 2);
+
+      if (startPage > 1) {
+        html += `
+          <li class="page-item">
+            <button class="page-link" onclick="changePage(1)">1</button>
+          </li>
+        `;
+        if (startPage > 2) {
+          html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        html += `
+          <li class="page-item ${i === page ? 'active' : ''}">
+            <button class="page-link" onclick="changePage(${i})">${i}</button>
+          </li>
+        `;
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+        html += `
+          <li class="page-item">
+            <button class="page-link" onclick="changePage(${totalPages})">${totalPages}</button>
+          </li>
+        `;
+      }
+
+      // Next button
+      if (page < totalPages) {
+        html += `
+          <li class="page-item">
+            <button class="page-link" onclick="changePage(${page + 1})" aria-label="Next page">
+              Next <i class="bi bi-chevron-right"></i>
+            </button>
+          </li>
+        `;
+      }
+
+      paginationEl.innerHTML = html;
+    }
+
+    // ================================================================
+    // Show Results Info
+    // ================================================================
+    function showResultsInfo(pagination) {
+      if (!pagination) {
+        resultsInfo.style.display = 'none';
+        return;
+      }
+
+      const start = ((pagination.page - 1) * pagination.limit) + 1;
+      const end = Math.min(start + pagination.showing - 1, pagination.total);
+
+      resultsInfo.innerHTML = `
+        <i class="bi bi-info-circle"></i> 
+        Showing ${start}-${end} of ${pagination.total} events
+      `;
+      resultsInfo.style.display = 'block';
+    }
+
+    // ================================================================
+    // Show Event Details Modal
+    // ================================================================
+    async function showEventDetails(eventId) {
+      try {
+        const { data: event, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', eventId)
+          .single();
+
+        if (error) throw error;
+
+        const modalTitle = document.getElementById('eventModalTitle');
+        const modalContent = document.getElementById('eventDetailsContent');
+
+        modalTitle.textContent = event.title || 'Event Details';
+
+        const safeImage = isSafeWebUrl(event.image_url) ? event.image_url : null;
+        const date = formatDate(event.date);
+        const time = event.time || 'TBA';
+        const location = event.location || 'TBA';
+        const description = event.description || 'No description available';
+        const type = event.event_type || 'General';
+
+        modalContent.innerHTML = `
+          ${safeImage ? `
+            <img src="${escapeHtml(safeImage)}" alt="${escapeHtml(event.title)}" 
+                 style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 10px; margin-bottom: 20px;">
+          ` : ''}
+          
+          <div class="mb-3">
+            <h5 style="color: #1b8c0c;"><i class="bi bi-info-circle"></i> Event Information</h5>
+            <p><strong>Date:</strong> ${escapeHtml(date)}</p>
+            <p><strong>Time:</strong> ${escapeHtml(time)}</p>
+            <p><strong>Location:</strong> ${escapeHtml(location)}</p>
+            <p><strong>Type:</strong> <span class="event-type-badge">${escapeHtml(type)}</span></p>
+          </div>
+
+          <div class="mb-3">
+            <h5 style="color: #1b8c0c;"><i class="bi bi-file-text"></i> Description</h5>
+            <p style="white-space: pre-wrap;">${escapeHtml(description)}</p>
+          </div>
+
+          ${event.requires_payment ? `
+            <div class="alert alert-info">
+              <i class="bi bi-cash"></i> <strong>Payment Required:</strong> 
+              ₦${Number(event.payment_amount || 0).toLocaleString()}
+            </div>
+          ` : `
+            <div class="alert alert-success">
+              <i class="bi bi-check-circle"></i> <strong>Free Event</strong>
+            </div>
+          `}
+
+          ${event.max_attendees ? `
+            <div class="alert alert-warning">
+              <i class="bi bi-people"></i> <strong>Max Attendees:</strong> ${event.max_attendees}
+            </div>
+          ` : ''}
+
+          <div class="text-muted small mt-3">
+            <p><em>This event has already taken place.</em></p>
+          </div>
+        `;
+
+        const modal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
+        modal.show();
+      } catch (error) {
+        console.error('Error loading event details:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Failed to load event details. Please try again.'
+        });
+      }
+    }
+
+    // Make showEventDetails available globally
+    window.showEventDetails = showEventDetails;
+
+    // ================================================================
+    // UI State Functions
+    // ================================================================
+    function showLoading() {
+      eventsGrid.style.display = 'none';
+      emptyState.style.display = 'none';
+      loadingState.style.display = 'block';
+      paginationEl.innerHTML = '';
+      resultsInfo.style.display = 'none';
+    }
+
+    function hideLoading() {
+      loadingState.style.display = 'none';
+      eventsGrid.style.display = 'flex';
+      eventsGrid.style.flexWrap = 'wrap';
+    }
+
+    function showEmpty() {
+      eventsGrid.style.display = 'none';
+      loadingState.style.display = 'none';
+      emptyState.style.display = 'block';
+      paginationEl.innerHTML = '';
+      resultsInfo.style.display = 'none';
+    }
+
+    function hideEmpty() {
+      emptyState.style.display = 'none';
+    }
+
+    function showError() {
+      eventsGrid.innerHTML = `
+        <div class="col-12">
+          <div class="alert alert-danger text-center">
+            <i class="bi bi-exclamation-triangle"></i> 
+            Failed to load events. Please try again later.
+          </div>
+        </div>
+      `;
+      hideLoading();
+      paginationEl.innerHTML = '';
+    }
+
+    // ================================================================
+    // Filter Functions
+    // ================================================================
+    window.clearFilters = function() {
+      filters = { search: '', year: '', month: '', type: '' };
+      searchInput.value = '';
+      yearFilter.value = '';
+      monthFilter.value = '';
+      typeFilter.value = '';
+      currentPage = 1;
+      loadPastEvents();
+    };
+
+    window.changePage = function(page) {
+      currentPage = page;
+      loadPastEvents();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // ================================================================
+    // Event Listeners
+    // ================================================================
+    searchInput.addEventListener('input', debounce((e) => {
+      filters.search = e.target.value.trim();
+      currentPage = 1;
+      loadPastEvents();
+    }, 500));
+
+    yearFilter.addEventListener('change', (e) => {
+      filters.year = e.target.value;
+      currentPage = 1;
+      loadPastEvents();
+    });
+
+    monthFilter.addEventListener('change', (e) => {
+      filters.month = e.target.value;
+      currentPage = 1;
+      loadPastEvents();
+    });
+
+    typeFilter.addEventListener('change', (e) => {
+      filters.type = e.target.value;
+      currentPage = 1;
+      loadPastEvents();
+    });
+
+    // Handle keyboard events on event cards
+    eventsGrid.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.classList.contains('event-card')) {
+        e.target.click();
+      }
+    });
+
+    // ================================================================
+    // Initialize
+    // ================================================================
+    loadPastEvents();
+
+  </script>
+</body>
+</html>

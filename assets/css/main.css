@@ -1286,6 +1286,9 @@ section,
   transition: 0.3s;
   border-radius: 10px;
   display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
 .services .service-item .icon {
@@ -1293,6 +1296,7 @@ section,
   border-radius: 10px;
   position: relative;
   margin-right: 25px;
+  margin-bottom: 0.75rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1372,6 +1376,29 @@ section,
 
 .services .service-item:hover p {
   color: color-mix(in srgb, var(--default-color), transparent 10%);
+}
+
+@media (max-width: 767px) {
+  .services .service-item {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 22px;
+  }
+
+  .services .service-item .icon {
+    margin-right: 0;
+    margin-bottom: 18px;
+    width: 100%;
+    max-width: 120px;
+  }
+
+  .services .service-item h3 {
+    font-size: 20px;
+  }
+
+  .services .service-item .read-more {
+    margin-top: 1rem;
+  }
 }
 
 /*--------------------------------------------------------------

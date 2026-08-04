@@ -49,13 +49,8 @@ window.SUPABASE_DEDICATED_BUCKETS = Object.freeze({
 // LOGGING
 // ============================================
 
-console.log('✅ Environment loaded');
-console.log('🔗 Supabase URL:', window.SUPABASE_URL);
-console.log('🔑 Supabase Anon Key:', window.SUPABASE_ANON_KEY ? '✅ Set (starts with sb_publishable)' : '❌ Missing');
-console.log('🔗 API URL:', window.API_URL);
-console.log('📡 Environment:', isLocal ? 'Development' : 'Production');
-console.log('📦 Legacy Storage Bucket:', window.SUPABASE_STORAGE_BUCKET);
-console.log('📦 Dedicated Buckets:', Object.values(window.SUPABASE_DEDICATED_BUCKETS || {}).join(', '));
+// Production logging is intentionally silent to avoid exposing sensitive
+// environment details in the browser console.
 
 window.__CONFIG = {
     supabaseUrl: window.SUPABASE_URL,

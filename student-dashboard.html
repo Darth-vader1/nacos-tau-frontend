@@ -694,14 +694,19 @@
 
         <!-- Events Section -->
         <section id="eventsSection" class="dashboard-events-section" aria-labelledby="eventsSectionTitle">
-          <h3 id="eventsSectionTitle" class="section-title-custom"><i class="bi bi-calendar-event"></i> Upcoming Events</h3>
-          <p class="mb-3 text-muted">Check out our upcoming events and activities!</p>
+          <h3 id="eventsSectionTitle" class="section-title-custom"><i class="bi bi-calendar-event"></i> Recent Events</h3>
+          <p class="mb-3 text-muted">Events from the past week and upcoming this week</p>
           <div id="eventsContainer" class="row g-4 mb-3" aria-live="polite">
             <div class="col-12 text-center">
               <div class="spinner-border text-success" role="status">
                 <span class="visually-hidden">Loading events...</span>
               </div>
             </div>
+          </div>
+          <div class="text-center mt-3">
+            <a href="events-archive.html" class="btn btn-outline-custom" aria-label="Browse all past events">
+              <i class="bi bi-archive"></i> View All Past Events
+            </a>
           </div>
         </section>
 
@@ -1350,19 +1355,32 @@
     async function loadEvents() {
       if (!eventsContainer) return;
       try {
+        // Calculate date range: last 7 days to today
         const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const todayStr = `${yyyy}-${mm}-${dd}`;
+        const lastWeek = new Date(today);
+        lastWeek.setDate(today.getDate() - 7);
 
+        // Format dates as YYYY-MM-DD
+        const formatDateStr = (date) => {
+          const yyyy = date.getFullYear();
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          const dd = String(date.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}`;
+        };
+
+        const lastWeekStr = formatDateStr(lastWeek);
+        const todayStr = formatDateStr(today);
+
+        // Fetch events from last 7 days (past week) up to today
         const { data: events, error } = await supabase
           .from('events')
           .select('*')
           .eq('is_active', true)
-          .gte('date', todayStr)
+          .gte('date', lastWeekStr)
+          .lte('date', todayStr)
           .order('date', { ascending: true })
           .limit(5);
+        
         if (error) throw error;
 
         if (events && events.length > 0) {
@@ -1397,7 +1415,7 @@
               </div>`;
           }).join('');
         } else {
-          eventsContainer.innerHTML = '<div class="col-12"><p class="text-muted text-center">No upcoming events at this time. Check back soon!</p></div>';
+          eventsContainer.innerHTML = '<div class="col-12"><p class="text-muted text-center">No events from the past week. Check the archive for older events!</p></div>';
         }
       } catch (error) {
         console.error('Error loading events:', error);

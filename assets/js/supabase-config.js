@@ -54,9 +54,8 @@ async function retryRequest(fn, retries = 3, delay = 1000) {
         return await fn();
     } catch (error) {
         if (retries === 0) throw error;
-        console.log(`Retrying... ${retries} attempts left`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        return retryRequest(fn, retries - 1, delay * 2);
+        return retryRequest(fn, retries - 1, Math.min(delay * 2, 5000));
     }
 }
 
@@ -171,16 +170,11 @@ export async function signOut(redirectUrl = 'index.html') {
 // Listen for auth state changes
 supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN') {
-        console.log('User signed in');
         // Clear any cached admin check
         sessionStorage.removeItem('admin_role');
     } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out');
         sessionStorage.clear();
-    } else if (event === 'TOKEN_REFRESHED') {
-        console.log('Session refreshed');
     } else if (event === 'USER_UPDATED') {
-        console.log('User updated');
         sessionStorage.removeItem('admin_role');
     }
 });
@@ -245,35 +239,6 @@ export const DEFAULT_BUCKET_NAME = (window.__CONFIG?.storageBucket || window.SUP
 
 const ensuredBuckets = new Set();
 
-/**
- * Ensure a Supabase Storage bucket is known before any upload.
- *
- * ⚠️ ANON KEYS CANNOT call storage admin APIs (storage.getBucket /
- * storage.createBucket) reliably — Supabase either blocks them with 400 or
- * leaks ambiguous 404s depending on project RLS/storage policy strictness.
- *
- * Therefore this function now operates ONLY against a backend-verified bucket
- * list:
- *
- *   1. The backend exposes POST /api/storage/ensure-buckets using the
- *      service_role key, which idempotently creates all 7 dedicated buckets
- *      and returns the final list of confirmed bucket names.
- *   2. Frontend caches that list in localStorage under "verifiedBuckets-v1"
- *      with a 24h TTL after every successful call.
- *   3. On every upload, ensureBucket checks the cache → if bucket is
- *      confirmed, returns immediately.
- *   4. If the bucket is NOT in cache (e.g. first run after deploy, cache
- *      expired), WE STILL PROCEED IMMEDIATELY WITHOUT CALLING getBucket —
- *      the real `.from(bucket).upload()` operation downstream will fail
- *      cleanly with a "bucket not found" style message if the bucket truly
- *      doesn't exist; admin can then click "Sync Storage Buckets" from the
- *      dashboard gear menu or the backend job recreates it.
- *
- * Result: zero storage-admin API calls from the browser, zero 400/404
- * ambiguous false positives, no "appears missing - attempting auto-create"
- * spam, and the upload works for projects that already have the 7 buckets
- * provisioned (the common case).
- */
 const VERIFIED_BUCKETS_KEY = 'verifiedBuckets-v1';
 const VERIFIED_BUCKETS_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -381,11 +346,9 @@ export async function uploadFileToStorage(folder, file, bucketName, options = {}
       };
     } catch (error) {
       lastError = error;
-      console.error(`Upload attempt ${attempt + 1} failed:`, error);
       
       if (attempt < retries) {
         const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Exponential backoff, max 5s
-        console.log(`Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -410,6 +373,7 @@ window.writeVerifiedBuckets = writeVerifiedBuckets;
 window.ensureBucket = ensureBucket;
 window.uploadFileToStorage = uploadFileToStorage;
 
+// Keep client initialization silent in production.
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     console.log('✅ Supabase client initialized');
 }
