@@ -240,13 +240,13 @@
                 <h5 class="card-title">${escapeHtml(event.title)}</h5>
                 <p class="card-text text-muted small">${escapeHtml(event.description || '').substring(0, 100)}${(event.description || '').length > 100 ? '...' : ''}</p>
                 <div class="mb-3">
-                  <span class="badge bg-secondary me-2"><i class="bi bi-clock me-1"></i>${event.time}</span>
+                  <span class="badge bg-secondary me-2"><i class="bi bi-clock me-1"></i>${escapeHtml(event.time || 'TBA')}</span>
                   <span class="badge bg-secondary me-2"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(event.location || 'TBA')}</span>
                   ${event.max_attendees ? `<span class="spots-badge"><i class="bi bi-people me-1"></i>${spotsLeft} spots left</span>` : ''}
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                   ${event.requires_payment ? `<span class="payment-badge"><i class="bi bi-credit-card me-1"></i>₦${Number(event.payment_amount).toLocaleString()}</span>` : '<span class="badge bg-success">Free</span>'}
-                  <button class="btn btn-register btn-sm" onclick="showEventDetails('${event.id}')">
+                  <button class="btn btn-register btn-sm" onclick="showEventDetails('${escapeJsString(event.id)}')">
                     View Details
                   </button>
                 </div>
@@ -286,7 +286,7 @@
           </div>
           <div class="col-6">
             <p class="mb-1"><strong><i class="bi bi-clock me-2"></i>Time</strong></p>
-            <p class="text-muted">${event.time}</p>
+            <p class="text-muted">${escapeHtml(event.time || 'TBA')}</p>
           </div>
           <div class="col-6">
             <p class="mb-1"><strong><i class="bi bi-geo-alt me-2"></i>Location</strong></p>

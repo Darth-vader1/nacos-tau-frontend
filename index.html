@@ -96,6 +96,34 @@
       display: none;
     }
     
+    /* NACOS Week accordion expansion - make it wider on laptop/desktop */
+    @media (min-width: 768px) {
+      #collapseOne .accordion-body {
+        margin-left: -15%;
+        margin-right: -15%;
+        padding-left: 15%;
+        padding-right: 15%;
+      }
+    }
+    
+    @media (min-width: 992px) {
+      #collapseOne .accordion-body {
+        margin-left: -30%;
+        margin-right: -30%;
+        padding-left: 30%;
+        padding-right: 30%;
+      }
+    }
+    
+    @media (min-width: 1200px) {
+      #collapseOne .accordion-body {
+        margin-left: -50%;
+        margin-right: -50%;
+        padding-left: 50%;
+        padding-right: 50%;
+      }
+    }
+    
     /* Responsive fixes */
     @media (max-width: 768px) {
       .hero h1 {
@@ -326,12 +354,13 @@
     <!-- Events Section (Public - Always Visible) -->
     <section id="events" class="services section light-background">
       <div class="container section-title" data-aos="fade-up">
-        <h2> Past Events</h2>
+        <h2>Past Events</h2>
         <p>View highlights from some of our exciting events!</p>
       </div>
 
       <div class="container">
-        <div class="row g-5">
+        <!-- Featured Events (Hardcoded Highlights) -->
+        <div class="row g-5 mb-4">
           <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="100">
             <div class="service-item item-cyan position-relative">
               <img src="assets/img/hangout.png" class="img-fluid icon" alt="" style="border: none;">
@@ -342,7 +371,7 @@
               </div>
             </div>
           </div>
-          <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="100">
+          <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="200">
             <div class="service-item item-cyan position-relative">
               <img src="assets/img/events/Symposium Prt 1.png" class="img-fluid icon" alt="" style="border: none;">
               <div>
@@ -352,7 +381,7 @@
               </div>
             </div>
           </div>
-          <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="100">
+          <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="300">
             <div class="service-item item-cyan position-relative">
               <img src="assets/img/events/NACOS Week Flyer.png" class="img-fluid icon" alt="" style="border: none;">
               <div class="accordion" id="accordionExample">
@@ -363,53 +392,55 @@
                   <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionExample">
                     <div class="accordion-body">
                       <!-- NACOS Week Sub-events -->
-                      <div class="col-lg-6 col-md-6 pt-4">
-                        <div class="service-item item-cyan position-relative">
-                          <img src="assets/img/events/pt 2.jpg" class="img-fluid icon" alt="" style="border: none;">
-                          <div>
-                            <h3>Day 1: Symposium: The Age of Artificial Intelligence (PART II) </h3>
-                            <p><em><i class="bi bi-check-circle"></i> 16th June 2025</em></p>
-                            <a href="https://nacostauchapter.pixieset.com/nacosweek/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                      <div class="row g-3">
+                        <div class="col-12">
+                          <div class="service-item item-cyan position-relative">
+                            <img src="assets/img/events/pt 2.jpg" class="img-fluid icon" alt="" style="border: none;">
+                            <div>
+                              <h3>Day 1: Symposium: The Age of Artificial Intelligence (PART II) </h3>
+                              <p><em><i class="bi bi-check-circle"></i> 16th June 2025</em></p>
+                              <a href="https://nacostauchapter.pixieset.com/nacosweek/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div class="col-lg-6 col-md-6 pt-4">
-                        <div class="service-item item-cyan position-relative">
-                          <img src="assets/img/events/scrrr.jpg" class="img-fluid icon" alt="" style="border: none;">
-                          <div>
-                            <h3>Day 2: Bootcamp 🤖 - Coding with Scratch </h3>
-                            <p><em><i class="bi bi-check-circle"></i> 17th June 2025</em></p>
-                            <a href="https://nacostauchapter.pixieset.com/nacosweekdaytwo/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                        <div class="col-12">
+                          <div class="service-item item-cyan position-relative">
+                            <img src="assets/img/events/scrrr.jpg" class="img-fluid icon" alt="" style="border: none;">
+                            <div>
+                              <h3>Day 2: Bootcamp 🤖 - Coding with Scratch </h3>
+                              <p><em><i class="bi bi-check-circle"></i> 17th June 2025</em></p>
+                              <a href="https://nacostauchapter.pixieset.com/nacosweekdaytwo/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div class="col-lg-6 col-md-6 pt-4">
-                        <div class="service-item item-cyan position-relative">
-                          <img src="assets/img/events/gamee.jpg" class="img-fluid icon" alt="" style="border: none;">
-                          <div>
-                            <h3>Day 3: Sport Day 🏅 & Game Night🎮 </h3>
-                            <p><em><i class="bi bi-check-circle"></i> 18th June 2025</em></p>
-                            <a href="https://nacostauchapter.pixieset.com/daythreesportsday/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                        <div class="col-12">
+                          <div class="service-item item-cyan position-relative">
+                            <img src="assets/img/events/gamee.jpg" class="img-fluid icon" alt="" style="border: none;">
+                            <div>
+                              <h3>Day 3: Sport Day 🏅 & Game Night🎮 </h3>
+                              <p><em><i class="bi bi-check-circle"></i> 18th June 2025</em></p>
+                              <a href="https://nacostauchapter.pixieset.com/daythreesportsday/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div class="col-lg-6 col-md-6 pt-4">
-                        <div class="service-item item-cyan position-relative">
-                          <img src="assets/img/events/hackk.jpg" class="img-fluid icon" alt="" style="border: none;">
-                          <div>
-                            <h3>Day 4: Hackathon 💻 </h3>
-                            <p><em><i class="bi bi-check-circle"></i> 19th June 2025</em></p>
-                            <a href="https://nacostauchapter.pixieset.com/daythreesportsday/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                        <div class="col-12">
+                          <div class="service-item item-cyan position-relative">
+                            <img src="assets/img/events/hackk.jpg" class="img-fluid icon" alt="" style="border: none;">
+                            <div>
+                              <h3>Day 4: Hackathon 💻 </h3>
+                              <p><em><i class="bi bi-check-circle"></i> 19th June 2025</em></p>
+                              <a href="https://nacostauchapter.pixieset.com/daythreesportsday/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div class="col-lg-6 col-md-6 pt-4">
-                        <div class="service-item item-cyan position-relative">
-                          <img src="assets/img/events/futureee.jpg" class="img-fluid icon" alt="" style="border: none;">
-                          <div>
-                            <h3>Day 5: Dinner - The Future <span class="" style="text-decoration: line-through;">Today</span>, Tonight! 🥂</h3>
-                            <p><em><i class="bi bi-check-circle"></i> 20th June 2025</em></p>
-                            <a href="https://nacostauchapter.pixieset.com/dayfivethefuturetonight/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                        <div class="col-12">
+                          <div class="service-item item-cyan position-relative">
+                            <img src="assets/img/events/futureee.jpg" class="img-fluid icon" alt="" style="border: none;">
+                            <div>
+                              <h3>Day 5: Dinner - The Future <span class="" style="text-decoration: line-through;">Today</span>, Tonight! 🥂</h3>
+                              <p><em><i class="bi bi-check-circle"></i> 20th June 2025</em></p>
+                              <a href="https://nacostauchapter.pixieset.com/dayfivethefuturetonight/" class="read-more stretched-link" target="_blank">View Gallery <i class="bi bi-arrow-right"></i></a>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -419,6 +450,31 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Divider -->
+        <hr class="my-5" style="border-top: 2px solid #e8f5e9;">
+
+        <!-- More Upcoming Events (Dynamic from Database) -->
+        <div class="text-center mb-4" data-aos="fade-up">
+          <h3 style="color: #1b8c0c; font-weight: 600;">Upcoming Events</h3>
+          <p class="text-muted">Don't miss out on these exciting events</p>
+        </div>
+        
+        <div id="dynamicEventsContainer" class="row g-5 mb-4">
+          <!-- Events will be loaded here dynamically -->
+          <div class="col-12 text-center">
+            <div class="spinner-border text-success" role="status">
+              <span class="visually-hidden">Loading more events...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- View All Button -->
+        <div class="text-center mb-5" data-aos="fade-up">
+          <a href="events-archive.html" class="btn btn-success btn-lg" style="background: #1b8c0c; border: none; padding: 15px 40px; border-radius: 10px;">
+            <i class="bi bi-archive"></i> View All Past Events
+          </a>
         </div>
       </div>
     </section>
@@ -590,8 +646,8 @@
                       <a href="https://wa.me/08028756004" target="_blank">The General Secretary</a> <br>
                       <a href="https://wa.me/08130383123" target="_blank">The Asst. General Secretary</a><br>
                       <a href="https://wa.me/08126398496" target="_blank">The Software Director</a><br>
-                      <a href="https://wa.me/" target="_blank">The Asst. Software Director </a><br>
-                      <a href="https://wa.me/" target="_blank">Social Director </a><br>
+                      <a href="https://wa.me/+2349136800485" target="_blank">The Asst. Software Director </a><br>
+                      <a href="https://wa.me/+2349037070701" target="_blank">Social Director </a><br>
                     </p>
                   </div>
                 </div>
@@ -759,7 +815,161 @@
           }
         });
       });
+
+      // Load past events dynamically
+      await loadPastEvents();
     });
+
+    // ====================================================================
+    // Load Upcoming Events from API
+    // ====================================================================
+    async function loadPastEvents() {
+      const container = document.getElementById('dynamicEventsContainer');
+      if (!container) return;
+
+      try {
+        // Determine API URL
+        const isLocal = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1';
+        const API_BASE_URL = isLocal 
+          ? 'http://localhost:5000'
+          : 'https://nacos-backend.up.railway.app';
+
+        // Fetch upcoming events (today and future)
+        const response = await fetch(`${API_BASE_URL}/api/events/upcoming`);
+        const result = await response.json();
+
+        if (result.success && result.data && result.data.length > 0) {
+          const events = result.data;
+          renderEvents(events);
+        } else {
+          showNoEvents();
+        }
+      } catch (error) {
+        console.error('Error loading upcoming events:', error);
+        showError();
+      }
+    }
+
+    function renderEvents(events) {
+      const container = document.getElementById('dynamicEventsContainer');
+      
+      const html = events.map((event, index) => {
+        const delay = 100 + (index * 100);
+        const date = formatDate(event.date);
+        const title = escapeHtml(event.title || 'Untitled Event');
+        const imageUrl = event.image_url || 'assets/img/events/default-event.png';
+        const description = event.description ? escapeHtml(event.description).substring(0, 100) + '...' : 'No description available';
+
+        return `
+          <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="${delay}">
+            <div class="service-item item-cyan position-relative" style="cursor: pointer;" onclick="viewEventDetails('${event.id}')">
+              <img src="${escapeHtml(imageUrl)}" class="img-fluid icon" alt="${title}" style="border: none; max-height: 250px; object-fit: cover;">
+              <div>
+                <h3>${title}</h3>
+                <p><em><i class="bi bi-calendar-check"></i> ${date}</em></p>
+                ${event.location ? `<p><i class="bi bi-geo-alt"></i> ${escapeHtml(event.location)}</p>` : ''}
+                <p class="text-muted">${description}</p>
+                <a href="javascript:void(0)" class="read-more stretched-link">
+                  See Details <i class="bi bi-arrow-right"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = html;
+    }
+
+    function showNoEvents() {
+      const container = document.getElementById('dynamicEventsContainer');
+      container.innerHTML = `
+        <div class="col-12 text-center py-4">
+          <p class="text-muted">No upcoming events at the moment. Check back soon!</p>
+        </div>
+      `;
+    }
+
+    function showError() {
+      const container = document.getElementById('dynamicEventsContainer');
+      container.innerHTML = `
+        <div class="col-12 text-center py-5">
+          <i class="bi bi-exclamation-triangle" style="font-size: 4rem; color: #f39c12;"></i>
+          <p class="text-muted mt-3">Unable to load events. Please try again later.</p>
+        </div>
+      `;
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return 'Date TBA';
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+          day: 'numeric',
+          month: 'long', 
+          year: 'numeric'
+        });
+      } catch {
+        return dateString;
+      }
+    }
+
+    // View event details - open in SweetAlert modal
+    window.viewEventDetails = async function(eventId) {
+      try {
+        const { data: event, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', eventId)
+          .single();
+
+        if (error) throw error;
+
+        const date = formatDate(event.date);
+        const time = event.time || 'TBA';
+        const location = event.location || 'TBA';
+        const description = event.description || 'No description available';
+
+        Swal.fire({
+          title: event.title,
+          html: `
+            <div style="text-align: left;">
+              ${event.image_url ? `<img src="${escapeHtml(event.image_url)}" style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 10px; margin-bottom: 15px;">` : ''}
+              <p><strong><i class="bi bi-calendar"></i> Date:</strong> ${date}</p>
+              <p><strong><i class="bi bi-clock"></i> Time:</strong> ${time}</p>
+              <p><strong><i class="bi bi-geo-alt"></i> Location:</strong> ${location}</p>
+              <hr>
+              <p><strong>Description:</strong></p>
+              <p>${escapeHtml(description)}</p>
+              ${event.requires_payment ? `
+                <div class="alert alert-info mt-3">
+                  <i class="bi bi-cash"></i> <strong>Payment Required:</strong> ₦${Number(event.payment_amount || 0).toLocaleString()}
+                </div>
+              ` : ''}
+            </div>
+          `,
+          icon: 'info',
+          confirmButtonText: 'Close',
+          confirmButtonColor: '#1b8c0c',
+          width: '600px'
+        });
+      } catch (error) {
+        console.error('Error loading event details:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Failed to load event details. Please try again.'
+        });
+      }
+    };
   </script>
 </body>
 
