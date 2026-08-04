@@ -294,45 +294,6 @@
       { step: 5, title: 'Career Ready', description: 'Prepare for job interviews and employment' }
     ];
 
-    // Career path metadata
-    const careerMetadata = {
-      backend: { 
-        title: 'Backend Engineering', 
-        icon: 'bi-server', 
-        color: '#1b8c0c', 
-        bgColor: '#e8f5e9',
-        description: 'Build the backbone of web applications, handling server logic, databases, and APIs.'
-      },
-      frontend: { 
-        title: 'Frontend Development', 
-        icon: 'bi-browser-chrome', 
-        color: '#1976d2', 
-        bgColor: '#e3f2fd',
-        description: 'Create beautiful, responsive user interfaces that users interact with directly.'
-      },
-      graphics: { 
-        title: 'Graphics Design', 
-        icon: 'bi-palette', 
-        color: '#7b1fa2', 
-        bgColor: '#f3e5f5',
-        description: 'Create visual content for brands, websites, and marketing materials.'
-      },
-      cybersecurity: { 
-        title: 'Cybersecurity', 
-        icon: 'bi-shield-lock', 
-        color: '#c62828', 
-        bgColor: '#ffebee',
-        description: 'Protect systems, networks, and data from digital attacks and unauthorized access.'
-      },
-      aiml: { 
-        title: 'AI / Machine Learning', 
-        icon: 'bi-robot', 
-        color: '#f57c00', 
-        bgColor: '#fff3e0',
-        description: 'Build intelligent systems that learn from data and make predictions.'
-      }
-    };
-
     // ============================================
     // STATE VARIABLES
     // ============================================
@@ -403,6 +364,7 @@
         const { data, error } = await supabase
           .from('career_paths')
           .select('*')
+          .eq('is_active', true)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -410,8 +372,8 @@
         allCareers = data || [];
         applySearchAndRender();
         
-        // If there's a career path in URL, show it
-        if (highlightPath && allCareers.find(c => c.path_key === highlightPath)) {
+        // If there's a career path in URL, show it by ID
+        if (highlightPath && allCareers.find(c => c.id === highlightPath)) {
           showCareerDetail(highlightPath);
         }
         
@@ -463,11 +425,11 @@
       } else {
         filteredCareers = allCareers.filter(career =>
           career.title?.toLowerCase().includes(currentSearchTerm) ||
-          career.overview?.toLowerCase().includes(currentSearchTerm) ||
-          career.path_key?.toLowerCase().includes(currentSearchTerm) ||
-          (career.skills_required && career.skills_required.some(skill => 
+          career.description?.toLowerCase().includes(currentSearchTerm) ||
+          career.category?.toLowerCase().includes(currentSearchTerm) ||
+          (career.skills && career.skills.some(skill => 
             skill.toLowerCase().includes(currentSearchTerm))) ||
-          (career.tools_technologies && career.tools_technologies.some(tool => 
+          (career.tools && career.tools.some(tool => 
             tool.toLowerCase().includes(currentSearchTerm)))
         );
       }
@@ -491,24 +453,39 @@
       }
 
       container.innerHTML = filteredCareers.map(career => {
-        const meta = careerMetadata[career.path_key] || {
-          title: career.title,
+        // Determine metadata based on category
+        const categoryColors = {
+          'Development': { icon: 'bi-code-slash', color: '#1b8c0c', bgColor: '#e8f5e9' },
+          'Data Science': { icon: 'bi-graph-up', color: '#1976d2', bgColor: '#e3f2fd' },
+          'Design': { icon: 'bi-palette', color: '#7b1fa2', bgColor: '#f3e5f5' },
+          'Security': { icon: 'bi-shield-lock', color: '#c62828', bgColor: '#ffebee' },
+          'Cybersecurity': { icon: 'bi-shield-lock', color: '#c62828', bgColor: '#ffebee' },
+          'AI/ML': { icon: 'bi-robot', color: '#f57c00', bgColor: '#fff3e0' },
+          'AI/Machine Learning': { icon: 'bi-robot', color: '#f57c00', bgColor: '#fff3e0' },
+          'DevOps': { icon: 'bi-gear', color: '#455a64', bgColor: '#eceff1' },
+          'Mobile': { icon: 'bi-phone', color: '#00897b', bgColor: '#e0f2f1' },
+          'Mobile Development': { icon: 'bi-phone', color: '#00897b', bgColor: '#e0f2f1' },
+          'Cloud': { icon: 'bi-cloud', color: '#039be5', bgColor: '#e1f5fe' },
+          'Cloud Computing': { icon: 'bi-cloud', color: '#039be5', bgColor: '#e1f5fe' }
+        };
+        
+        const meta = categoryColors[career.category] || {
           icon: 'bi-rocket',
           color: '#666',
           bgColor: '#f0f0f0'
         };
         
-        const skills = career.skills_required || [];
+        const skills = career.skills || [];
         
         return `
           <div class="col-lg-4 col-md-6">
-            <div class="card career-card" onclick="window.showCareerDetail('${career.path_key}')">
+            <div class="card career-card" onclick="window.showCareerDetail('${career.id}')">
               <div class="card-body text-center p-4">
                 <div class="career-icon" style="background: ${meta.bgColor}; color: ${meta.color};">
                   <i class="bi ${meta.icon}"></i>
                 </div>
                 <h5 class="card-title mt-2">${escapeHtml(career.title)}</h5>
-                <p class="card-text text-muted small mb-3">${escapeHtml(career.overview?.substring(0, 100) || '')}${(career.overview?.length || 0) > 100 ? '...' : ''}</p>
+                <p class="card-text text-muted small mb-3">${escapeHtml(career.description?.substring(0, 100) || '')}${(career.description?.length || 0) > 100 ? '...' : ''}</p>
                 <div class="mb-3">
                   ${skills.slice(0, 3).map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('')}
                   ${skills.length > 3 ? `<span class="skill-tag">+${skills.length - 3}</span>` : ''}
@@ -526,28 +503,44 @@
     // ============================================
     // CAREER DETAIL VIEW
     // ============================================
-    window.showCareerDetail = function(pathKey) {
-      const career = allCareers.find(c => c.path_key === pathKey);
+    window.showCareerDetail = function(careerId) {
+      const career = allCareers.find(c => c.id === careerId);
       if (!career) return;
 
-      const meta = careerMetadata[pathKey] || {
-        title: career.title,
-        icon: 'bi-rocket',
-        color: '#666',
-        bgColor: '#f0f0f0'
+      // Determine metadata based on category
+      const categoryColors = {
+        'Development': { icon: 'bi-code-slash', color: '#1b8c0c', bgColor: '#e8f5e9', description: 'Build software applications and systems' },
+        'Data Science': { icon: 'bi-graph-up', color: '#1976d2', bgColor: '#e3f2fd', description: 'Analyze data and extract insights' },
+        'Design': { icon: 'bi-palette', color: '#7b1fa2', bgColor: '#f3e5f5', description: 'Create visual content and user experiences' },
+        'Security': { icon: 'bi-shield-lock', color: '#c62828', bgColor: '#ffebee', description: 'Protect systems from threats' },
+        'Cybersecurity': { icon: 'bi-shield-lock', color: '#c62828', bgColor: '#ffebee', description: 'Protect systems from threats' },
+        'AI/ML': { icon: 'bi-robot', color: '#f57c00', bgColor: '#fff3e0', description: 'Build intelligent systems' },
+        'AI/Machine Learning': { icon: 'bi-robot', color: '#f57c00', bgColor: '#fff3e0', description: 'Build intelligent systems' },
+        'DevOps': { icon: 'bi-gear', color: '#455a64', bgColor: '#eceff1', description: 'Bridge development and operations' },
+        'Mobile': { icon: 'bi-phone', color: '#00897b', bgColor: '#e0f2f1', description: 'Build mobile applications' },
+        'Mobile Development': { icon: 'bi-phone', color: '#00897b', bgColor: '#e0f2f1', description: 'Build mobile applications' },
+        'Cloud': { icon: 'bi-cloud', color: '#039be5', bgColor: '#e1f5fe', description: 'Deploy and manage cloud infrastructure' },
+        'Cloud Computing': { icon: 'bi-cloud', color: '#039be5', bgColor: '#e1f5fe', description: 'Deploy and manage cloud infrastructure' }
       };
 
-      const skills = career.skills_required || [];
-      const tools = career.tools_technologies || [];
-      const resources = career.external_resources || [];
+      const meta = categoryColors[career.category] || {
+        icon: 'bi-rocket',
+        color: '#666',
+        bgColor: '#f0f0f0',
+        description: 'Explore this career path'
+      };
+
+      const skills = career.skills || [];
+      const tools = career.tools || [];
+      const resources = career.resources || [];
       
-      // Parse roadmap if it's a string, otherwise use default
+      // Parse roadmap if it's a string or JSONB, otherwise use default
       let roadmap = defaultRoadmap;
-      if (career.learning_roadmap) {
+      if (career.roadmap) {
         try {
-          const parsedRoadmap = typeof career.learning_roadmap === 'string' 
-            ? JSON.parse(career.learning_roadmap) 
-            : career.learning_roadmap;
+          const parsedRoadmap = typeof career.roadmap === 'string' 
+            ? JSON.parse(career.roadmap) 
+            : career.roadmap;
           if (Array.isArray(parsedRoadmap) && parsedRoadmap.length > 0) {
             roadmap = parsedRoadmap;
           }
@@ -574,7 +567,7 @@
             <div class="card mb-4">
               <div class="card-body">
                 <h4 class="mb-3"><i class="bi bi-info-circle me-2"></i>Overview</h4>
-                <p class="text-muted">${escapeHtml(career.overview || 'No overview available.')}</p>
+                <p class="text-muted">${escapeHtml(career.description || 'No description available.')}</p>
               </div>
             </div>
 
@@ -626,7 +619,7 @@
                   <h4 class="mb-3"><i class="bi bi-link-45deg me-2"></i>External Resources</h4>
                   <div class="list-group list-group-flush">
                     ${resources.map(r => `
-                      <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="list-group-item list-group-item-action resource-link" onclick="event.stopPropagation(); trackResourceClick('${escapeHtml(career.path_key)}', '${escapeHtml(r.name)}')">
+                      <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="list-group-item list-group-item-action resource-link" onclick="event.stopPropagation(); trackResourceClick('${escapeHtml(career.id)}', '${escapeHtml(r.name)}')">
                         <i class="bi bi-box-arrow-up-right me-2" style="color: ${meta.color};"></i>
                         ${escapeHtml(r.name)}
                       </a>
@@ -645,14 +638,14 @@
       
       // Update URL without reload
       const url = new URL(window.location);
-      url.searchParams.set('path', pathKey);
+      url.searchParams.set('path', careerId);
       window.history.pushState({}, '', url);
       
       // Scroll to top
       window.scrollTo({ top: 300, behavior: 'smooth' });
       
       // Track career view
-      trackCareerView(pathKey, career.title);
+      trackCareerView(careerId, career.title);
     };
 
     // Make function global for onclick
@@ -721,7 +714,7 @@
     window.addEventListener('popstate', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const careerParam = urlParams.get('path');
-      if (careerParam && allCareers.find(c => c.path_key === careerParam)) {
+      if (careerParam && allCareers.find(c => c.id === careerParam)) {
         showCareerDetail(careerParam);
       } else {
         if (careerDetailDiv.style.display === 'block') {

@@ -7,7 +7,6 @@
   <title>Student Dashboard | NACOS - Thomas Adewumi University</title>
   <meta name="description" content="Access your NACOS student dashboard to view past questions, timetables, career resources, and upcoming events.">
   <meta name="keywords" content="NACOS, TAU, student dashboard, computing students, Nigeria">
-  <meta http-equiv="cache-control" content="no-cache">
 
   <!-- Favicons -->
   <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
@@ -16,12 +15,7 @@
   <!-- Vendor CSS Files -->
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
-  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
-  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
   <link href="assets/css/main.css" rel="stylesheet">
-
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     /* Reset & Base */
@@ -36,11 +30,28 @@
       font-family: 'Inter', sans-serif;
     }
 
+    /* Visually-hidden helper for screen-reader-only labels */
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     /* Header Styles */
     .header {
       background: white;
       box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
       padding: 10px 0;
+    }
+
+    .header .btn {
+      min-height: 48px;
     }
 
     .logo img {
@@ -88,6 +99,7 @@
       border: 4px solid #1b8c0c;
       margin-bottom: 20px;
       cursor: pointer;
+      background: #f8fbfc;
     }
 
     .profile-name {
@@ -99,7 +111,7 @@
 
     .profile-detail {
       font-size: 1rem;
-      color: #666;
+      color: #555;
       margin-bottom: 5px;
     }
 
@@ -110,6 +122,12 @@
       box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
       padding: 25px;
       margin-bottom: 30px;
+      border: 1px solid #edf2f4;
+    }
+
+    .section-card .text-muted,
+    .section-card small.text-muted {
+      color: #5a6268 !important;
     }
 
     .section-title-custom {
@@ -121,9 +139,63 @@
       border-bottom: 2px solid #e8f5e9;
     }
 
+    /* Dashboard events section — scoped so global QuickStart CSS doesn't bleed in */
+    .dashboard-events-section {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+      padding: 25px;
+      margin-bottom: 30px;
+      border: 1px solid #edf2f4;
+      width: 100% !important;
+    }
+
+    .dashboard-event-card {
+      background: #f8fbfc;
+      border: 1px solid #e0e6e8;
+      border-radius: 15px;
+      padding: 20px;
+      height: 100%;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      transition: all 0.3s ease;
+    }
+
+    .dashboard-event-card:hover,
+    .dashboard-event-card:focus {
+      background: white;
+      border-color: #1b8c0c;
+      box-shadow: 0 5px 20px rgba(27, 140, 12, 0.15);
+      transform: translateY(-3px);
+    }
+
+    .dashboard-event-card .event-image {
+      width: 96px;
+      height: 96px;
+      border-radius: 12px;
+      object-fit: cover;
+      flex-shrink: 0;
+      display: block;
+      background: #e8f5e9;
+    }
+
+    .dashboard-event-card .event-body {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .dashboard-event-card h3 {
+      font-size: 1.15rem;
+      color: #1b8c0c;
+      margin-bottom: 6px;
+    }
+
     /* Quick Links Grid */
     .quick-link-card {
+      appearance: none;
       background: #f8fbfc;
+      border: 1px solid #e0e6e8;
       border-radius: 15px;
       padding: 20px;
       text-align: center;
@@ -131,16 +203,26 @@
       cursor: pointer;
       text-decoration: none;
       display: block;
+      width: 100%;
+      min-height: 148px;
+      font: inherit;
+      color: inherit;
     }
 
-    .quick-link-card:hover {
+    .quick-link-card:hover,
+    .quick-link-card:focus-visible {
       background: #1b8c0c;
       transform: translateY(-5px);
+      color: white;
+      outline: none;
     }
 
     .quick-link-card:hover i,
     .quick-link-card:hover h4,
-    .quick-link-card:hover p {
+    .quick-link-card:hover p,
+    .quick-link-card:focus-visible i,
+    .quick-link-card:focus-visible h4,
+    .quick-link-card:focus-visible p {
       color: white !important;
     }
 
@@ -158,8 +240,8 @@
     }
 
     .quick-link-card p {
-      font-size: 0.8rem;
-      color: #666;
+      font-size: 0.85rem;
+      color: #555;
     }
 
     /* Resource Cards */
@@ -169,11 +251,13 @@
       padding: 15px;
       transition: all 0.3s;
       height: 100%;
+      border: 1px solid #e0e6e8;
     }
 
     .resource-card:hover {
       background: #1b8c0c;
       transform: translateY(-3px);
+      border-color: #1b8c0c;
     }
 
     .resource-card:hover h6,
@@ -189,6 +273,7 @@
       padding: 10px 25px;
       border-radius: 10px;
       transition: all 0.3s;
+      min-height: 48px;
     }
 
     .btn-outline-custom:hover {
@@ -235,19 +320,312 @@
       .dashboard-container {
         padding: 100px 15px 30px;
       }
-      
       .profile-name {
         font-size: 1.4rem;
       }
-      
       .section-title-custom {
         font-size: 1.3rem;
+      }
+      .dashboard-event-card {
+        flex-direction: column;
+      }
+      .dashboard-event-card .event-image {
+        width: 100%;
+        height: 160px;
+      }
+    }
+
+    @media (min-width: 769px) and (max-width: 1279px) {
+      .dashboard-container {
+        padding: 110px 20px 40px;
       }
     }
 
     /* Hide preloader completely */
     #preloader {
       display: none !important;
+    }
+
+    /* Tags Container Styles */
+    .tags-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 40px;
+      padding: 8px;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      background: #f8f9fa;
+    }
+
+    .tag-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1b8c0c;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      animation: fadeIn 0.2s;
+    }
+
+    .tag-item.interest-tag {
+      background: #0d6efd;
+      color: white;
+    }
+
+    .tag-remove {
+      cursor: pointer;
+      font-weight: bold;
+      opacity: 0.85;
+      transition: opacity 0.2s, background 0.2s;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 0;
+      border: 0;
+      color: white;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .tag-remove:hover,
+    .tag-remove:focus-visible {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.2);
+      outline: none;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Student Card Styles */
+    .student-card {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #edf2f4;
+      cursor: pointer;
+    }
+
+    .student-card:hover,
+    .student-card:focus-within {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .student-card-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .student-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #1b8c0c;
+      background: #f8fbfc;
+    }
+
+    .student-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #333;
+      margin: 0;
+    }
+
+    .student-meta {
+      font-size: 0.85rem;
+      color: #5a6268;
+      margin: 0;
+    }
+
+    .student-bio {
+      font-size: 0.9rem;
+      color: #444;
+      margin-bottom: 12px;
+      flex-grow: 1;
+      line-height: 1.5;
+    }
+
+    .student-skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .skill-tag {
+      background: #e8f5e9;
+      color: #1b8c0c;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .student-social {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .social-icon {
+      color: #666;
+      font-size: 1.15rem;
+      transition: color 0.2s, background 0.2s;
+      min-width: 40px;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+
+    .social-icon:hover,
+    .social-icon:focus-visible {
+      color: #1b8c0c;
+      background: #e8f5e9;
+      outline: none;
+    }
+
+    .student-card .btn {
+      min-height: 40px;
+    }
+
+    /* Profile View Styles */
+    .profile-view {
+      padding: 20px;
+    }
+
+    .profile-header {
+      text-align: center;
+      padding: 20px;
+      border-bottom: 2px solid #e8f5e9;
+      margin-bottom: 30px;
+    }
+
+    .profile-pic-large {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 5px solid #1b8c0c;
+      margin-bottom: 15px;
+      background: #f8fbfc;
+    }
+
+    .profile-section {
+      margin-bottom: 25px;
+    }
+
+    .profile-section h4 {
+      color: #1b8c0c;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e8f5e9;
+    }
+
+    .profile-section p {
+      line-height: 1.7;
+      color: #444;
+    }
+
+    .social-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .social-links .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      min-height: 44px;
+    }
+
+    .interest-tag {
+      background: #e3f2fd;
+      color: #0d6efd;
+      padding: 6px 14px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      display: inline-block;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+
+    /* Loading Skeleton */
+    .skeleton-card {
+      background: #f0f0f0;
+      border-radius: 15px;
+      padding: 20px;
+      animation: pulse 1.5s infinite;
+      height: 100%;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .skeleton-line {
+      height: 12px;
+      background: #d0d0d0;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .skeleton-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #d0d0d0;
+    }
+
+    /* Directory form styling */
+    #directoryForm .form-control,
+    #directoryForm .form-select {
+      min-height: 48px;
+      padding-top: 0.6rem;
+      padding-bottom: 0.6rem;
+      border-radius: 10px;
+    }
+
+    #directoryForm .btn {
+      min-height: 48px;
+    }
+
+    /* Pagination touch targets */
+    .pagination .page-link {
+      min-height: 48px;
+      min-width: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 1rem;
     }
   </style>
 </head>
@@ -257,14 +635,14 @@
   <header id="header" class="header d-flex align-items-center fixed-top">
     <div class="container d-flex justify-content-between align-items-center">
       <a href="index.html" class="logo d-flex align-items-center text-decoration-none">
-        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo, Thomas Adewumi University Chapter">
         <h1 class="sitename">
           <span style="color: #1b8c0c;">Nigerian Association of Computing Students</span>
           <br>
           <strong style="font-size: 12px;">Thomas Adewumi University</strong>
         </h1>
       </a>
-      <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#logoutModal">
+      <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#logoutModal" aria-label="Open logout dialog">
         <i class="bi bi-box-arrow-right"></i> Logout
       </button>
     </div>
@@ -272,110 +650,203 @@
 
   <main>
     <div class="dashboard-container">
-      
+
       <!-- Loading State -->
-      <div id="loadingState" class="loading-spinner">
-        <div class="spinner"></div>
+      <div id="loadingState" class="loading-spinner" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
         <p>Loading your dashboard...</p>
       </div>
 
       <!-- Dashboard Content (Hidden Initially) -->
       <div id="dashboardContent" style="display: none;">
-        
-        <!-- Profile Section -->
-        <div class="profile-card">
-          <img id="profileImage" class="profile-image" src="assets/img/tau_logo-removebg-preview.png" alt="Profile Picture">
-          <h2 id="studentName" class="profile-name">Loading...</h2>
-          <p id="studentMatric" class="profile-detail">
-            <i class="bi bi-card-text"></i> <span>Loading...</span>
-          </p>
-          <p id="studentDepartment" class="profile-detail">
-            <i class="bi bi-building"></i> <span>Loading...</span>
-          </p>
-          <p id="studentEmail" class="profile-detail">
-            <i class="bi bi-envelope"></i> <span>Loading...</span>
-          </p>
-          <button class="btn-outline-custom mt-3" data-bs-toggle="modal" data-bs-target="#updatePfpModal">
-            <i class="bi bi-camera"></i> Update Profile Picture
-          </button>
-        </div>
 
- <!-- Events Section -->
-<section id="eventsSection" class="services section light-background" style="width: 100%;">
-    <div class="container section-title" data-aos="fade-up">
-        <h2>Upcoming Events</h2>
-        <p>Check out our upcoming events and activities!</p>
-    </div>
-    <div class="container">
-        <div id="eventsContainer" class="row g-4">
-            <!-- Events will be loaded dynamically here -->
-            <div class="col-12 text-center">
-                <div class="spinner-border text-success" role="status">
-                    <span class="visually-hidden">Loading events...</span>
-                </div>
+        <!-- Profile Section -->
+        <section class="profile-card" aria-labelledby="profileName">
+          <img id="profileImage" class="profile-image" src="assets/img/tau_logo-removebg-preview.png" alt="Profile picture" width="150" height="150">
+          <h2 id="profileName" class="profile-name">Loading...</h2>
+          <p class="profile-detail" id="studentMatric">
+            <i class="bi bi-card-text" aria-hidden="true"></i> <span id="studentMatricValue">Loading...</span>
+          </p>
+          <p class="profile-detail" id="studentDepartment">
+            <i class="bi bi-building" aria-hidden="true"></i> <span id="studentDepartmentValue">Loading...</span>
+          </p>
+          <p class="profile-detail" id="studentEmail">
+            <i class="bi bi-envelope" aria-hidden="true"></i> <span id="studentEmailValue">Loading...</span>
+          </p>
+          <div class="mt-3 d-flex flex-wrap justify-content-center gap-2">
+            <button type="button" class="btn-outline-custom me-2" data-bs-toggle="modal" data-bs-target="#updatePfpModal">
+              <i class="bi bi-camera"></i> Update Picture
+            </button>
+            <button type="button" class="btn-outline-custom" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+              <i class="bi bi-pencil"></i> Edit Profile
+            </button>
+          </div>
+          <!-- Profile Completion Indicator -->
+          <div class="mt-3" id="profileCompletionContainer" aria-live="polite">
+            <small class="text-muted">Profile Completion</small>
+            <div class="progress" style="height: 10px; border-radius: 10px; margin-top: 4px;">
+              <div id="profileCompletionBar" class="progress-bar bg-success" role="progressbar"
+                   style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
-        </div>
-    </div>
-</section>
+            <small id="profileCompletionText" class="text-muted d-block mt-1">0% Complete</small>
+          </div>
+        </section>
+
+        <!-- Events Section -->
+        <section id="eventsSection" class="dashboard-events-section" aria-labelledby="eventsSectionTitle">
+          <h3 id="eventsSectionTitle" class="section-title-custom"><i class="bi bi-calendar-event"></i> Upcoming Events</h3>
+          <p class="mb-3 text-muted">Check out our upcoming events and activities!</p>
+          <div id="eventsContainer" class="row g-4 mb-3" aria-live="polite">
+            <div class="col-12 text-center">
+              <div class="spinner-border text-success" role="status">
+                <span class="visually-hidden">Loading events...</span>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <!-- Quick Resources Section -->
-        <div class="section-card">
-          <h3 class="section-title-custom">
+        <section class="section-card" aria-labelledby="resourcesSectionTitle">
+          <h3 id="resourcesSectionTitle" class="section-title-custom">
             <i class="bi bi-link-45deg"></i> Quick Resources
           </h3>
-          <div id="resourcesContainer" class="row g-4">
+          <div id="resourcesContainer" class="row g-4" aria-live="polite">
             <!-- Resources will be loaded here -->
           </div>
-        </div>
+        </section>
+
+        <!-- Past Questions Section -->
+        <section class="section-card mb-5" aria-labelledby="pastQuestionsSectionTitle">
+          <div class="section-title mb-4">
+            <h2><i class="bi bi-journal-text"></i> Past Questions</h2>
+            <p class="text-muted">Recently uploaded exam papers and past questions.</p>
+            <a href="past-questions.html" class="btn btn-sm btn-outline-success">View All <i class="bi bi-arrow-right"></i></a>
+          </div>
+          <div class="row g-4" id="pastQuestionsContainer"></div>
+        </section>
 
         <!-- Quick Links Section -->
-        <div class="section-card">
-          <h3 class="section-title-custom">
+        <section class="section-card" aria-labelledby="quickAccessTitle">
+          <h3 id="quickAccessTitle" class="section-title-custom">
             <i class="bi bi-grid-3x3-gap-fill"></i> Quick Access
           </h3>
           <div class="row g-4">
             <div class="col-lg-3 col-md-6">
-              <a href="past-questions.html" class="quick-link-card">
-                <i class="bi bi-file-earmark-pdf"></i>
+              <a href="past-questions.html" class="quick-link-card" aria-label="Navigate to Past Questions page">
+                <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
                 <h4>Past Questions</h4>
                 <p>Access past exam questions</p>
               </a>
             </div>
             <div class="col-lg-3 col-md-6">
-              <a href="timetables.html" class="quick-link-card">
-                <i class="bi bi-calendar-week"></i>
+              <a href="timetables.html" class="quick-link-card" aria-label="Navigate to Timetables page">
+                <i class="bi bi-calendar-week" aria-hidden="true"></i>
                 <h4>Timetables</h4>
                 <p>View class schedules</p>
               </a>
             </div>
             <div class="col-lg-3 col-md-6">
-              <a href="resources.html" class="quick-link-card">
-                <i class="bi bi-link-45deg"></i>
+              <a href="resources.html" class="quick-link-card" aria-label="Navigate to Resources page">
+                <i class="bi bi-link-45deg" aria-hidden="true"></i>
                 <h4>Resources</h4>
                 <p>Browse learning materials</p>
               </a>
             </div>
             <div class="col-lg-3 col-md-6">
-              <a href="career-paths.html" class="quick-link-card">
-                <i class="bi bi-graph-up"></i>
+              <a href="career-paths.html" class="quick-link-card" aria-label="Navigate to Career Paths page">
+                <i class="bi bi-graph-up" aria-hidden="true"></i>
                 <h4>Career Paths</h4>
                 <p>Explore tech careers</p>
               </a>
             </div>
+            <div class="col-lg-3 col-md-6">
+              <button type="button" id="dirTriggerBtn" class="quick-link-card" aria-expanded="false" aria-controls="directorySection">
+                <i class="bi bi-people" aria-hidden="true"></i>
+                <h4>Student Directory</h4>
+                <p>Connect with students</p>
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
+
+        <!-- Student Directory Section -->
+        <section id="directorySection" class="section-card" style="display: none;" aria-labelledby="directorySectionTitle">
+          <h3 id="directorySectionTitle" class="section-title-custom">
+            <i class="bi bi-people"></i> Student Directory
+          </h3>
+
+          <!-- Search & Filters -->
+          <form id="directoryForm" class="row mb-4 g-3" role="search" aria-label="Filter students">
+            <div class="col-md-4">
+              <label for="dirSearch" class="form-label visually-hidden">Search students by name</label>
+              <div class="input-group">
+                <span class="input-group-text" aria-hidden="true">
+                  <i class="bi bi-search"></i>
+                </span>
+                <input type="search" class="form-control" id="dirSearch" name="search"
+                       placeholder="Search by name or department..." autocomplete="off">
+              </div>
+            </div>
+            <div class="col-md-2">
+              <label for="dirDept" class="form-label visually-hidden">Department filter</label>
+              <select class="form-select" id="dirDept" name="department">
+                <option value="">All Departments</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Software Engineering">Software Engineering</option>
+                <option value="Cybersecurity">Cybersecurity</option>
+                <option value="Information Technology">Information Technology</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label for="dirYear" class="form-label visually-hidden">Year of study filter</label>
+              <select class="form-select" id="dirYear" name="year">
+                <option value="">All Years</option>
+                <option value="100">100 Level</option>
+                <option value="200">200 Level</option>
+                <option value="300">300 Level</option>
+                <option value="400">400 Level</option>
+                <option value="500">500 Level</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label for="dirSort" class="form-label visually-hidden">Sort order</label>
+              <select class="form-select" id="dirSort" name="sort">
+                <option value="name-asc">Name A-Z</option>
+                <option value="name-desc">Name Z-A</option>
+                <option value="recent">Recently Joined</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button type="button" id="dirClearBtn" class="btn btn-outline-secondary w-100">
+                <i class="bi bi-x-circle"></i> Clear
+              </button>
+            </div>
+          </form>
+
+          <!-- Students Grid -->
+          <div id="studentsGrid" class="row g-4 mb-4" aria-live="polite">
+            <!-- Student cards will be loaded here -->
+          </div>
+
+          <!-- Pagination -->
+          <nav aria-label="Student directory pagination">
+            <ul class="pagination justify-content-center" id="dirPagination">
+              <!-- Pagination buttons will be loaded here -->
+            </ul>
+          </nav>
+        </section>
 
       </div>
     </div>
   </main>
 
   <!-- Logout Modal -->
-  <div class="modal fade" id="logoutModal" tabindex="-1">
+  <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Confirm Logout</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <h5 class="modal-title" id="logoutModalTitle">Confirm Logout</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close confirmation dialog"></button>
         </div>
         <div class="modal-body">
           Are you sure you want to logout?
@@ -389,18 +860,19 @@
   </div>
 
   <!-- Update Profile Picture Modal -->
-  <div class="modal fade" id="updatePfpModal" tabindex="-1">
+  <div class="modal fade" id="updatePfpModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="pfpModalTitle">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Update Profile Picture</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <h5 class="modal-title" id="pfpModalTitle">Update Profile Picture</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close update profile picture dialog"></button>
         </div>
         <div class="modal-body">
-          <form id="profilePicForm">
+          <form id="profilePicForm" novalidate>
             <div class="mb-3">
-              <label class="form-label">Choose Image</label>
-              <input type="file" class="form-control" id="profilePicInput" accept="image/jpeg,image/png,image/jpg" required>
+              <label class="form-label" for="profilePicInput">Choose Image</label>
+              <input type="file" class="form-control" id="profilePicInput" name="profilePicture"
+                     accept="image/jpeg,image/png,image/jpg" required>
               <small class="text-muted">Max size: 2MB. Allowed: JPG, PNG</small>
             </div>
             <button type="submit" class="btn btn-success w-100">Upload</button>
@@ -410,74 +882,351 @@
     </div>
   </div>
 
+  <!-- Edit Profile Modal -->
+  <div class="modal fade" id="editProfileModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="editProfileModalTitle">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius: 20px;">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editProfileModalTitle"><i class="bi bi-person-circle"></i> Edit Your Profile</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close edit profile dialog"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editProfileForm" novalidate>
+
+            <!-- Bio Section -->
+            <div class="card mb-3">
+              <div class="card-header bg-light"><i class="bi bi-file-text"></i> About You</div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label" for="profileBio">Bio</label>
+                  <textarea class="form-control" id="profileBio" rows="4" maxlength="500"
+                            placeholder="Tell other students about yourself..."></textarea>
+                  <small class="text-muted"><span id="bioCharCount">0</span>/500 characters</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Skills & Interests Section -->
+            <div class="card mb-3">
+              <div class="card-header bg-light"><i class="bi bi-trophy"></i> Skills &amp; Interests</div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label" for="skillsInput">Skills <small class="text-muted">(Max 20, type and press Enter)</small></label>
+                  <input type="text" class="form-control" id="skillsInput"
+                         placeholder="Type a skill and press Enter">
+                  <div id="skillsTags" class="tags-container mt-2" role="list" aria-label="Added skills"></div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="interestsInput">Interests <small class="text-muted">(Max 10, type and press Enter)</small></label>
+                  <input type="text" class="form-control" id="interestsInput"
+                         placeholder="Type an interest and press Enter">
+                  <div id="interestsTags" class="tags-container mt-2" role="list" aria-label="Added interests"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact Information Section -->
+            <div class="card mb-3">
+              <div class="card-header bg-light"><i class="bi bi-telephone"></i> Contact Information</div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label" for="profilePhone"><i class="bi bi-phone"></i> Phone Number</label>
+                  <input type="tel" class="form-control" id="profilePhone"
+                         placeholder="+234 XXX XXX XXXX"
+                         pattern="^(\+234|0)[789][01]\d{8}$">
+                  <small class="text-muted">Optional - Nigerian phone number</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Social Media Links Section -->
+            <div class="card mb-3">
+              <div class="card-header bg-light"><i class="bi bi-link-45deg"></i> Social Media &amp; Links</div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label" for="profileLinkedin"><i class="bi bi-linkedin"></i> LinkedIn</label>
+                  <input type="url" class="form-control" id="profileLinkedin"
+                         placeholder="https://linkedin.com/in/yourprofile"
+                         pattern="^https?://(www\.)?linkedin\.com/.+$">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="profileGithub"><i class="bi bi-github"></i> GitHub</label>
+                  <input type="url" class="form-control" id="profileGithub"
+                         placeholder="https://github.com/yourusername"
+                         pattern="^https?://(www\.)?github\.com/.+$">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="profileTwitter"><i class="bi bi-twitter"></i> Twitter / X</label>
+                  <input type="url" class="form-control" id="profileTwitter"
+                         placeholder="https://twitter.com/yourusername"
+                         pattern="^https?://(www\.)?(twitter\.com|x\.com)/.+$">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="profileInstagram"><i class="bi bi-instagram"></i> Instagram</label>
+                  <input type="url" class="form-control" id="profileInstagram"
+                         placeholder="https://instagram.com/yourusername"
+                         pattern="^https?://(www\.)?instagram\.com/.+$">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="profileSnapchat"><i class="bi bi-snapchat"></i> Snapchat</label>
+                  <input type="text" class="form-control" id="profileSnapchat"
+                         placeholder="Your Snapchat username"
+                         pattern="^[a-zA-Z0-9._-]{3,30}$">
+                  <small class="text-muted">Just your username (e.g., johndoe123)</small>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="profilePortfolio"><i class="bi bi-globe"></i> Portfolio Website</label>
+                  <input type="url" class="form-control" id="profilePortfolio"
+                         placeholder="https://yourportfolio.com"
+                         pattern="^https?://.+\..+">
+                </div>
+              </div>
+            </div>
+
+            <!-- Academic Info Section -->
+            <div class="card mb-3">
+              <div class="card-header bg-light"><i class="bi bi-book"></i> Academic Information</div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="profileYearOfStudy">Year of Study</label>
+                    <select class="form-select" id="profileYearOfStudy">
+                      <option value="">Select Year</option>
+                      <option value="100">100 Level</option>
+                      <option value="200">200 Level</option>
+                      <option value="300">300 Level</option>
+                      <option value="400">400 Level</option>
+                      <option value="500">500 Level</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="profileGraduationYear">Expected Graduation Year</label>
+                    <input type="number" class="form-control" id="profileGraduationYear"
+                           min="2024" max="2035" placeholder="e.g., 2027">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Privacy Settings Section -->
+            <div class="card mb-3">
+              <div class="card-header bg-light"><i class="bi bi-shield-lock"></i> Privacy Settings</div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label" for="profileVisibility">Profile Visibility</label>
+                  <select class="form-select" id="profileVisibility">
+                    <option value="students-only">Students Only (Recommended)</option>
+                    <option value="private">Private - Only I can see</option>
+                  </select>
+                  <small class="text-muted">Control who can view your profile in the directory</small>
+                </div>
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" id="showEmail">
+                  <label class="form-check-label" for="showEmail">Show my email address</label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" id="showPhone">
+                  <label class="form-check-label" for="showPhone">Show my phone number</label>
+                </div>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="showMatric">
+                  <label class="form-check-label" for="showMatric">Show my matric number</label>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100" style="padding: 12px; border-radius: 10px;">
+              <i class="bi bi-check-circle"></i> Save Profile
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile View Modal -->
+  <div class="modal fade" id="profileViewModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="pvModalTitle">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius: 20px;">
+        <div class="modal-header">
+          <h5 class="modal-title" id="pvModalTitle">Student Profile</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close student profile dialog"></button>
+        </div>
+        <div class="modal-body" id="profileViewContent">
+          <!-- Profile content will be inserted here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event Details Modal -->
+  <div class="modal fade" id="eventDetailsModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius: 20px;">
+        <div class="modal-header">
+          <h5 class="modal-title" id="eventModalTitle">Event Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close event details dialog"></button>
+        </div>
+        <div class="modal-body" id="eventDetailsContent">
+          <!-- Event details will be inserted here -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-success" id="registerEventBtn" style="display: none;">
+            <i class="bi bi-check-circle"></i> Register for Event
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
-  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/vendor/aos/aos.js"></script>
-  <script src="assets/js/env.js"></script>
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js" defer></script>
+  <script src="assets/js/env.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer crossorigin="anonymous"></script>
   <script type="module" src="assets/js/supabase-config.js"></script>
   <script type="module" src="assets/js/api-config.js"></script>
-  <script src="assets/js/main.js"></script>
-
+  <script src="assets/js/main.js" defer></script>
+  <script src="assets/js/profile-management.js" defer></script>
   <script type="module">
     import { supabase, checkAuth, signOut, uploadFileToStorage } from './assets/js/supabase-config.js';
 
-    // DOM Elements
+    // ================================================================
+    // DOM elements & state
+    // ================================================================
     const loadingState = document.getElementById('loadingState');
     const dashboardContent = document.getElementById('dashboardContent');
-    const studentNameEl = document.getElementById('studentName');
-    const studentMatricEl = document.getElementById('studentMatric').querySelector('span');
-    const studentDepartmentEl = document.getElementById('studentDepartment').querySelector('span');
-    const studentEmailEl = document.getElementById('studentEmail').querySelector('span');
+    const studentNameEl = document.getElementById('profileName');
+    const studentMatricEl = document.getElementById('studentMatricValue');
+    const studentDepartmentEl = document.getElementById('studentDepartmentValue');
+    const studentEmailEl = document.getElementById('studentEmailValue');
     const profileImageEl = document.getElementById('profileImage');
     const resourcesContainer = document.getElementById('resourcesContainer');
+    const pastQuestionsContainer = document.getElementById('pastQuestionsContainer');
     const eventsContainer = document.getElementById('eventsContainer');
+    const dirTriggerBtn = document.getElementById('dirTriggerBtn');
+    const directorySection = document.getElementById('directorySection');
+    const dirSearchEl = document.getElementById('dirSearch');
+    const dirClearBtn = document.getElementById('dirClearBtn');
+    const studentsGrid = document.getElementById('studentsGrid');
+    const dirPaginationEl = document.getElementById('dirPagination');
+    const profilePicForm = document.getElementById('profilePicForm');
+    const profilePicInput = document.getElementById('profilePicInput');
+    const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+    const skillsInput = document.getElementById('skillsInput');
+    const interestsInput = document.getElementById('interestsInput');
+    const directoryForm = document.getElementById('directoryForm');
 
     let currentUser = null;
     let studentData = null;
+    let currentPage = 1;
+    let searchDebounceTimer = null;
 
-    // Helper Functions
+    // ================================================================
+    // Helpers
+    // ================================================================
     function escapeHtml(text) {
-      if (!text) return '';
+      if (text === null || text === undefined) return '';
       const div = document.createElement('div');
-      div.textContent = text;
+      div.textContent = String(text);
       return div.innerHTML;
     }
 
+    function isSafeWebUrl(v) {
+      if (!v || typeof v !== 'string') return false;
+      try {
+        const u = new URL(v, window.location.origin);
+        return u.protocol === 'https:' || u.protocol === 'http:';
+      } catch {
+        return false;
+      }
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return 'Date TBA';
+      let date;
+      try {
+        const s = String(dateString);
+        const onlyDate = /^\d{4}-\d{2}-\d{2}$/.test(s);
+        date = onlyDate ? new Date(s + 'T00:00:00+01:00') : new Date(s);
+      } catch {
+        return 'Date TBA';
+      }
+      if (Number.isNaN(date.getTime())) return 'Date TBA';
+      const opts = { year: 'numeric', month: 'long', day: 'numeric' };
+      try {
+        return date.toLocaleDateString('en-NG', opts);
+      } catch {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'];
+        return `${date.getDate()} ${months[date.getMonth()]}, ${date.getFullYear()}`;
+      }
+    }
+
+    function displayName(data) {
+      if (!data) return 'Student';
+      const composed = (data.name && data.name.trim()) ||
+        [data.first_name, data.last_name].filter(Boolean).join(' ').trim();
+      return composed || 'Student';
+    }
+
+    function cacheBust(url) {
+      if (!url) return url;
+      try {
+        const u = new URL(url, window.location.origin);
+        u.searchParams.set('v', String(Date.now()));
+        return u.toString();
+      } catch {
+        return url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
+      }
+    }
+
     function showError(message) {
-      Swal.fire({
-        title: 'Error',
-        text: message,
-        icon: 'error',
-        confirmButtonText: 'OK'
-      });
+      if (window.Swal) {
+        Swal.fire({ title: 'Error', text: message, icon: 'error', confirmButtonText: 'OK' });
+      } else {
+        alert(message);
+      }
     }
 
     function showSuccess(message) {
-      Swal.fire({
-        title: 'Success',
-        text: message,
-        icon: 'success',
-        timer: 2000,
-        showConfirmButton: false
-      });
+      if (window.Swal) {
+        Swal.fire({
+          title: 'Success',
+          text: message,
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      }
     }
 
-    // Check Authentication
+    async function requireAccessToken() {
+      if (window.requireAccessToken && typeof window.requireAccessToken === 'function') {
+        return window.requireAccessToken(showError);
+      }
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data || !data.session) {
+        showError('Your session expired. Please log in again.');
+        setTimeout(() => { window.location.href = 'student-login.html'; }, 1200);
+        return null;
+      }
+      return data.session.access_token;
+    }
+
+    // ================================================================
+    // Authentication & student data
+    // ================================================================
     async function checkAuthentication() {
       try {
         const session = await checkAuth();
-        
         if (!session) {
           showError('Please log in to access your dashboard.');
-          setTimeout(() => {
-            window.location.href = 'student-login.html';
-          }, 1500);
+          setTimeout(() => { window.location.href = 'student-login.html'; }, 1500);
           return false;
         }
-        
         currentUser = session.user;
         return true;
-        
       } catch (error) {
         console.error('Auth error:', error);
         window.location.href = 'student-login.html';
@@ -485,7 +1234,6 @@
       }
     }
 
-    // Load Student Data
     async function loadStudentData() {
       try {
         const { data, error } = await supabase
@@ -493,229 +1241,868 @@
           .select('*')
           .eq('user_id', currentUser.id)
           .maybeSingle();
-        
         if (error) throw error;
-        
         if (data) {
           studentData = data;
-          studentNameEl.textContent = data.name || `${data.first_name} ${data.last_name}` || 'Student';
+          studentNameEl.textContent = displayName(data);
           studentMatricEl.textContent = data.matric_no || 'N/A';
           studentDepartmentEl.textContent = data.department || data.course || 'Not Assigned';
-          studentEmailEl.textContent = data.email || currentUser.email;
-          
+          studentEmailEl.textContent = data.email || (currentUser && currentUser.email) || '';
           if (data.profile_picture_url) {
-            profileImageEl.src = data.profile_picture_url;
+            profileImageEl.src = cacheBust(data.profile_picture_url);
+            profileImageEl.alt = `Profile picture of ${displayName(data)}`;
+          } else {
+            profileImageEl.src = 'assets/img/tau_logo-removebg-preview.png';
           }
         } else {
-          studentNameEl.textContent = currentUser.email?.split('@')[0] || 'Student';
-          studentEmailEl.textContent = currentUser.email;
+          studentNameEl.textContent = (currentUser && currentUser.email ? currentUser.email.split('@')[0] : null) || 'Student';
+          studentEmailEl.textContent = (currentUser && currentUser.email) || '';
         }
-        
       } catch (error) {
         console.error('Error loading student:', error);
         studentNameEl.textContent = 'Welcome Student';
       }
     }
 
-    // Load Resources
+    // ================================================================
+    // Resources & events feeds
+    // ================================================================
     async function loadResources() {
+      if (!resourcesContainer) return;
       try {
         const { data, error } = await supabase
           .from('academic_resources')
           .select('*')
           .limit(4)
           .order('created_at', { ascending: false });
-        
         if (error) throw error;
-        
         if (data && data.length > 0) {
-          resourcesContainer.innerHTML = data.map(resource => `
-            <div class="col-lg-3 col-md-6">
-              <div class="resource-card">
-                <a href="${escapeHtml(resource.file_url)}" target="_blank" class="text-decoration-none">
-                  <i class="bi bi-link-45deg" style="font-size: 2rem; color: #1b8c0c;"></i>
-                  <h6 class="mt-2" style="color: #333;">${escapeHtml(resource.title.substring(0, 40))}</h6>
-                  <p class="small text-muted">${escapeHtml(resource.resource_type)}</p>
-                </a>
-              </div>
-            </div>
-          `).join('');
+          resourcesContainer.innerHTML = data.map(resource => {
+            const safeUrl = isSafeWebUrl(resource.file_url) ? resource.file_url : null;
+            const title = escapeHtml((resource.title || '').toString().substring(0, 40));
+            const type = escapeHtml(resource.resource_type || 'Resource');
+            return `
+              <div class="col-lg-3 col-md-6">
+                <article class="resource-card">
+                  ${safeUrl
+                    ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" class="text-decoration-none d-block h-100">
+                        <i class="bi bi-link-45deg" style="font-size: 2rem; color: #1b8c0c;" aria-hidden="true"></i>
+                        <h6 class="mt-2" style="color: #333;">${title}</h6>
+                        <p class="small text-muted">${type}</p>
+                      </a>`
+                    : `<div>
+                        <i class="bi bi-link-45deg" style="font-size: 2rem; color: #666;" aria-hidden="true"></i>
+                        <h6 class="mt-2" style="color: #333;">${title}</h6>
+                        <p class="small text-muted">${type} <em>(link unavailable)</em></p>
+                      </div>`}
+                </article>
+              </div>`;
+          }).join('');
         } else {
           resourcesContainer.innerHTML = '<div class="col-12 text-center"><p class="text-muted">No resources available</p></div>';
         }
-        
       } catch (error) {
         console.error('Error loading resources:', error);
         resourcesContainer.innerHTML = '<div class="col-12 text-center"><p class="text-muted">Unable to load resources</p></div>';
       }
     }
 
-// Add this function to your student-dashboard.html script
-async function loadEvents() {
-    const eventsContainer = document.getElementById('eventsContainer');
-    if (!eventsContainer) return;
-    
-    try {
-        // Get current date in YYYY-MM-DD format
-        const today = new Date().toISOString().split('T')[0];
-        
-        const { data: events, error } = await supabase
-            .from('events')
-            .select('*')
-            .eq('is_active', true)
-            .gte('date', today)  // Only future events
-            .order('date', { ascending: true })
-            .limit(5);
-        
+    async function loadPastQuestions() {
+      if (!pastQuestionsContainer) return;
+      try {
+        const { data, error } = await supabase
+          .from('past_questions')
+          .select('*')
+          .limit(4)
+          .order('created_at', { ascending: false });
         if (error) throw error;
-        
-        if (events && events.length > 0) {
-            eventsContainer.innerHTML = events.map(event => `
-                <div class="col-lg-6 mb-3" style="width: 100%;">
-                    <div class="service-item item-cyan position-relative">
-                        ${event.image_url ? `<img src="${event.image_url}" class="img-fluid icon" alt="" style="border: none; max-width: 100px; margin-bottom: 10px;">` : ''}
-                        <div>
-                            <h3>${escapeHtml(event.title)}</h3>
-                            <p><em><i class="bi bi-calendar-check"></i> ${formatDate(event.date)}</em></p>
-                            ${event.description ? `<p class="small">${escapeHtml(event.description)}</p>` : ''}
-                            ${event.location ? `<p><i class="bi bi-geo-alt"></i> ${escapeHtml(event.location)}</p>` : ''}
-                            ${event.requires_payment ? `<span class="badge bg-warning">₦${event.payment_amount}</span>` : '<span class="badge bg-success">Free</span>'}
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+        if (data && data.length > 0) {
+          pastQuestionsContainer.innerHTML = data.map(pq => {
+            const safeUrl = isSafeWebUrl(pq.file_url) ? pq.file_url : null;
+            const title = escapeHtml((pq.title || '').toString().substring(0, 40));
+            const courseCode = escapeHtml(pq.course_code || '');
+            return `
+              <div class="col-lg-3 col-md-6">
+                <article class="resource-card">
+                  ${safeUrl
+                    ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" class="text-decoration-none d-block h-100">
+                        <span class="badge bg-success mb-2">${courseCode || 'PQ'}</span>
+                        <h6 class="mt-1" style="color: #333;">${title}</h6>
+                        <p class="small text-muted"><i class="bi bi-file-earmark-pdf me-1"></i> View PDF</p>
+                      </a>`
+                    : `<div>
+                        <span class="badge bg-secondary mb-2">${courseCode || 'PQ'}</span>
+                        <h6 class="mt-1" style="color: #333;">${title}</h6>
+                        <p class="small text-muted"><em>(link unavailable)</em></p>
+                      </div>`}
+                </article>
+              </div>`;
+          }).join('');
         } else {
-            eventsContainer.innerHTML = '<div class="col-12"><p class="text-muted text-center">No upcoming events at this time. Check back soon!</p></div>';
+          pastQuestionsContainer.innerHTML = '<div class="col-12 text-center"><p class="text-muted">No past questions available</p></div>';
         }
-        
-    } catch (error) {
+      } catch (error) {
+        console.error('Error loading past questions:', error);
+        pastQuestionsContainer.innerHTML = '<div class="col-12 text-center"><p class="text-muted">Unable to load past questions</p></div>';
+      }
+    }
+
+    async function loadEvents() {
+      if (!eventsContainer) return;
+      try {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+
+        const { data: events, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('is_active', true)
+          .gte('date', todayStr)
+          .order('date', { ascending: true })
+          .limit(5);
+        if (error) throw error;
+
+        if (events && events.length > 0) {
+          eventsContainer.innerHTML = events.map(event => {
+            const safeImage = isSafeWebUrl(event.image_url) ? event.image_url : null;
+            const title = escapeHtml(event.title || 'Untitled event');
+            const imgAlt = safeImage ? `Banner for ${title}` : '';
+            const dateStr = escapeHtml(formatDate(event.date));
+            const desc = event.description ? `<p class="small mt-1 mb-1">${escapeHtml(event.description)}</p>` : '';
+            const loc = event.location ? `<p class="mb-1"><i class="bi bi-geo-alt" aria-hidden="true"></i> ${escapeHtml(event.location)}</p>` : '';
+            const badge = event.requires_payment
+              ? `<span class="badge bg-warning">₦${escapeHtml(String(event.payment_amount || '0'))}</span>`
+              : `<span class="badge bg-success">Free</span>`;
+            return `
+              <div class="col-lg-6">
+                <article class="dashboard-event-card h-100" style="cursor: pointer;" data-event-id="${escapeHtml(event.id)}" tabindex="0" role="button" aria-label="View details for ${title}">
+                  ${safeImage
+                    ? `<img src="${escapeHtml(safeImage)}" class="event-image" alt="${imgAlt}" loading="lazy">`
+                    : `<div class="event-image d-flex align-items-center justify-content-center" aria-hidden="true">
+                         <i class="bi bi-calendar4-event" style="font-size: 2.5rem; color: #1b8c0c;"></i>
+                       </div>`}
+                  <div class="event-body">
+                    <h3>${title}</h3>
+                    <p class="mb-1"><em><i class="bi bi-calendar-check" aria-hidden="true"></i> ${dateStr}</em></p>
+                    ${desc}${loc}
+                    <p>${badge}</p>
+                  </div>
+                  <div class="text-end mt-2">
+                    <span class="text-primary small"><i class="bi bi-arrow-right-circle"></i> Click for details</span>
+                  </div>
+                </article>
+              </div>`;
+          }).join('');
+        } else {
+          eventsContainer.innerHTML = '<div class="col-12"><p class="text-muted text-center">No upcoming events at this time. Check back soon!</p></div>';
+        }
+      } catch (error) {
         console.error('Error loading events:', error);
         eventsContainer.innerHTML = '<div class="col-12"><p class="text-muted text-center">Unable to load events.</p></div>';
+      }
     }
-}
 
-// Helper function to format date
-function formatDate(dateString) {
-    if (!dateString) return 'Date TBA';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-NG', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-}
+    // ================================================================
+    // Show Event Details in Modal
+    // ================================================================
+    async function showEventDetails(eventId) {
+      try {
+        const { data: event, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', eventId)
+          .single();
 
-// Call this function in your initDashboard or loadDashboard function
-// Make sure to add it after your other load functions
-
-    // Update Profile Picture
-    const profilePicForm = document.getElementById('profilePicForm');
-    if (profilePicForm) {
-      profilePicForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const fileInput = document.getElementById('profilePicInput');
-        const file = fileInput.files[0];
-        
-        if (!file) {
-          showError('Please select an image file');
+        if (error) throw error;
+        if (!event) {
+          showError('Event not found');
           return;
         }
+
+        // Populate modal
+        const modalTitle = document.getElementById('eventModalTitle');
+        const modalContent = document.getElementById('eventDetailsContent');
+        const registerBtn = document.getElementById('registerEventBtn');
+
+        if (modalTitle) {
+          modalTitle.textContent = event.title || 'Event Details';
+        }
+
+        // Build event details HTML
+        const safeImage = isSafeWebUrl(event.image_url) ? event.image_url : null;
+        const dateStr = formatDate(event.date);
+        const timeStr = event.time ? escapeHtml(event.time) : 'Time TBA';
+        const locationStr = event.location ? escapeHtml(event.location) : 'Location TBA';
+        const description = event.description ? escapeHtml(event.description) : 'No description available.';
         
-        if (!file.type.startsWith('image/')) {
-          showError('Please select a valid image file (JPG, PNG)');
+        const paymentBadge = event.requires_payment
+          ? `<span class="badge bg-warning fs-6"><i class="bi bi-cash"></i> ₦${escapeHtml(String(event.payment_amount || '0'))}</span>`
+          : `<span class="badge bg-success fs-6"><i class="bi bi-gift"></i> Free Event</span>`;
+
+        // Payment details section - shows bank info, account number, etc.
+        const paymentDetailsSection = event.requires_payment && event.payment_details
+          ? `<div class="alert alert-info mt-3">
+              <h6 class="alert-heading"><i class="bi bi-credit-card"></i> Payment Details</h6>
+              <p class="mb-0" style="white-space: pre-wrap;">${escapeHtml(event.payment_details)}</p>
+            </div>`
+          : '';
+
+        // Payment link section - optional link to payment page
+        const paymentLinkSection = event.requires_payment && event.payment_link && isSafeWebUrl(event.payment_link)
+          ? `<div class="alert alert-success mt-3">
+              <i class="bi bi-link-45deg"></i> 
+              <a href="${escapeHtml(event.payment_link)}" target="_blank" rel="noopener noreferrer" class="alert-link">
+                Click here to make payment online
+              </a>
+            </div>`
+          : '';
+
+        const detailsHtml = `
+          <div class="event-details-view">
+            ${safeImage ? `
+              <div class="text-center mb-4">
+                <img src="${escapeHtml(safeImage)}" alt="${escapeHtml(event.title || 'Event')}" 
+                     class="img-fluid rounded" style="max-height: 400px; object-fit: cover; width: 100%;">
+              </div>
+            ` : ''}
+            
+            <div class="mb-4">
+              ${paymentBadge}
+            </div>
+
+            <div class="mb-3">
+              <h5><i class="bi bi-calendar-check text-success"></i> Date & Time</h5>
+              <p class="ms-4 mb-1"><strong>Date:</strong> ${escapeHtml(dateStr)}</p>
+              <p class="ms-4"><strong>Time:</strong> ${timeStr}</p>
+            </div>
+
+            <div class="mb-3">
+              <h5><i class="bi bi-geo-alt text-danger"></i> Location</h5>
+              <p class="ms-4">${locationStr}</p>
+            </div>
+
+            <div class="mb-3">
+              <h5><i class="bi bi-info-circle text-primary"></i> Description</h5>
+              <p class="ms-4" style="white-space: pre-wrap;">${description}</p>
+            </div>
+
+            ${paymentDetailsSection}
+            ${paymentLinkSection}
+
+            ${event.max_attendees ? `
+              <div class="alert alert-warning">
+                <i class="bi bi-people"></i> <strong>Limited Seats:</strong> Maximum ${escapeHtml(String(event.max_attendees))} attendees
+              </div>
+            ` : ''}
+          </div>
+        `;
+
+        if (modalContent) {
+          modalContent.innerHTML = detailsHtml;
+        }
+
+        // Show/hide register button based on payment requirement
+        if (registerBtn) {
+          if (event.requires_payment && event.payment_link && isSafeWebUrl(event.payment_link)) {
+            registerBtn.style.display = 'inline-block';
+            registerBtn.onclick = () => {
+              window.open(event.payment_link, '_blank', 'noopener,noreferrer');
+            };
+          } else {
+            registerBtn.style.display = 'none';
+          }
+        }
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
+        modal.show();
+
+      } catch (error) {
+        console.error('Error loading event details:', error);
+        showError('Failed to load event details');
+      }
+    }
+
+    // ================================================================
+    // Student Directory
+    // ================================================================
+    function showDirectorySection() {
+      if (!directorySection) return;
+      const expanded = directorySection.style.display === 'block';
+      if (expanded) {
+        directorySection.style.display = 'none';
+        if (dirTriggerBtn) {
+          dirTriggerBtn.setAttribute('aria-expanded', 'false');
+        }
+        return;
+      }
+      directorySection.style.display = 'block';
+      if (dirTriggerBtn) dirTriggerBtn.setAttribute('aria-expanded', 'true');
+      directorySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => { if (dirSearchEl) dirSearchEl.focus(); }, 350);
+      loadStudentDirectory();
+    }
+
+    function applyDirectoryFilters() {
+      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        currentPage = 1;
+        loadStudentDirectory();
+      }, 300);
+    }
+
+    function clearDirectoryFilters() {
+      if (dirSearchEl) dirSearchEl.value = '';
+      ['dirDept', 'dirYear'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      const sortEl = document.getElementById('dirSort');
+      if (sortEl) sortEl.value = 'name-asc';
+      currentPage = 1;
+      loadStudentDirectory();
+    }
+
+    async function loadStudentDirectory() {
+      if (!studentsGrid) return;
+      studentsGrid.innerHTML = Array(6).fill(0).map(() => `
+        <div class="col-lg-4 col-md-6">
+          <div class="skeleton-card">
+            <div class="d-flex gap-3 mb-3">
+              <div class="skeleton-circle"></div>
+              <div class="flex-grow-1">
+                <div class="skeleton-line" style="width: 60%;"></div>
+                <div class="skeleton-line" style="width: 40%;"></div>
+              </div>
+            </div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line" style="width: 80%;"></div>
+          </div>
+        </div>
+      `).join('');
+      try {
+        const token = await requireAccessToken();
+        if (!token) return;
+        const API_BASE_URL = (window.__CONFIG && window.__CONFIG.apiUrl) || window.API_URL || 'http://localhost:5000/api';
+        const search = dirSearchEl ? dirSearchEl.value : '';
+        const deptEl = document.getElementById('dirDept');
+        const yearEl = document.getElementById('dirYear');
+        const sortEl = document.getElementById('dirSort');
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          limit: '20',
+          search: (search || '').trim(),
+          department: deptEl ? deptEl.value : '',
+          year: yearEl ? yearEl.value : '',
+          sort: sortEl ? sortEl.value : 'name-asc'
+        });
+        const res = await fetch(`${API_BASE_URL}/students/directory?${params.toString()}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to load directory');
+        const result = await res.json();
+        const students = (result && result.data && Array.isArray(result.data.students)) ? result.data.students : [];
+        const pagination = (result && result.data && result.data.pagination) || { page: 1, pages: 1 };
+        if (students.length === 0) {
+          studentsGrid.innerHTML = `
+            <div class="col-12 text-center py-5">
+              <i class="bi bi-people" style="font-size: 3rem; color: #ccc;" aria-hidden="true"></i>
+              <p class="text-muted mt-3">No students found</p>
+            </div>`;
+          dirPaginationEl.innerHTML = '';
           return;
         }
-        
-        if (file.size > 2 * 1024 * 1024) {
-          showError('File size must be less than 2MB');
-          return;
+        studentsGrid.innerHTML = students.map(s => renderStudentCard(s)).join('');
+        renderPagination(pagination);
+      } catch (error) {
+        console.error('Directory error:', error);
+        studentsGrid.innerHTML = `
+          <div class="col-12 text-center">
+            <p class="error-message">Failed to load student directory</p>
+          </div>`;
+      }
+    }
+
+    function renderStudentCard(student) {
+      if (!student) return '';
+      const name = displayName(student);
+      const bio = (student.bio || '').toString();
+      const bioPreview = bio
+        ? (bio.length > 100 ? bio.substring(0, 100) + '...' : bio)
+        : 'No bio available';
+      const topSkills = Array.isArray(student.skills) ? student.skills.slice(0, 3) : [];
+      const moreCount = Array.isArray(student.skills) && student.skills.length > 3
+        ? student.skills.length - 3 : 0;
+      const yearText = student.year_of_study ? `${student.year_of_study}L` : '';
+      const meta = [escapeHtml(student.department || 'Computing'), yearText ? '· ' + yearText : ''].filter(Boolean).join(' ');
+      const avatar = student.profile_picture_url && isSafeWebUrl(student.profile_picture_url)
+        ? cacheBust(student.profile_picture_url)
+        : 'assets/img/tau_logo-removebg-preview.png';
+
+      const socials = [];
+      const addSocial = (url, icon, label) => {
+        if (!isSafeWebUrl(url)) return;
+        socials.push(`<a class="social-icon" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${label} for ${escapeHtml(name)}">
+          <i class="bi bi-${icon}" aria-hidden="true"></i>
+        </a>`);
+      };
+      addSocial(student.linkedin, 'linkedin', 'LinkedIn');
+      addSocial(student.github, 'github', 'GitHub');
+      addSocial(student.twitter, 'twitter', 'Twitter/X');
+      addSocial(student.instagram, 'instagram', 'Instagram');
+      
+      // Add Snapchat (username only, construct URL)
+      if (student.snapchat && String(student.snapchat).trim()) {
+        const snapUsername = escapeHtml(String(student.snapchat).trim());
+        socials.push(`<a class="social-icon" href="https://snapchat.com/add/${snapUsername}" target="_blank" rel="noopener noreferrer" aria-label="Snapchat for ${escapeHtml(name)}">
+          <i class="bi bi-snapchat" aria-hidden="true"></i>
+        </a>`);
+      }
+
+      const skillsHtml = topSkills.length > 0
+        ? `<div class="student-skills">
+            ${topSkills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('')}
+            ${moreCount > 0 ? `<span class="skill-tag">+${moreCount}</span>` : ''}
+          </div>`
+        : '';
+
+      return `
+        <div class="col-lg-4 col-md-6">
+          <article class="student-card" tabindex="0" data-student-id="${escapeHtml(student.id)}" aria-label="View profile for ${escapeHtml(name)}">
+            <div class="student-card-header">
+              <img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)} profile avatar" class="student-avatar" loading="lazy">
+              <div>
+                <h5 class="student-name">${escapeHtml(name)}</h5>
+                <p class="student-meta">${meta}</p>
+              </div>
+            </div>
+            <p class="student-bio">${escapeHtml(bioPreview)}</p>
+            ${skillsHtml}
+            <div class="student-social" aria-label="Social links for ${escapeHtml(name)}">
+              ${socials.join('')}
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary w-100 mt-2 view-profile-btn" data-student-id="${escapeHtml(student.id)}">
+              <i class="bi bi-eye"></i> View Profile
+            </button>
+          </article>
+        </div>`;
+    }
+
+    window.viewStudentProfile = async function (studentId) {
+      try {
+        const token = await requireAccessToken();
+        if (!token) return;
+        const API_BASE_URL = (window.__CONFIG && window.__CONFIG.apiUrl) || window.API_URL || 'http://localhost:5000/api';
+        const res = await fetch(`${API_BASE_URL}/students/${encodeURIComponent(studentId)}/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          if (res.status === 404) {
+            if (window.Swal) Swal.fire('Error', 'Profile not found or is private', 'error');
+            return;
+          }
+          throw new Error('Failed to load profile');
         }
-        
-        const submitBtn = profilePicForm.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading...';
-        
-        try {
-          const up = await uploadFileToStorage('profile-pictures', file);
-          
-          const { error: updateError } = await supabase
-            .from('students')
-            .update({ profile_picture_url: up.fileUrl })
-            .eq('user_id', currentUser.id);
-          
-          if (updateError) throw updateError;
-          
-          profileImageEl.src = up.fileUrl;
-          showSuccess('Profile picture updated successfully!');
-          
-          const modal = bootstrap.Modal.getInstance(document.getElementById('updatePfpModal'));
-          modal.hide();
-          profilePicForm.reset();
-          
-        } catch (error) {
-          console.error('Upload error:', error);
-          showError('Failed to upload image. Please try again.');
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = 'Upload';
-        }
+        const result = await res.json();
+        const profile = result && result.data;
+        if (!profile) throw new Error('Missing profile payload');
+        document.getElementById('profileViewContent').innerHTML = renderProfileView(profile);
+        const titleEl = document.getElementById('pvModalTitle');
+        if (titleEl) titleEl.textContent = displayName(profile);
+        const modal = new bootstrap.Modal(document.getElementById('profileViewModal'));
+        modal.show();
+      } catch (error) {
+        console.error('Profile view error:', error);
+        if (window.Swal) Swal.fire('Error', 'Failed to load profile', 'error');
+      }
+    };
+
+    function renderProfileView(profile) {
+      const settings = profile.privacy_settings && typeof profile.privacy_settings === 'object'
+        ? profile.privacy_settings : {};
+      const showEmail = !!settings.show_email;
+      const showPhone = !!settings.show_phone;
+      const showMatric = !!settings.show_matric;
+      const name = displayName(profile);
+      const avatar = profile.profile_picture_url && isSafeWebUrl(profile.profile_picture_url)
+        ? cacheBust(profile.profile_picture_url)
+        : 'assets/img/tau_logo-removebg-preview.png';
+      const headerMeta = [
+        escapeHtml(profile.department || 'Computing'),
+        profile.year_of_study ? ' · ' + profile.year_of_study + 'L' : '',
+        showMatric && profile.matric_no ? ' · ' + escapeHtml(profile.matric_no) : ''
+      ].join('');
+
+      const linksList = [];
+      const socialBtn = (url, cls, icon, label) => {
+        if (!isSafeWebUrl(url)) return '';
+        return `<a class="btn ${cls}" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-${icon}" aria-hidden="true"></i> ${label}
+        </a>`;
+      };
+      linksList.push(socialBtn(profile.linkedin, 'btn-outline-primary', 'linkedin', 'LinkedIn'));
+      linksList.push(socialBtn(profile.github, 'btn-outline-dark', 'github', 'GitHub'));
+      linksList.push(socialBtn(profile.twitter, 'btn-outline-info', 'twitter', 'Twitter'));
+      linksList.push(socialBtn(profile.instagram, 'btn-outline-danger', 'instagram', 'Instagram'));
+      
+      // Add Snapchat (username only, construct URL)
+      if (profile.snapchat && String(profile.snapchat).trim()) {
+        const snapUsername = String(profile.snapchat).trim();
+        linksList.push(`<a class="btn btn-outline-warning" href="https://snapchat.com/add/${escapeHtml(snapUsername)}" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-snapchat" aria-hidden="true"></i> Snapchat
+        </a>`);
+      }
+      
+      linksList.push(socialBtn(profile.portfolio_url, 'btn-outline-success', 'globe', 'Portfolio'));
+
+      const connectHtml = linksList.some(Boolean)
+        ? `<div class="profile-section">
+            <h4><i class="bi bi-link-45deg me-2"></i>Connect</h4>
+            <div class="social-links">${linksList.join('')}</div>
+          </div>`
+        : '';
+
+      const contactHtml = (showEmail && profile.email) || (showPhone && profile.phone)
+        ? `<div class="profile-section">
+            <h4><i class="bi bi-envelope me-2"></i>Contact</h4>
+            ${showEmail && profile.email ? `<p><i class="bi bi-envelope-fill me-2"></i>${escapeHtml(profile.email)}</p>` : ''}
+            ${showPhone && profile.phone ? `<p><i class="bi bi-phone-fill me-2"></i>${escapeHtml(profile.phone)}</p>` : ''}
+          </div>`
+        : '';
+
+      return `
+        <div class="profile-view">
+          <div class="profile-header">
+            <img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)} profile picture" class="profile-pic-large" width="150" height="150">
+            <h2>${escapeHtml(name)}</h2>
+            <p class="text-muted">${headerMeta}</p>
+          </div>
+          ${profile.bio ? `
+            <div class="profile-section">
+              <h4><i class="bi bi-info-circle me-2"></i>About</h4>
+              <p>${escapeHtml(profile.bio)}</p>
+            </div>` : ''}
+          ${Array.isArray(profile.skills) && profile.skills.length > 0 ? `
+            <div class="profile-section">
+              <h4><i class="bi bi-trophy me-2"></i>Skills</h4>
+              <div>
+                ${profile.skills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join(' ')}
+              </div>
+            </div>` : ''}
+          ${Array.isArray(profile.interests) && profile.interests.length > 0 ? `
+            <div class="profile-section">
+              <h4><i class="bi bi-heart me-2"></i>Interests</h4>
+              <div>
+                ${profile.interests.map(i => `<span class="interest-tag">${escapeHtml(i)}</span>`).join(' ')}
+              </div>
+            </div>` : ''}
+          ${connectHtml}
+          ${contactHtml}
+        </div>`;
+    }
+
+    function renderPagination(pagination) {
+      if (!dirPaginationEl || !pagination) return;
+      const { page = 1, pages = 1 } = pagination;
+      const li = (cls, inner, ariaLabel) =>
+        `<li class="page-item ${cls || ''}">${inner.replace('{{aria}}', ariaLabel ? ` aria-label="${ariaLabel}"` : '')}</li>`;
+      const pageBtn = (target, text, opts = {}) => {
+        const disabled = opts.disabled ? ' disabled tabindex="-1" aria-disabled="true"' : '';
+        const active = opts.active ? ' active' : '';
+        const aria = opts.ariaLabel ? ` aria-label="${opts.ariaLabel}"` : '';
+        return `<button type="button" class="page-link${active}" data-page="${Number(target)}"${disabled}${aria}>${text}</button>`;
+      };
+
+      let html = '';
+      html += li(page === 1 ? 'disabled' : '',
+        pageBtn(page - 1, 'Previous', { disabled: page === 1, ariaLabel: 'Go to previous page' }));
+
+      let start = Math.max(1, page - 2);
+      let end = Math.min(pages, start + 4);
+      if (end - start < 4) start = Math.max(1, end - 4);
+      for (let i = start; i <= end; i += 1) {
+        html += li(i === page ? 'active' : '',
+          pageBtn(i, String(i), { active: i === page, ariaLabel: `Go to page ${i}` }));
+      }
+
+      html += li(page === pages ? 'disabled' : '',
+        pageBtn(page + 1, 'Next', { disabled: page === pages, ariaLabel: 'Go to next page' }));
+      dirPaginationEl.innerHTML = html;
+    }
+
+    function changePage(page) {
+      if (page < 1) return;
+      currentPage = page;
+      loadStudentDirectory().then(() => {
+        if (directorySection) directorySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     }
 
-    // Logout Handler
-    document.getElementById('confirmLogoutBtn').addEventListener('click', async () => {
-      await signOut('student-login.html');
-    });
-
-    async function ensureStorageBuckets({ force = false } = {}) {
+    // ================================================================
+    // Profile picture upload (routes through backend for audit + RLS bypass safety)
+    // ================================================================
+    async function handleProfilePicSubmit(e) {
+      e.preventDefault();
+      const file = profilePicInput && profilePicInput.files && profilePicInput.files[0];
+      if (!file) {
+        showError('Please select an image file');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        showError('Please select a valid image file (JPG, PNG)');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        showError('File size must be less than 2MB');
+        return;
+      }
+      const submitBtn = profilePicForm.querySelector('button[type="submit"]');
+      const originalBtnHtml = submitBtn ? submitBtn.innerHTML : 'Upload';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading...';
+      }
       try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error || !data?.session?.access_token) return;
-        const token = data.session.access_token;
-        const url = (window.__CONFIG?.apiUrl || window.API_URL || '/api') + '/storage/ensure-buckets';
-        const resp = await fetch(url, {
+        const token = await requireAccessToken();
+        if (!token) return;
+        const up = await uploadFileToStorage('profile-pictures', file);
+        const API_BASE_URL = (window.__CONFIG && window.__CONFIG.apiUrl) || window.API_URL || 'http://localhost:5000/api';
+        const res = await fetch(`${API_BASE_URL}/students/me/profile-picture`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
+          body: JSON.stringify({ imageUrl: up.fileUrl })
+        });
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          throw new Error((payload && payload.message) || 'Failed to update profile picture');
+        }
+        const payload = await res.json().catch(() => ({}));
+        const finalUrl = (payload && payload.data && payload.data.profile_picture_url) || up.fileUrl;
+        profileImageEl.src = cacheBust(finalUrl);
+        if (studentData) studentData.profile_picture_url = finalUrl;
+        if (window.studentData) window.studentData.profile_picture_url = finalUrl;
+        if (typeof window.updateProfileCompletion === 'function') {
+          window.updateProfileCompletion(window.studentData || studentData);
+        }
+        showSuccess('Profile picture updated successfully!');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('updatePfpModal'));
+        if (modal) modal.hide();
+        profilePicForm.reset();
+      } catch (error) {
+        console.error('Upload error:', error);
+        showError(error && error.message ? error.message : 'Failed to upload image. Please try again.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnHtml;
+        }
+      }
+    }
+
+    // ================================================================
+    // Storage buckets & session refresh
+    // ================================================================
+    async function ensureStorageBuckets({ force = false } = {}) {
+      try {
+        const token = await requireAccessToken();
+        if (!token) return;
+        const API_BASE_URL = (window.__CONFIG && window.__CONFIG.apiUrl) || window.API_URL || '/api';
+        const resp = await fetch(`${API_BASE_URL}/storage/ensure-buckets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ force })
         });
-        if (resp.status === 401 || resp.status === 403) return; // student accounts aren't admins — skip silently
+        if (resp.status === 401 || resp.status === 403) return;
         if (!resp.ok) return;
-        const json = await resp.json();
+        const json = await resp.json().catch(() => null);
         if (json && Array.isArray(json.verifiedBuckets) && typeof window.writeVerifiedBuckets === 'function') {
           window.writeVerifiedBuckets(json.verifiedBuckets);
         }
-      } catch { /* ignore — uploads still work via real storage validation */ }
+      } catch { /* uploads still validate against real storage errors */ }
     }
 
-    // Initialize Dashboard
+    function scheduleSessionRefresh() {
+      const THIRTY_MIN = 30 * 60 * 1000;
+      setInterval(async () => {
+        if (typeof document.visibilityState !== 'undefined' && document.visibilityState !== 'visible') return;
+        try {
+          const { error } = await supabase.auth.refreshSession();
+          if (error) console.warn('Session refresh failed:', error.message || error);
+        } catch (e) {
+          console.warn('Session refresh threw:', e);
+        }
+      }, THIRTY_MIN);
+    }
+
+    // ================================================================
+    // Imperative event listeners
+    // ================================================================
+    function attachListeners() {
+      if (dirTriggerBtn) {
+        dirTriggerBtn.addEventListener('click', showDirectorySection);
+      }
+      if (dirClearBtn) {
+        dirClearBtn.addEventListener('click', clearDirectoryFilters);
+      }
+      if (directoryForm) {
+        directoryForm.addEventListener('submit', (e) => { e.preventDefault(); applyDirectoryFilters(); });
+      }
+      ['dirSearch'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', applyDirectoryFilters);
+      });
+      ['dirDept', 'dirYear', 'dirSort'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', applyDirectoryFilters);
+      });
+
+      // Skills / interests Enter-key handlers
+      if (skillsInput) {
+        skillsInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            if (typeof window.handleSkillKeypress === 'function') window.handleSkillKeypress(e);
+            else {
+              e.preventDefault();
+              if (window.__studentState && typeof window.addSkillOrInterest === 'function') {
+                window.addSkillOrInterest('skill', skillsInput.value);
+                skillsInput.value = '';
+              }
+            }
+          }
+        });
+      }
+      if (interestsInput) {
+        interestsInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            if (typeof window.handleInterestKeypress === 'function') window.handleInterestKeypress(e);
+            else {
+              e.preventDefault();
+              if (window.__studentState && typeof window.addSkillOrInterest === 'function') {
+                window.addSkillOrInterest('interest', interestsInput.value);
+                interestsInput.value = '';
+              }
+            }
+          }
+        });
+      }
+
+      // Delegated handlers for directory cards + pagination + view profile + event cards
+      document.addEventListener('click', (e) => {
+        // Event card click handler
+        const eventCard = e.target.closest('.dashboard-event-card[data-event-id]');
+        if (eventCard) {
+          const eventId = eventCard.getAttribute('data-event-id');
+          if (eventId) {
+            showEventDetails(eventId);
+          }
+          return;
+        }
+
+        const pagerBtn = e.target.closest('.page-link[data-page]');
+        if (pagerBtn && !pagerBtn.hasAttribute('disabled')) {
+          const page = Number(pagerBtn.getAttribute('data-page'));
+          if (Number.isFinite(page) && page > 0) changePage(page);
+          return;
+        }
+        const viewBtn = e.target.closest('.view-profile-btn[data-student-id]');
+        if (viewBtn) {
+          e.stopPropagation();
+          const id = viewBtn.getAttribute('data-student-id');
+          if (id && typeof window.viewStudentProfile === 'function') {
+            window.viewStudentProfile(id);
+          }
+          return;
+        }
+        const card = e.target.closest('.student-card[data-student-id]');
+        if (card && !e.target.closest('a') && !e.target.closest('button')) {
+          const id = card.getAttribute('data-student-id');
+          if (id && typeof window.viewStudentProfile === 'function') {
+            window.viewStudentProfile(id);
+          }
+        }
+      });
+      // Allow opening directory cards and event cards by pressing Enter or Space when focused
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+
+        // Event card keyboard handler
+        const eventCard = e.target.closest && e.target.closest('.dashboard-event-card[data-event-id]');
+        if (eventCard) {
+          e.preventDefault();
+          const eventId = eventCard.getAttribute('data-event-id');
+          if (eventId) {
+            showEventDetails(eventId);
+          }
+          return;
+        }
+
+        const card = e.target.closest && e.target.closest('.student-card[data-student-id]');
+        if (!card || e.target.closest('a') || e.target.closest('button')) return;
+        e.preventDefault();
+        const id = card.getAttribute('data-student-id');
+        if (id && typeof window.viewStudentProfile === 'function') {
+          window.viewStudentProfile(id);
+        }
+      });
+
+      if (profilePicForm) profilePicForm.addEventListener('submit', handleProfilePicSubmit);
+      if (confirmLogoutBtn) {
+        confirmLogoutBtn.addEventListener('click', async () => {
+          try { await signOut('student-login.html'); }
+          catch (e) {
+            console.error('Sign-out error:', e);
+            window.location.href = 'student-login.html';
+          }
+        });
+      }
+    }
+
+    // ================================================================
+    // Init
+    // ================================================================
     async function init() {
-      const isAuthenticated = await checkAuthentication();
-      if (!isAuthenticated) return;
-      
+      const ok = await checkAuthentication();
+      if (!ok) return;
+
+      attachListeners();
+
       await Promise.all([
         ensureStorageBuckets(),
-        loadStudentData(),
-        loadResources(),
-        loadEvents()
+        loadStudentData()
       ]);
-      
-      // Show content, hide loading
-      loadingState.style.display = 'none';
-      dashboardContent.style.display = 'block';
+
+      window.studentData = studentData;
+      if (typeof window.setupProfileForm === 'function') {
+        window.setupProfileForm(supabase, showSuccess, showError, loadStudentData);
+      }
+      if (typeof window.updateProfileCompletion === 'function') {
+        window.updateProfileCompletion(studentData);
+      }
+
+      // Data feeds (non-critical; swallow silently so init never rejects)
+      try {
+        await Promise.all([loadResources(), loadPastQuestions(), loadEvents()]);
+      } catch (feedErr) {
+        console.warn('One or more dashboard feeds failed:', feedErr);
+      }
+
+      if (loadingState) loadingState.style.display = 'none';
+      if (dashboardContent) dashboardContent.style.display = 'block';
+
+      scheduleSessionRefresh();
     }
-    
-    init();
-    
-    // Auto-refresh session every 30 minutes
-    setInterval(async () => {
-      const { error } = await supabase.auth.refreshSession();
-      if (error) console.error('Session refresh failed:', error);
-    }, 30 * 60 * 1000);
-    
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init, { once: true });
+    } else {
+      init();
+    }
   </script>
 
 </body>

@@ -225,8 +225,7 @@
 
   <script type="module">
     import { supabase } from './assets/js/supabase-config.js';
-      import { requireStudentAuth } from './assets/js/auth-check.js';
-      requireStudentAuth();
+    import { requireStudentAuth } from './assets/js/auth-check.js';
 
     // State variables
     let allQuestions = [];
@@ -247,7 +246,10 @@
     // INITIALIZATION
     // ============================================
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
+      const authSession = await requireStudentAuth('student-login.html');
+      if (!authSession) return;
+
       // Get filter from URL if present
       const urlParams = new URLSearchParams(window.location.search);
       const levelParam = urlParams.get('level');

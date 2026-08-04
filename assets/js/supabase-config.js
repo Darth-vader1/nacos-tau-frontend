@@ -332,7 +332,7 @@ export async function ensureBucket(bucketName = DEFAULT_BUCKET_NAME) {
 
 /**
  * Upload a single File object to Supabase Storage with automatic
- * bucket resolution + ensure + sanitized unique filenames.
+ * bucket resolution + ensure + sanitized unique filenames + retry logic.
  *
  * Pass the logical flow as `folder` (e.g. "events", "past_questions",
  * "profile-pictures") — `resolveBucketFor` maps it to the dedicated bucket.
@@ -341,9 +341,11 @@ export async function ensureBucket(bucketName = DEFAULT_BUCKET_NAME) {
  * Returns { fileUrl, filePath, fileName, bucket } so callers can write
  * the public URL into their DB row immediately.
  */
-export async function uploadFileToStorage(folder, file, bucketName) {
+export async function uploadFileToStorage(folder, file, bucketName, options = {}) {
   if (!file || !(file instanceof Blob)) throw new Error('A file is required for upload.');
   if (!folder || typeof folder !== 'string') throw new Error('An upload folder is required (e.g. "past_questions").');
+  
+  const { retries = 2, onProgress } = options;
   const resolvedBucket = bucketName || resolveBucketFor(folder);
   const bucket = await ensureBucket(resolvedBucket);
 
@@ -354,21 +356,45 @@ export async function uploadFileToStorage(folder, file, bucketName) {
     .slice(0, 60);
   const filePath = `${folder.replace(/\/+$/g, '')}/${Date.now()}_${Math.random().toString(36).slice(2, 9)}_${safeName}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from(bucket)
-    .upload(filePath, file, { cacheControl: '31536000', upsert: false });
-  if (uploadError) {
-    const hint = /bucket/i.test(uploadError.message || '') ? ` (bucket used: "${bucket}", resolved from folder "${folder}")` : '';
-    throw new Error(`Upload failed: ${uploadError.message}${hint}`);
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      if (onProgress) onProgress(`Uploading... (attempt ${attempt + 1}/${retries + 1})`);
+      
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, { 
+          cacheControl: '31536000', 
+          upsert: false
+        });
+        
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+      return {
+        fileUrl: urlData.publicUrl,
+        filePath,
+        fileName: safeName,
+        bucket
+      };
+    } catch (error) {
+      lastError = error;
+      console.error(`Upload attempt ${attempt + 1} failed:`, error);
+      
+      if (attempt < retries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 5000); // Exponential backoff, max 5s
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
 
-  const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
-  return {
-    fileUrl: urlData.publicUrl,
-    filePath,
-    fileName: safeName,
-    bucket
-  };
+  const hint = /bucket/i.test(lastError.message || '') 
+    ? ` (bucket used: "${bucket}", resolved from folder "${folder}")` 
+    : '';
+  throw new Error(`Upload failed after ${retries + 1} attempts: ${lastError.message}${hint}`);
 }
 
 window.supabase = supabase;

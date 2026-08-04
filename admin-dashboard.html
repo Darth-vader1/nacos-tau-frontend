@@ -943,12 +943,47 @@
               <input type="text" class="form-control" id="t-title" required>
             </div>
             <div class="mb-3">
+              <label class="form-label">Department *</label>
+              <select class="form-select" id="t-department" required>
+                <option value="">Select Department</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Software Engineering">Software Engineering</option>
+                <option value="Cybersecurity">Cybersecurity</option>
+                <option value="Information Technology">Information Technology</option>
+                <option value="Data Science">Data Science</option>
+                <option value="All Departments">All Departments</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Level</label>
+              <select class="form-select" id="t-level">
+                <option value="">Select Level (Optional)</option>
+                <option value="100">100 Level</option>
+                <option value="200">200 Level</option>
+                <option value="300">300 Level</option>
+                <option value="400">400 Level</option>
+                <option value="500">500 Level</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Semester</label>
+              <select class="form-select" id="t-semester">
+                <option value="">Select Semester (Optional)</option>
+                <option value="Harmattan">Harmattan (First Semester)</option>
+                <option value="Rain">Rain (Second Semester)</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Academic Session</label>
+              <input type="text" class="form-control" id="t-session" placeholder="e.g., 2024/2025">
+            </div>
+            <div class="mb-3">
               <label class="form-label">Version *</label>
-              <input type="text" class="form-control" id="t-version" required>
+              <input type="text" class="form-control" id="t-version" required placeholder="e.g., 1.0, Draft, Final">
             </div>
             <div class="mb-3">
               <label class="form-label">Description</label>
-              <textarea class="form-control" id="t-description" rows="2"></textarea>
+              <textarea class="form-control" id="t-description" rows="2" placeholder="Optional notes about this timetable"></textarea>
             </div>
             <div class="mb-3">
               <label class="form-label">Set as Current</label>
@@ -958,7 +993,7 @@
               </select>
             </div>
             <div class="mb-3">
-              <label class="form-label">File (PDF/Image)</label>
+              <label class="form-label">File (PDF/Image) *</label>
               <input type="file" class="form-control" id="t-file" accept=".pdf,.jpg,.jpeg,.png" required>
             </div>
           </div>
@@ -1758,7 +1793,11 @@ window.deleteEvent = async function(id) {
         await logAdminAction('CREATE', 'past_question', null, { courseCode, title });
         
         Swal.fire('Success', 'Past question uploaded successfully!', 'success').then(() => {
-          bootstrap.Modal.getInstance(document.getElementById('addQuestionModal')).hide();
+          try {
+            bootstrap.Modal.getInstance(document.getElementById('addQuestionModal')).hide();
+          } catch (modalErr) {
+            console.warn('Could not hide addQuestionModal:', modalErr);
+          }
           e.target.reset();
           loadPastQuestions();
           loadDashboardStats();
@@ -1766,6 +1805,8 @@ window.deleteEvent = async function(id) {
 
       } catch (err) {
         console.error('Full upload process error:', err);
+        const responsePayload = (err && (err.data || err.body || err.response || err.payload)) || null;
+        console.dir({err, responsePayload});
         Swal.fire('Error', err.message, 'error');
       } finally {
         submitBtn.disabled = false;
@@ -1783,6 +1824,10 @@ window.deleteEvent = async function(id) {
       if (!session) return;
 
       const title = document.getElementById('t-title').value.trim();
+      const department = document.getElementById('t-department').value.trim();
+      const level = document.getElementById('t-level').value;
+      const semester = document.getElementById('t-semester').value;
+      const academicSession = document.getElementById('t-session').value.trim();
       const version = document.getElementById('t-version').value.trim();
       const description = document.getElementById('t-description').value.trim();
       const isCurrent = document.getElementById('t-current').value === 'true';
@@ -1794,19 +1839,31 @@ window.deleteEvent = async function(id) {
         return;
       }
 
+      if (!department) {
+        Swal.fire('Error', 'Please select a department', 'error');
+        return;
+      }
+
       const submitBtn = e.target.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading...';
 
       try {
-        console.log('Starting timetable upload:', { title, version });
+        console.log('Starting timetable upload:', { title, department, version });
 
-        // 1. Upload to Storage (auto-creates the bucket if missing and allowed)
-        const up = await uploadFileToStorage('timetables', file);
+        // 1. Upload to Storage with retry logic
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading file...';
+        const up = await uploadFileToStorage('timetables', file, null, {
+          retries: 2,
+          onProgress: (msg) => {
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> ${msg}`;
+          }
+        });
         const fileUrl = up.fileUrl;
-        const fileExt = (file.name.split('.').pop() || '').toLowerCase();
+        const fileName = file.name;
 
         // 2. Get Admin ID
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Getting admin info...';
         const { data: adminData } = await supabase
           .from('admin_users')
           .select('id')
@@ -1816,6 +1873,7 @@ window.deleteEvent = async function(id) {
         // 3. If setting as current, unset others
         if (isCurrent) {
           try {
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating current timetable...';
             await apiAdmin.batchUpdate('timetables', { is_current: true }, { is_current: false });
           } catch (batchErr) {
             console.warn('[addTimeline] batch-update failed (non-fatal, proceeding with insert anyway):', batchErr);
@@ -1823,16 +1881,22 @@ window.deleteEvent = async function(id) {
         }
 
         // 4. Insert into Database
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving to database...';
         await apiAdmin.create('timetables', {
           title,
+          department,
+          level: level ? parseInt(level) : null,
+          semester: semester || null,
+          academic_session: academicSession || null,
           version,
-          description,
+          description: description || null,
           file_url: fileUrl,
+          file_name: fileName,
           is_current: isCurrent,
           uploaded_by: adminData?.id
         });
 
-        await logAdminAction('CREATE', 'timetable', null, { title, version });
+        await logAdminAction('CREATE', 'timetable', null, { title, department, version });
         
         Swal.fire('Success', 'Timetable uploaded successfully!', 'success').then(() => {
           bootstrap.Modal.getInstance(document.getElementById('addTimetableModal')).hide();
@@ -1843,7 +1907,27 @@ window.deleteEvent = async function(id) {
 
       } catch (err) {
         console.error('Full upload process error:', err);
-        Swal.fire('Error', err.message, 'error');
+        
+        let errorMessage = err.message || 'Unknown error occurred';
+        
+        // Provide helpful messages for common errors
+        if (errorMessage.includes('Connect Timeout') || errorMessage.includes('fetch failed')) {
+          errorMessage = 'Connection timeout: Unable to reach Supabase storage. This may be due to:\n\n' +
+                        '• Slow or unstable internet connection\n' +
+                        '• Large file size (try a smaller file)\n' +
+                        '• Network firewall or proxy blocking the connection\n' +
+                        '• Supabase service temporarily unavailable\n\n' +
+                        'Please try again or check your internet connection.';
+        } else if (errorMessage.includes('bucket')) {
+          errorMessage = 'Storage bucket error: ' + errorMessage + '\n\nPlease contact support.';
+        }
+        
+        Swal.fire({
+          title: 'Upload Failed',
+          text: errorMessage,
+          icon: 'error',
+          confirmButtonText: 'OK'
+        });
       } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = 'Upload';
