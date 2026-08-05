@@ -24,7 +24,7 @@ const isLocal = window.location.hostname === 'localhost' ||
 
 window.API_URL = isLocal 
     ? 'http://localhost:5000/api'
-    : 'https://nacos-backend.up.railway.app/api';
+    : 'https://naco-tau-backend-production.up.railway.app/api';
 
 // Supabase Storage bucket used for past questions, timetables, event images,
 // and other uploaded assets. Must match the bucket name in the Supabase project

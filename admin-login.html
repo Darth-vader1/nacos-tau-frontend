@@ -506,13 +506,22 @@
         } catch (error) {
             console.error('Login error:', error);
             
+            const normalizedMessage = (error?.message || '').toLowerCase();
             let errorMessage = 'Invalid credentials or you do not have admin privileges.';
-            if (error.message.includes('Invalid login credentials')) {
+
+            if (normalizedMessage.includes('failed to fetch') ||
+                normalizedMessage.includes('networkerror') ||
+                normalizedMessage.includes('err_name_not_resolved') ||
+                normalizedMessage.includes('network request failed') ||
+                normalizedMessage.includes('fetch')) {
+                errorMessage = 'Network error: unable to reach the authentication service. Please check your internet connection and confirm Supabase is configured correctly.';
+            } else if (normalizedMessage.includes('invalid login credentials') ||
+                       normalizedMessage.includes('invalid credentials')) {
                 errorMessage = 'Invalid email or password. Please try again.';
-            } else if (error.message.includes('admin privileges')) {
+            } else if (normalizedMessage.includes('admin privileges')) {
                 errorMessage = 'You do not have admin privileges. Please contact the system administrator.';
             }
-            
+
             Swal.fire({
                 title: 'Access Denied',
                 text: errorMessage,

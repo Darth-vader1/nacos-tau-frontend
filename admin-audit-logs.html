@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Logs - NACOS Admin</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- SweetAlert2 -->
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary-color: #1b8c0c;
+      --secondary-color: #0d5a07;
+      --danger-color: #dc3545;
+      --warning-color: #ffc107;
+      --info-color: #0dcaf0;
+    }
+
+    body {
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .navbar {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .navbar-brand {
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: white !important;
+    }
+
+    .main-container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .stats-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 1rem;
+      transition: transform 0.2s;
+    }
+
+    .stats-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .stat-label {
+      color: #6c757d;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filters-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    .filters-card h5 {
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .table-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .table {
+      margin-bottom: 0;
+    }
+
+    .table thead th {
+      background-color: #f8f9fa;
+      border-bottom: 2px solid var(--primary-color);
+      color: #495057;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .table tbody tr {
+      transition: background-color 0.2s;
+    }
+
+    .table tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    .action-badge {
+      font-size: 0.75rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .action-login { background-color: #d1ecf1; color: #0c5460; }
+    .action-logout { background-color: #fff3cd; color: #856404; }
+    .action-admin { background-color: #f8d7da; color: #721c24; }
+    .action-auto { background-color: #d4edda; color: #155724; }
+    .action-student { background-color: #cce5ff; color: #004085; }
+    .action-default { background-color: #e2e3e5; color: #383d41; }
+
+    .details-btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.875rem;
+      border-radius: 6px;
+    }
+
+    .pagination {
+      margin-top: 1.5rem;
+      justify-content: center;
+    }
+
+    .pagination .page-link {
+      color: var(--primary-color);
+      border-color: #dee2e6;
+    }
+
+    .pagination .page-link:hover {
+      background-color: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .pagination .page-item.active .page-link {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+
+    .loading-spinner {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #6c757d;
+    }
+
+    .empty-state i {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .btn-export {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+    }
+
+    .btn-export:hover {
+      background-color: var(--secondary-color);
+      color: white;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 0.25rem rgba(27, 140, 12, 0.25);
+    }
+
+    .sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .sortable:hover {
+      background-color: #e9ecef !important;
+    }
+
+    .sort-icon {
+      margin-left: 0.25rem;
+      opacity: 0.5;
+    }
+
+    .filter-reset {
+      color: var(--danger-color);
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .filter-reset:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .table-responsive {
+        font-size: 0.85rem;
+      }
+      
+      .stat-value {
+        font-size: 1.5rem;
+      }
+      
+      .filters-card .row > div {
+        margin-bottom: 0.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="admin-dashboard.html">
+        <i class="bi bi-shield-check"></i> NACOS Admin
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="admin-dashboard.html">
+              <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="admin-audit-logs.html">
+              <i class="bi bi-clock-history"></i> Audit Logs
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" onclick="handleLogout()">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Container -->
+  <div class="main-container">
+    
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="mb-1"><i class="bi bi-clock-history text-success"></i> Audit Logs</h2>
+        <p class="text-muted mb-2">Track who did what, when, and from where across the system. Use filters to narrow the audit trail down to specific users, events, or time periods.</p>
+      </div>
+      <button class="btn btn-export" onclick="exportLogs()">
+        <i class="bi bi-download"></i> Export CSV
+      </button>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4" id="statsContainer">
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="stats-card">
+          <div class="stat-label">Total Events</div>
+          <div class="stat-value" id="totalLogs">-</div>
+          <div class="text-muted small mt-1">Total audit entries recorded.</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="stats-card">
+          <div class="stat-label">Unique Actors</div>
+          <div class="stat-value" id="uniqueUsers">-</div>
+          <div class="text-muted small mt-1">Distinct users or services involved.</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="stats-card">
+          <div class="stat-label">Last 24 Hours</div>
+          <div class="stat-value" id="todayLogs">-</div>
+          <div class="text-muted small mt-1">Recent audit events from the past day.</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="stats-card">
+          <div class="stat-label">Last 7 Days</div>
+          <div class="stat-value" id="weekLogs">-</div>
+          <div class="text-muted small mt-1">Audit volume over the last week.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="stats-card top-actions-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <div class="stat-label">Top Actions</div>
+              <div class="text-muted">Most frequent audit events in the selected period</div>
+            </div>
+          </div>
+          <div id="topActionsContainer" class="d-flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="filters-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h5><i class="bi bi-funnel"></i> Filters</h5>
+          <p class="text-muted mb-0">Use the filters below to locate specific audit events and reduce noise.</p>
+        </div>
+        <a href="#" class="filter-reset" onclick="resetFilters(); return false;">
+          <i class="bi bi-x-circle"></i> Reset All
+        </a>
+      </div>
+      
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Search</label>
+          <input type="text" class="form-control" id="searchInput" placeholder="Action or email...">
+        </div>
+        
+        <div class="col-md-3">
+          <label class="form-label">Action Type</label>
+          <select class="form-select" id="actionFilter">
+            <option value="all">All Actions</option>
+          </select>
+        </div>
+        
+        <div class="col-md-3">
+          <label class="form-label">Start Date</label>
+          <input type="date" class="form-control" id="startDate">
+        </div>
+        
+        <div class="col-md-3">
+          <label class="form-label">End Date</label>
+          <input type="date" class="form-control" id="endDate">
+        </div>
+      </div>
+
+      <div class="row g-3 mt-2">
+        <div class="col-md-3">
+          <label class="form-label">User Email</label>
+          <input type="email" class="form-control" id="userEmailFilter" placeholder="user@tau.edu.ng">
+        </div>
+        
+        <div class="col-md-3">
+          <label class="form-label">IP Address</label>
+          <input type="text" class="form-control" id="ipFilter" placeholder="192.168.1.1">
+        </div>
+        
+        <div class="col-md-3">
+          <label class="form-label">Results Per Page</label>
+          <select class="form-select" id="limitSelect">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="200">200</option>
+          </select>
+        </div>
+        
+        <div class="col-md-3 d-flex align-items-end">
+          <button class="btn btn-export w-100" onclick="applyFilters()">
+            <i class="bi bi-search"></i> Apply Filters
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="table-card">
+      <div id="loadingContainer" class="loading-spinner" style="display: none;">
+        <div class="spinner-border text-success" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <i class="bi bi-inbox"></i>
+        <h5>No logs found</h5>
+        <p>Try adjusting your filters or search criteria</p>
+      </div>
+
+      <div id="tableContainer" class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th class="sortable" onclick="sortBy('timestamp')">
+                Timestamp <i class="bi bi-arrow-down-up sort-icon"></i>
+              </th>
+              <th class="sortable" onclick="sortBy('action')">
+                Event <i class="bi bi-arrow-down-up sort-icon"></i>
+              </th>
+              <th class="sortable" onclick="sortBy('user')">
+                Actor <i class="bi bi-arrow-down-up sort-icon"></i>
+              </th>
+              <th>Endpoint</th>
+              <th>Status</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody">
+            <!-- Logs will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <nav id="paginationContainer" style="display: none;">
+        <ul class="pagination" id="paginationList">
+          <!-- Pagination will be inserted here -->
+        </ul>
+      </nav>
+    </div>
+
+  </div>
+
+  <!-- Details Modal -->
+  <div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-info-circle"></i> Log Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="logDetailsContent"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="assets/js/env.js"></script>
+  
+  <script type="module">
+    import { supabase, checkAuth, signOut } from './assets/js/supabase-config.js';
+    
+    // Global state
+    let currentPage = 1;
+    let currentSort = 'timestamp-desc';
+    let logsData = [];
+    let authToken = null;
+
+    // API URL (remove trailing /api if present since we'll add it in each request)
+    const apiBaseUrl = window.__CONFIG?.apiUrl || window.API_URL || 'https://nacos-backend.up.railway.app/api';
+    const API_URL = apiBaseUrl.replace(/\/api$/, ''); // Remove /api suffix to avoid double /api/api/
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      await initAuth();
+      await loadActionOptions();
+      await loadStats();
+      await loadLogs();
+      
+      // Auto-apply filters on Enter key
+      const inputs = document.querySelectorAll('.filters-card input, .filters-card select');
+      inputs.forEach(input => {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') applyFilters();
+        });
+      });
+      
+      // Make functions global
+      window.applyFilters = applyFilters;
+      window.resetFilters = resetFilters;
+      window.sortBy = sortBy;
+      window.showDetails = showDetails;
+      window.exportLogs = exportLogs;
+      window.handleLogout = handleLogout;
+      window.loadLogs = loadLogs;
+    });
+
+    // Initialize authentication
+    async function initAuth() {
+      const session = await checkAuth();
+      if (!session) {
+        window.location.href = 'admin-login.html';
+        return;
+      }
+      
+      // Get the access token from session
+      authToken = session.access_token;
+      
+      // Check if user is admin
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = 'admin-login.html';
+        return;
+      }
+      
+      // Verify admin role
+      const { data: adminData } = await supabase
+        .from('admin_users')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (!adminData) {
+        Swal.fire('Access Denied', 'You do not have admin privileges', 'error');
+        window.location.href = 'index.html';
+        return;
+      }
+    }
+
+    // Load statistics
+    async function loadStats() {
+      try {
+        const response = await fetch(`${API_URL}/api/audit-logs/stats`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          const errorDetail = text.startsWith('{') ? JSON.parse(text) : text;
+          throw new Error(`Failed to load stats: ${response.status} ${response.statusText} - ${typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail)}`);
+        }
+
+        const result = await response.json();
+        const stats = result.data || {};
+        const topActions = stats.topActions || [];
+
+        document.getElementById('totalLogs').textContent = (stats.totalLogs != null ? stats.totalLogs : '-').toLocaleString();
+        document.getElementById('uniqueUsers').textContent = (stats.uniqueUsers != null ? stats.uniqueUsers : '-').toLocaleString();
+        document.getElementById('todayLogs').textContent = stats.last24 != null ? stats.last24.toLocaleString() : '-';
+        document.getElementById('weekLogs').textContent = stats.last7 != null ? stats.last7.toLocaleString() : '-';
+
+        renderTopActions(topActions);
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+        document.getElementById('topActionsContainer').innerHTML = '<span class="text-muted">Unable to load top actions.</span>';
+      }
+    }
+
+    async function loadActionOptions() {
+      try {
+        const response = await fetch(`${API_URL}/api/audit-logs/actions`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+
+        if (!response.ok) return;
+
+        const result = await response.json();
+        const actions = result.data || [];
+        const select = document.getElementById('actionFilter');
+
+        actions.forEach(action => {
+          const option = document.createElement('option');
+          option.value = action;
+          option.textContent = action
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, char => char.toUpperCase());
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Failed to load action options:', error);
+      }
+    }
+
+    function renderTopActions(topActions) {
+      const container = document.getElementById('topActionsContainer');
+      if (!topActions.length) {
+        container.innerHTML = '<span class="text-muted">No action summary available.</span>';
+        return;
+      }
+
+      container.innerHTML = topActions.map(action => `
+        <div class="stats-card" style="min-width: 180px; flex: 1 1 180px;">
+          <div class="stat-label">${formatActionLabel(action.action)}</div>
+          <div class="stat-value">${action.count.toLocaleString()}</div>
+        </div>
+      `).join('');
+    }
+
+    // Load logs
+    async function loadLogs(page = 1) {
+      currentPage = page;
+      
+      const loadingContainer = document.getElementById('loadingContainer');
+      const emptyState = document.getElementById('emptyState');
+      const tableContainer = document.getElementById('tableContainer');
+      
+      loadingContainer.style.display = 'flex';
+      emptyState.style.display = 'none';
+      tableContainer.style.display = 'none';
+
+      try {
+        // Build query parameters
+        const params = new URLSearchParams({
+          page: page,
+          limit: document.getElementById('limitSelect').value,
+          sort: currentSort
+        });
+
+        const search = document.getElementById('searchInput').value.trim();
+        if (search) params.append('search', search);
+
+        const action = document.getElementById('actionFilter').value;
+        if (action !== 'all') params.append('action', action);
+
+        const userEmail = document.getElementById('userEmailFilter').value.trim();
+        if (userEmail) params.append('user_email', userEmail);
+
+        const ipAddress = document.getElementById('ipFilter').value.trim();
+        if (ipAddress) params.append('ip_address', ipAddress);
+
+        const startDate = document.getElementById('startDate').value;
+        if (startDate) params.append('start_date', startDate);
+
+        const endDate = document.getElementById('endDate').value;
+        if (endDate) params.append('end_date', endDate);
+
+        const response = await fetch(`${API_URL}/api/audit-logs?${params}`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch logs');
+
+        const result = await response.json();
+        logsData = result.data.logs;
+        
+        loadingContainer.style.display = 'none';
+
+        if (logsData.length === 0) {
+          emptyState.style.display = 'block';
+        } else {
+          tableContainer.style.display = 'block';
+          renderLogs(logsData);
+          renderPagination(result.data.pagination);
+        }
+
+      } catch (error) {
+        console.error('Failed to load logs:', error);
+        loadingContainer.style.display = 'none';
+        Swal.fire('Error', 'Failed to load audit logs', 'error');
+      }
+    }
+
+    // Render logs table
+    function renderLogs(logs) {
+      const tbody = document.getElementById('logsTableBody');
+      tbody.innerHTML = logs.map(log => {
+        const timestamp = new Date(log.timestamp).toLocaleString();
+        const actionClass = getActionClass(log.action);
+        const userEmail = log.user_email ? `<strong>${log.user_email}</strong>` : '<em>System</em>';
+        const endpoint = log.details?.path || log.details?.url || '-';
+        const method = log.details?.method || '';
+        const statusCode = log.details?.statusCode ? `<span class="badge bg-secondary">${log.details.statusCode}</span>` : '<span class="text-muted">-</span>';
+        const endpointLabel = [method, endpoint].filter(Boolean).join(' ');
+
+        return `
+          <tr>
+            <td>${timestamp}</td>
+            <td>
+              <div><span class="action-badge ${actionClass}">${formatActionLabel(log.action)}</span></div>
+            </td>
+            <td>${userEmail}${log.user_id ? `<div class="text-muted small mt-1">${log.user_id}</div>` : ''}</td>
+            <td><div class="text-muted small">${endpointLabel}</div></td>
+            <td>${statusCode}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary details-btn" onclick='showDetails(${JSON.stringify(log).replace(/'/g, "&#39;").replace(/</g, '\u003c')})'>
+                <i class="bi bi-eye"></i> View
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function formatActionLabel(action) {
+      return action
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    // Get action badge class
+    function getActionClass(action) {
+      if (action.includes('login')) return 'action-login';
+      if (action.includes('logout')) return 'action-logout';
+      if (action.includes('admin')) return 'action-admin';
+      if (action.includes('auto_')) return 'action-auto';
+      if (action.includes('student')) return 'action-student';
+      return 'action-default';
+    }
+
+    // Render pagination
+    function renderPagination(pagination) {
+      const container = document.getElementById('paginationContainer');
+      const list = document.getElementById('paginationList');
+      
+      if (pagination.totalPages <= 1) {
+        container.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'block';
+      
+      let html = '';
+      
+      // Previous button
+      html += `
+        <li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="loadLogs(${pagination.page - 1}); return false;">Previous</a>
+        </li>
+      `;
+
+      // Page numbers
+      const maxPages = 5;
+      let startPage = Math.max(1, pagination.page - Math.floor(maxPages / 2));
+      let endPage = Math.min(pagination.totalPages, startPage + maxPages - 1);
+      
+      if (endPage - startPage < maxPages - 1) {
+        startPage = Math.max(1, endPage - maxPages + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        html += `
+          <li class="page-item ${i === pagination.page ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="loadLogs(${i}); return false;">${i}</a>
+          </li>
+        `;
+      }
+
+      // Next button
+      html += `
+        <li class="page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="loadLogs(${pagination.page + 1}); return false;">Next</a>
+        </li>
+      `;
+
+      list.innerHTML = html;
+    }
+
+    // Show log details modal
+    function showDetails(log) {
+      const content = document.getElementById('logDetailsContent');
+      
+      let detailsHtml = `
+        <table class="table table-bordered">
+          <tr><th style="width: 200px;">ID</th><td><code>${log.id}</code></td></tr>
+          <tr><th>Action</th><td><span class="action-badge ${getActionClass(log.action)}">${log.action}</span></td></tr>
+          <tr><th>Timestamp</th><td>${new Date(log.timestamp).toLocaleString()}</td></tr>
+          <tr><th>User ID</th><td>${log.user_id ? `<code>${log.user_id}</code>` : '-'}</td></tr>
+          <tr><th>User Email</th><td>${log.user_email || '-'}</td></tr>
+          <tr><th>IP Address</th><td><code>${log.ip_address || '-'}</code></td></tr>
+          <tr><th>User Agent</th><td><small>${log.user_agent || '-'}</small></td></tr>
+        </table>
+      `;
+
+      if (log.details && Object.keys(log.details).length > 0) {
+        detailsHtml += `
+          <h6 class="mt-3">Additional Details:</h6>
+          <pre class="bg-light p-3 rounded"><code>${JSON.stringify(log.details, null, 2)}</code></pre>
+        `;
+      }
+
+      content.innerHTML = detailsHtml;
+      
+      const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+      modal.show();
+    }
+
+    // Apply filters
+    function applyFilters() {
+      currentPage = 1;
+      loadLogs(1);
+    }
+
+    // Reset filters
+    function resetFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('actionFilter').value = 'all';
+      document.getElementById('userEmailFilter').value = '';
+      document.getElementById('ipFilter').value = '';
+      document.getElementById('startDate').value = '';
+      document.getElementById('endDate').value = '';
+      document.getElementById('limitSelect').value = '50';
+      currentSort = 'timestamp-desc';
+      applyFilters();
+    }
+
+    // Sort by column
+    function sortBy(field) {
+      const [currentField, currentOrder] = currentSort.split('-');
+      
+      if (currentField === field) {
+        // Toggle order
+        currentSort = `${field}-${currentOrder === 'asc' ? 'desc' : 'asc'}`;
+      } else {
+        // New field, default to desc
+        currentSort = `${field}-desc`;
+      }
+      
+      loadLogs(currentPage);
+    }
+
+    // Export logs to CSV
+    async function exportLogs() {
+      try {
+        // Build query parameters (same as current filters)
+        const params = new URLSearchParams({
+          limit: 1000, // Export up to 1000 logs
+          sort: currentSort
+        });
+
+        const search = document.getElementById('searchInput').value.trim();
+        if (search) params.append('search', search);
+
+        const action = document.getElementById('actionFilter').value;
+        if (action !== 'all') params.append('action', action);
+
+        const userEmail = document.getElementById('userEmailFilter').value.trim();
+        if (userEmail) params.append('user_email', userEmail);
+
+        const ipAddress = document.getElementById('ipFilter').value.trim();
+        if (ipAddress) params.append('ip_address', ipAddress);
+
+        const startDate = document.getElementById('startDate').value;
+        if (startDate) params.append('start_date', startDate);
+
+        const endDate = document.getElementById('endDate').value;
+        if (endDate) params.append('end_date', endDate);
+
+        const response = await fetch(`${API_URL}/api/audit-logs?${params}`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch logs');
+
+        const result = await response.json();
+        const logs = result.data.logs;
+
+        // Convert to CSV
+        const csvContent = [
+          ['Timestamp', 'Action', 'User Email', 'User ID', 'IP Address', 'Details'],
+          ...logs.map(log => [
+            new Date(log.timestamp).toISOString(),
+            log.action,
+            log.user_email || '',
+            log.user_id || '',
+            log.ip_address || '',
+            JSON.stringify(log.details || {})
+          ])
+        ].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+
+        // Download
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+
+        Swal.fire('Success', 'Logs exported successfully', 'success');
+
+      } catch (error) {
+        console.error('Export failed:', error);
+        Swal.fire('Error', 'Failed to export logs', 'error');
+      }
+    }
+
+    // Logout
+    async function handleLogout() {
+      await signOut();
+      window.location.href = 'admin-login.html';
+    }
+  </script>
+</body>
+</html>
