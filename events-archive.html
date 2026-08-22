@@ -586,7 +586,8 @@
           renderPagination(pagination);
           showResultsInfo(pagination);
         } else {
-          throw new Error(result.message || 'Failed to load events');
+          // Support both `message` and legacy `error` fields from the API
+          throw new Error(result.message || result.error || 'Failed to load events');
         }
       } catch (error) {
         console.error('Error loading events:', error);

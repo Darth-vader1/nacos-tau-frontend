@@ -833,7 +833,7 @@
                         window.location.hostname === '127.0.0.1';
         const API_BASE_URL = isLocal 
           ? 'http://localhost:5000'
-          : 'https://nacos-backend.up.railway.app';
+          : 'https://naco-tau-backend-production.up.railway.app';
 
         // Fetch upcoming events (today and future)
         const response = await fetch(`${API_BASE_URL}/api/events/upcoming`);
