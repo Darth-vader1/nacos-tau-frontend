@@ -577,7 +577,8 @@
         if (filters.type) params.append('type', filters.type);
 
         // Fetch from backend API
-        const response = await fetch(`http://localhost:5000/api/events/past?${params}`);
+        const apiUrl = window.API_URL || 'https://naco-tau-backend-production.up.railway.app/api';
+        const response = await fetch(`${apiUrl}/events/past?${params}`);
         const result = await response.json();
 
         if (result.success && result.data) {
