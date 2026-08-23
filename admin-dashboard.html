@@ -650,11 +650,48 @@
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-people me-2"></i>Students Directory</span>
             <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-secondary" data-student-filter="active">Active</button>
+              <button class="btn btn-outline-secondary active" data-student-filter="active">Active</button>
               <button class="btn btn-outline-secondary" data-student-filter="rejected">Rejected</button>
               <button class="btn btn-outline-secondary" data-student-filter="all">All</button>
             </div>
           </div>
+          
+          <!-- Search and Filter Bar -->
+          <div class="card-body border-bottom">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="studentSearchInput" 
+                    placeholder="Search by name, email, or matric number..."
+                    aria-label="Search students">
+                </div>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="studentDeptFilter" aria-label="Filter by department">
+                  <option value="">All Departments</option>
+                  <option value="Computer Science">Computer Science</option>
+                  <option value="Information Technology">Information Technology</option>
+                  <option value="Software Engineering">Software Engineering</option>
+                  <option value="Cyber Security">Cyber Security</option>
+                  <option value="Data Science">Data Science</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="studentLevelFilter" aria-label="Filter by level">
+                  <option value="">All Levels</option>
+                  <option value="100">100 Level</option>
+                  <option value="200">200 Level</option>
+                  <option value="300">300 Level</option>
+                  <option value="400">400 Level</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
           <div class="card-body p-0">
             <div class="table-responsive">
               <table class="table table-hover mb-0">
@@ -673,6 +710,8 @@
                 </tbody>
               </table>
             </div>
+            <!-- Results Info -->
+            <div class="p-3 text-muted small" id="studentsResultsInfo"></div>
           </div>
         </div>
       </div>
@@ -2149,6 +2188,7 @@ window.deleteEvent = async function(id) {
     // ============================================
     
     let currentStudentFilter = 'active';
+    let allStudents = []; // Store all students for client-side filtering
     
     async function loadStudents(filter = 'active') {
       currentStudentFilter = filter;
@@ -2183,42 +2223,85 @@ window.deleteEvent = async function(id) {
           console.warn(`[loadStudents] (${filter}) backend path failed, falling back to anon supabase.from('students'): ${apiError}`);
           let query = supabase.from('students').select('*').order('created_at', { ascending: false });
           if (filter !== 'all') query = query.eq('status', filter);
-          const { data, error } = await query;
+          const { data, error} = await query;
           if (error) throw new Error(`Anon fallback query failed: ${error.message}`);
           studentsArr = data || [];
           console.log(`[loadStudents] (${filter}) fallback anon supabase returned ${studentsArr.length} row(s)`);
         }
 
-        if (!studentsArr.length) {
-          const statusLabel = (filter === 'all') ? 'all statuses' : `${filter}`;
-          const reason = `No students found (${statusLabel})`
-            + (apiError ? ` · backend API error: ${escapeHtml(apiError)}` : '');
-          tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">${reason}</td></tr>`;
-          return;
-        }
+        // Store all students for filtering
+        allStudents = studentsArr;
+        
+        // Apply client-side filters
+        filterAndDisplayStudents();
 
-        tbody.innerHTML = studentsArr.map(s => {
-          let badgeClass = 'bg-warning';
-          if (s.status === 'active') badgeClass = 'bg-success';
-          if (s.status === 'rejected') badgeClass = 'bg-danger';
-          
-          return `
-            <tr>
-              <td><strong>${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</strong></td>
-              <td>${escapeHtml(s.email)}</td>
-              <td>${escapeHtml(s.matric_no)}</td>
-              <td>${escapeHtml(s.department)}</td>
-              <td><span class="badge ${badgeClass}">${s.status || 'active'}</span></td>
-              <td>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s.id}')"><i class="bi bi-trash"></i> Delete</button>
-              </td>
-            </tr>
-          `;
-        }).join('');
       } catch (error) {
         console.error('[loadStudents] fatal:', error);
         tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Failed to load students: ${escapeHtml(error?.message || String(error))}</td></tr>`;
       }
+    }
+    
+    function filterAndDisplayStudents() {
+      const searchInput = document.getElementById('studentSearchInput');
+      const deptFilter = document.getElementById('studentDeptFilter');
+      const levelFilter = document.getElementById('studentLevelFilter');
+      const tbody = document.getElementById('students-table-body');
+      const resultsInfo = document.getElementById('studentsResultsInfo');
+      
+      const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+      const selectedDept = deptFilter ? deptFilter.value : '';
+      const selectedLevel = levelFilter ? levelFilter.value : '';
+      
+      // Filter students
+      let filtered = allStudents.filter(s => {
+        // Search filter (name, email, matric number)
+        const matchesSearch = !searchTerm || 
+          `${s.first_name} ${s.last_name}`.toLowerCase().includes(searchTerm) ||
+          (s.email || '').toLowerCase().includes(searchTerm) ||
+          (s.matric_no || '').toLowerCase().includes(searchTerm);
+        
+        // Department filter
+        const matchesDept = !selectedDept || (s.department === selectedDept);
+        
+        // Level filter
+        const matchesLevel = !selectedLevel || (String(s.level) === selectedLevel);
+        
+        return matchesSearch && matchesDept && matchesLevel;
+      });
+      
+      // Update results info
+      if (resultsInfo) {
+        if (filtered.length === allStudents.length) {
+          resultsInfo.textContent = `Showing all ${filtered.length} students`;
+        } else {
+          resultsInfo.textContent = `Showing ${filtered.length} of ${allStudents.length} students`;
+        }
+      }
+      
+      // Display filtered results
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No students match your filters</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(s => {
+        let badgeClass = 'bg-warning';
+        if (s.status === 'active') badgeClass = 'bg-success';
+        if (s.status === 'rejected') badgeClass = 'bg-danger';
+        
+        return `
+          <tr>
+            <td><strong>${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</strong></td>
+            <td>${escapeHtml(s.email)}</td>
+            <td>${escapeHtml(s.matric_no)}</td>
+            <td>${escapeHtml(s.department)}</td>
+            <td><span class="badge ${badgeClass}">${s.status || 'active'}</span></td>
+            <td>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s.id}')"><i class="bi bi-trash"></i> Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
     
     // Note: student verify / approve workflow is intentionally disabled.
@@ -2270,6 +2353,30 @@ window.deleteEvent = async function(id) {
         loadStudents(this.dataset.studentFilter);
       });
     });
+    
+    // Initialize student search and filters
+    const studentSearchInput = document.getElementById('studentSearchInput');
+    const studentDeptFilter = document.getElementById('studentDeptFilter');
+    const studentLevelFilter = document.getElementById('studentLevelFilter');
+    
+    if (studentSearchInput) {
+      // Debounce search input
+      let searchTimeout;
+      studentSearchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          filterAndDisplayStudents();
+        }, 300);
+      });
+    }
+    
+    if (studentDeptFilter) {
+      studentDeptFilter.addEventListener('change', filterAndDisplayStudents);
+    }
+    
+    if (studentLevelFilter) {
+      studentLevelFilter.addEventListener('change', filterAndDisplayStudents);
+    }
     
     // ============================================
     // LOAD OTHER DATA (Simplified)
