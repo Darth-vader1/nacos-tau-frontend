@@ -164,7 +164,6 @@
             <button class="filter-btn" data-filter="200">200 Level</button>
             <button class="filter-btn" data-filter="300">300 Level</button>
             <button class="filter-btn" data-filter="400">400 Level</button>
-            <button class="filter-btn" data-filter="500">500 Level</button>
           </div>
         </div>
 
@@ -253,7 +252,7 @@
       // Get filter from URL if present
       const urlParams = new URLSearchParams(window.location.search);
       const levelParam = urlParams.get('level');
-      if (levelParam && ['100', '200', '300', '400', '500'].includes(levelParam)) {
+      if (levelParam && ['100', '200', '300', '400'].includes(levelParam)) {
         currentFilter = levelParam;
         // Update active button
         document.querySelectorAll('.filter-btn').forEach(btn => {
