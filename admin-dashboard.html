@@ -213,10 +213,46 @@
       font-size: 24px;
     }
     
+    /* Make tables scrollable and responsive:
+       - allow both horizontal and vertical scrolling when content overflows
+       - limit max-height to keep header / controls visible
+       - enable smooth scrolling on touch devices
+    */
     .table-responsive {
       border-radius: 12px;
       background: white;
-      overflow: hidden;
+      overflow: auto; /* allow scrolling instead of hiding overflow */
+      -webkit-overflow-scrolling: touch;
+      max-height: 65vh; /* prevent table from pushing page too far down */
+    }
+
+    /* Sticky table header for better context while scrolling */
+    .table-responsive thead th {
+      position: sticky;
+      top: 0;
+      background: #f8fbfc;
+      z-index: 3;
+    }
+
+    /* Ensure long tables can scroll horizontally on small viewports */
+    @media (max-width: 768px) {
+      .table-responsive {
+        overflow-x: auto;
+      }
+      /* Give tables a sensible minimum width so columns don't collapse
+         — wide tables will scroll horizontally while preserving layout */
+      .table-responsive table {
+        min-width: 720px;
+      }
+      /* Allow text to wrap in table cells (except actions) to avoid overflow */
+      .table td, .table th {
+        white-space: normal;
+        word-break: break-word;
+      }
+      /* Keep the Actions column compact and prevent wrapping */
+      .table td:last-child, .table th:last-child {
+        white-space: nowrap;
+      }
     }
     
     .table th {
@@ -701,12 +737,13 @@
                     <th>Email</th>
                     <th>Matric No</th>
                     <th>Department</th>
+                    <th>Level</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="students-table-body">
-                  <tr><td colspan="6" class="text-center text-muted py-4 loading-pulse">Loading...</td</tr>
+                  <tr><td colspan="7" class="text-center text-muted py-4 loading-pulse">Loading...</td</tr>
                 </tbody>
               </table>
             </div>
@@ -2264,7 +2301,7 @@ window.deleteEvent = async function(id) {
         const matchesDept = !selectedDept || (s.department === selectedDept);
         
         // Level filter
-        const matchesLevel = !selectedLevel || (String(s.level) === selectedLevel);
+        const matchesLevel = !selectedLevel || (String(s.current_level) === selectedLevel);
         
         return matchesSearch && matchesDept && matchesLevel;
       });
@@ -2280,7 +2317,7 @@ window.deleteEvent = async function(id) {
       
       // Display filtered results
       if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No students match your filters</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No students match your filters</td></tr>`;
         return;
       }
 
@@ -2289,12 +2326,23 @@ window.deleteEvent = async function(id) {
         if (s.status === 'active') badgeClass = 'bg-success';
         if (s.status === 'rejected') badgeClass = 'bg-danger';
         
+        // Display current_level (dynamically calculated) or "Not Set"
+        let levelDisplay = '<span class="text-muted">Not Set</span>';
+        if (s.current_level) {
+          levelDisplay = `${s.current_level} Level`;
+          // Add graduation badge if graduated
+          if (s.is_graduated) {
+            levelDisplay += ' <span class="badge bg-info text-dark ms-1" title="Graduated">🎓</span>';
+          }
+        }
+        
         return `
           <tr>
             <td><strong>${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</strong></td>
             <td>${escapeHtml(s.email)}</td>
             <td>${escapeHtml(s.matric_no)}</td>
             <td>${escapeHtml(s.department)}</td>
+            <td>${levelDisplay}</td>
             <td><span class="badge ${badgeClass}">${s.status || 'active'}</span></td>
             <td>
               <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s.id}')"><i class="bi bi-trash"></i> Delete</button>
