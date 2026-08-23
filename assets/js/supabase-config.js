@@ -319,7 +319,14 @@ export async function uploadFileToStorage(folder, file, bucketName, options = {}
     .replace(/[^A-Za-z0-9._-]+/g, '_')
     .replace(/^_+|_+$/g, '')
     .slice(0, 60);
-  const filePath = `${folder.replace(/\/+$/g, '')}/${Date.now()}_${Math.random().toString(36).slice(2, 9)}_${safeName}`;
+  
+  // If bucket name matches folder, don't duplicate it in path
+  // e.g., bucket='profile-pictures', folder='profile-pictures' → path='filename.jpg'
+  // not 'profile-pictures/filename.jpg' which creates profile-pictures/profile-pictures/
+  const useFolder = bucket !== folder ? folder.replace(/\/+$/g, '') : '';
+  const filePath = useFolder 
+    ? `${useFolder}/${Date.now()}_${Math.random().toString(36).slice(2, 9)}_${safeName}`
+    : `${Date.now()}_${Math.random().toString(36).slice(2, 9)}_${safeName}`;
 
   let lastError;
   for (let attempt = 0; attempt <= retries; attempt++) {
