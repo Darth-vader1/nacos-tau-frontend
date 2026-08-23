@@ -4,6 +4,29 @@ const API_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api'
     : 'https://naco-tau-backend-production.up.railway.app/api';
 
+// Make API_URL available globally
+window.API_URL = API_URL;
+
+/**
+ * Secure API wrapper using SecurityManager
+ * Falls back to regular fetch if SecurityManager not available
+ */
+async function secureRequest(method, url, options = {}) {
+    // Use SecurityManager if available
+    if (window.securityManager && window.securityManager.isInitialized) {
+        return window.securityManager.secureFetch(url, {
+            method,
+            ...options
+        });
+    }
+    
+    // Fallback to regular fetch
+    return fetch(url, {
+        method,
+        ...options
+    });
+}
+
 export const api = {
     auth: {
         async verify() {
@@ -167,8 +190,7 @@ export const api = {
     payments: {
         async submit(data) {
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch(`${API_URL}/payments/submit`, {
-                method: 'POST',
+            const response = await secureRequest('POST', `${API_URL}/payments/submit`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session?.access_token}`
@@ -180,7 +202,7 @@ export const api = {
 
         async getMyPayments() {
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch(`${API_URL}/payments/my`, {
+            const response = await secureRequest('GET', `${API_URL}/payments/my`, {
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`
                 }
@@ -221,7 +243,7 @@ export const api = {
     voting: {
         async getPositions() {
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch(`${API_URL}/voting/positions`, {
+            const response = await secureRequest('GET', `${API_URL}/voting/positions`, {
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`
                 }
@@ -231,7 +253,7 @@ export const api = {
 
         async getCandidates(positionId) {
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch(`${API_URL}/voting/positions/${positionId}/candidates`, {
+            const response = await secureRequest('GET', `${API_URL}/voting/positions/${positionId}/candidates`, {
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`
                 }
@@ -241,8 +263,7 @@ export const api = {
 
         async vote(positionId, candidateId) {
             const { data: { session } } = await supabase.auth.getSession();
-            const response = await fetch(`${API_URL}/voting/vote`, {
-                method: 'POST',
+            const response = await secureRequest('POST', `${API_URL}/voting/vote`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session?.access_token}`
