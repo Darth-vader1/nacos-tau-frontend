@@ -2,7 +2,7 @@ import { supabase } from './supabase-config.js';
 
 const API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:5000/api'
-    : 'https://nacos-backend.up.railway.app/api';
+    : 'https://naco-tau-backend-production.up.railway.app/api';
 
 export const api = {
     auth: {
