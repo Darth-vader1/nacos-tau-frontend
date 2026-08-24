@@ -1140,6 +1140,22 @@
       return div.innerHTML;
     }
 
+    // Safe text node creation - prevents double encoding
+    function createTextSpan(text, className = '') {
+      const span = document.createElement('span');
+      if (className) span.className = className;
+      span.textContent = String(text || '');
+      return span.outerHTML;
+    }
+
+    // Safe skill/interest tag rendering - prevents double encoding
+    function createSafeTag(text, tagClass = 'skill-tag') {
+      const span = document.createElement('span');
+      span.className = tagClass;
+      span.textContent = String(text || '');
+      return span.outerHTML;
+    }
+
     function isSafeWebUrl(v) {
       if (!v || typeof v !== 'string') return false;
       try {
@@ -1702,7 +1718,7 @@
 
       const skillsHtml = topSkills.length > 0
         ? `<div class="student-skills">
-            ${topSkills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('')}
+            ${topSkills.map(s => createSafeTag(s, 'skill-tag')).join('')}
             ${moreCount > 0 ? `<span class="skill-tag">+${moreCount}</span>` : ''}
           </div>`
         : '';
@@ -1827,14 +1843,14 @@
             <div class="profile-section">
               <h4><i class="bi bi-trophy me-2"></i>Skills</h4>
               <div>
-                ${profile.skills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join(' ')}
+                ${profile.skills.map(s => createSafeTag(s, 'skill-tag')).join(' ')}
               </div>
             </div>` : ''}
           ${Array.isArray(profile.interests) && profile.interests.length > 0 ? `
             <div class="profile-section">
               <h4><i class="bi bi-heart me-2"></i>Interests</h4>
               <div>
-                ${profile.interests.map(i => `<span class="interest-tag">${escapeHtml(i)}</span>`).join(' ')}
+                ${profile.interests.map(i => createSafeTag(i, 'interest-tag')).join(' ')}
               </div>
             </div>` : ''}
           ${connectHtml}

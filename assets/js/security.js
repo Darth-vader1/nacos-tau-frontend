@@ -19,6 +19,34 @@ class SecurityManager {
     this.sessionCheckInterval = null;
     this.autoRefreshEnabled = true;
     this.sessionWarningShown = false;
+    
+    // Activity tracking to reduce unnecessary session checks
+    this.lastActivityTime = null;
+    this.setupActivityTracking();
+  }
+
+  /**
+   * Track user activity to avoid unnecessary session checks
+   */
+  setupActivityTracking() {
+    const updateActivity = () => {
+      this.lastActivityTime = Date.now();
+    };
+    
+    // Throttled activity tracking (max once per minute)
+    let throttleTimer = null;
+    const throttledUpdate = () => {
+      if (throttleTimer) return;
+      updateActivity();
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null;
+      }, 60000);  // 1 minute throttle
+    };
+    
+    // Track meaningful activity events
+    ['click', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+      document.addEventListener(event, throttledUpdate, { passive: true });
+    });
   }
 
   /**
@@ -29,8 +57,14 @@ class SecurityManager {
     if (this.isInitialized) return;
 
     try {
+      // Determine correct API URL with protocol (HTTP for localhost, HTTPS for production)
+      const baseUrl = window.API_URL || '/api';
+      const apiUrl = window.location.hostname === 'localhost' 
+        ? baseUrl.replace('https://', 'http://') // Force HTTP for localhost
+        : baseUrl; // Use as-is for production (HTTPS)
+      
       // Check if CSRF is enabled by calling health endpoint
-      const healthResponse = await fetch(`${window.API_URL || '/api'}/health`);
+      const healthResponse = await fetch(`${apiUrl}/health`);
       const health = await healthResponse.json();
 
       if (health.security?.csrf) {
@@ -69,10 +103,24 @@ class SecurityManager {
     // Check session status immediately
     await this.checkSessionStatus();
 
-    // Set up periodic session checks (every 5 minutes)
+    // Set up periodic session checks (every 10 minutes, only when active)
     this.sessionCheckInterval = setInterval(() => {
+      // Only check if tab is visible
+      if (document.hidden) {
+        console.log('⏸️  Skipping session check (tab hidden)');
+        return;
+      }
+      
+      // Only check if no recent activity (within last minute)
+      const now = Date.now();
+      if (this.lastActivityTime && now - this.lastActivityTime < 60000) {
+        console.log('⏸️  Skipping session check (recent activity detected)');
+        return;
+      }
+      
+      console.log('🔄 Running periodic session check...');
       this.checkSessionStatus();
-    }, 5 * 60 * 1000);
+    }, 10 * 60 * 1000);  // Check every 10 minutes (reduced from 5)
   }
 
   /**
@@ -632,6 +680,29 @@ if (document.readyState === 'loading') {
 } else {
   securityManager.initialize().catch(console.error);
 }
+
+// Clean up intervals when page unloads (prevents memory leaks)
+window.addEventListener('beforeunload', () => {
+  if (securityManager) {
+    securityManager.stopSessionMonitoring();
+    console.log('🧹 Cleaned up session monitoring on page unload');
+  }
+});
+
+// Pause/resume session checks based on tab visibility (saves resources)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    console.log('⏸️  Tab hidden, session checks will be skipped');
+  } else {
+    console.log('▶️  Tab visible, resuming session checks');
+    // Check immediately when tab becomes visible (if session exists)
+    if (securityManager && securityManager.session && !document.hidden) {
+      setTimeout(() => {
+        securityManager.checkSessionStatus();
+      }, 1000);  // Small delay to avoid rapid checks
+    }
+  }
+});
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

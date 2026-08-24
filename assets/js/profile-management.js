@@ -149,12 +149,37 @@ function renderTags(containerId, tags, type) {
   const container = document.getElementById(containerId);
   if (!container) return;
   const safeTags = Array.isArray(tags) ? tags : [];
-  container.innerHTML = safeTags.map((tag, index) => `
-    <span class="tag-item ${type === 'interest' ? 'interest-tag' : ''}" role="listitem">
-      ${escapeHtml(tag)}
-      <span class="tag-remove" role="button" tabindex="0" aria-label="Remove ${escapeHtml(type)} tag ${escapeHtml(tag)}" data-tag-type="${type}" data-tag-index="${index}">&times;</span>
-    </span>
-  `).join('');
+  
+  // Clear container first
+  container.innerHTML = '';
+  
+  // Create DOM elements instead of HTML strings to avoid double-encoding
+  safeTags.forEach((tag, index) => {
+    const span = document.createElement('span');
+    span.className = `tag-item ${type === 'interest' ? 'interest-tag' : ''}`;
+    span.setAttribute('role', 'listitem');
+    
+    // Use textContent (auto-escapes, prevents double encoding)
+    const tagText = document.createElement('span');
+    tagText.textContent = tag;
+    span.appendChild(tagText);
+    
+    // Add space before remove button
+    span.appendChild(document.createTextNode(' '));
+    
+    // Remove button
+    const removeBtn = document.createElement('span');
+    removeBtn.className = 'tag-remove';
+    removeBtn.setAttribute('role', 'button');
+    removeBtn.setAttribute('tabindex', '0');
+    removeBtn.setAttribute('aria-label', `Remove ${type} tag ${tag}`);
+    removeBtn.setAttribute('data-tag-type', type);
+    removeBtn.setAttribute('data-tag-index', index);
+    removeBtn.innerHTML = '&times;';
+    
+    span.appendChild(removeBtn);
+    container.appendChild(span);
+  });
 }
 
 // ===== TAG MANAGEMENT =====
