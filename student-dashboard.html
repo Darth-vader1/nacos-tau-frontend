@@ -1672,7 +1672,9 @@
       const topSkills = Array.isArray(student.skills) ? student.skills.slice(0, 3) : [];
       const moreCount = Array.isArray(student.skills) && student.skills.length > 3
         ? student.skills.length - 3 : 0;
-      const yearText = student.year_of_study ? `${student.year_of_study}L` : '';
+      const yearText = student.current_level 
+        ? `${student.current_level} Level${student.is_graduated ? ' 🎓' : ''}`
+        : (student.year_of_study ? `${student.year_of_study}L` : '');
       const meta = [escapeHtml(student.department || 'Computing'), yearText ? '· ' + yearText : ''].filter(Boolean).join(' ');
       const avatar = student.profile_picture_url && isSafeWebUrl(student.profile_picture_url)
         ? cacheBust(student.profile_picture_url)
