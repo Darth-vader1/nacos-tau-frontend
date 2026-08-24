@@ -1,9 +1,10 @@
 // assets/js/security.js
 // Frontend Security Module - CSRF Protection & Security Utilities
+// Phase 3.1: Token Refresh and Session Management
 
 /**
  * Security Manager
- * Handles CSRF tokens, secure requests, and security utilities
+ * Handles CSRF tokens, secure requests, session management, and auto-refresh
  */
 class SecurityManager {
   constructor() {
@@ -12,11 +13,17 @@ class SecurityManager {
     this.isInitialized = false;
     this.retryCount = 0;
     this.maxRetries = 3;
+    
+    // Session management
+    this.session = null;
+    this.sessionCheckInterval = null;
+    this.autoRefreshEnabled = true;
+    this.sessionWarningShown = false;
   }
 
   /**
    * Initialize security manager
-   * Fetches CSRF token if enabled on backend
+   * Fetches CSRF token if enabled on backend and sets up session monitoring
    */
   async initialize() {
     if (this.isInitialized) return;
@@ -33,12 +40,233 @@ class SecurityManager {
         console.log('ℹ️  CSRF protection not enabled on backend');
       }
 
+      // Initialize session monitoring if user is logged in
+      await this.initializeSessionMonitoring();
+
       this.isInitialized = true;
-      console.log('✅ Security Manager initialized');
+      console.log('✅ Security Manager initialized with session monitoring');
     } catch (error) {
       console.warn('⚠️  Could not initialize security manager:', error.message);
       this.isInitialized = true; // Continue anyway
     }
+  }
+
+  /**
+   * Initialize session monitoring
+   * Checks session status and auto-refreshes when needed
+   */
+  async initializeSessionMonitoring() {
+    // Check if user has a session (Supabase stores it in localStorage)
+    const session = this.getStoredSession();
+    if (!session) {
+      console.log('ℹ️  No active session found');
+      return;
+    }
+
+    this.session = session;
+    console.log('✅ Active session detected, enabling auto-refresh');
+
+    // Check session status immediately
+    await this.checkSessionStatus();
+
+    // Set up periodic session checks (every 5 minutes)
+    this.sessionCheckInterval = setInterval(() => {
+      this.checkSessionStatus();
+    }, 5 * 60 * 1000);
+  }
+
+  /**
+   * Get stored Supabase session from localStorage
+   */
+  getStoredSession() {
+    try {
+      const supabaseAuth = localStorage.getItem('sb-pnusmlckowqagnlzjqbv-auth-token');
+      if (!supabaseAuth) return null;
+      
+      const authData = JSON.parse(supabaseAuth);
+      return authData.access_token ? authData : null;
+    } catch (error) {
+      console.warn('Could not parse stored session:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check session status with backend
+   */
+  async checkSessionStatus() {
+    try {
+      const session = this.getStoredSession();
+      if (!session) {
+        this.stopSessionMonitoring();
+        return;
+      }
+
+      const response = await fetch(`${window.API_URL || '/api'}/auth/session-status`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.warn('⚠️  Session expired, attempting refresh...');
+          await this.refreshSession();
+        }
+        return;
+      }
+
+      const data = await response.json();
+      if (data.success && data.data.session) {
+        const sessionInfo = data.data.session;
+        
+        // Check if session needs refresh (less than 15 minutes remaining)
+        if (sessionInfo.needsRefresh && this.autoRefreshEnabled) {
+          console.log('🔄 Session approaching expiry, auto-refreshing...');
+          await this.refreshSession();
+        }
+
+        // Warn user if session will expire soon (less than 5 minutes)
+        const expiresInMinutes = sessionInfo.expiresIn / (60 * 1000);
+        if (expiresInMinutes < 5 && !this.sessionWarningShown) {
+          this.showSessionWarning(Math.floor(expiresInMinutes));
+        }
+      }
+    } catch (error) {
+      console.error('Error checking session status:', error);
+    }
+  }
+
+  /**
+   * Refresh session token
+   */
+  async refreshSession() {
+    try {
+      const session = this.getStoredSession();
+      if (!session || !session.refresh_token) {
+        console.error('❌ No refresh token available');
+        this.handleSessionExpired();
+        return false;
+      }
+
+      console.log('🔄 Refreshing session token...');
+      
+      const response = await fetch(`${window.API_URL || '/api'}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          refreshToken: session.refresh_token
+        })
+      });
+
+      if (!response.ok) {
+        console.error('❌ Session refresh failed:', response.status);
+        this.handleSessionExpired();
+        return false;
+      }
+
+      const data = await response.json();
+      if (data.success && data.data.session) {
+        // Update stored session
+        this.updateStoredSession(data.data.session);
+        this.session = data.data.session;
+        this.sessionWarningShown = false;
+        
+        console.log('✅ Session refreshed successfully');
+        return true;
+      } else {
+        this.handleSessionExpired();
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing session:', error);
+      this.handleSessionExpired();
+      return false;
+    }
+  }
+
+  /**
+   * Update stored Supabase session in localStorage
+   */
+  updateStoredSession(newSession) {
+    try {
+      const storageKey = 'sb-pnusmlckowqagnlzjqbv-auth-token';
+      const currentAuth = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      
+      const updatedAuth = {
+        ...currentAuth,
+        access_token: newSession.access_token,
+        refresh_token: newSession.refresh_token,
+        expires_at: newSession.expires_at,
+        expires_in: newSession.expires_in
+      };
+      
+      localStorage.setItem(storageKey, JSON.stringify(updatedAuth));
+    } catch (error) {
+      console.error('Error updating stored session:', error);
+    }
+  }
+
+  /**
+   * Show session expiry warning to user
+   */
+  showSessionWarning(minutesRemaining) {
+    this.sessionWarningShown = true;
+    
+    const message = `Your session will expire in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}. Activity will refresh it automatically.`;
+    
+    // Show as a toast/notification if you have a notification system
+    // Otherwise, console warning
+    console.warn(`⚠️  ${message}`);
+    
+    // Optional: Show UI notification
+    if (window.showNotification) {
+      window.showNotification(message, 'warning');
+    }
+  }
+
+  /**
+   * Handle expired session
+   */
+  handleSessionExpired() {
+    console.error('❌ Session expired - redirecting to login');
+    this.stopSessionMonitoring();
+    
+    // Clear stored session
+    localStorage.removeItem('sb-pnusmlckowqagnlzjqbv-auth-token');
+    
+    // Redirect to login after short delay
+    setTimeout(() => {
+      if (window.location.pathname.includes('admin')) {
+        window.location.href = '/admin-login.html?expired=true';
+      } else {
+        window.location.href = '/student-login.html?expired=true';
+      }
+    }, 1000);
+  }
+
+  /**
+   * Stop session monitoring
+   */
+  stopSessionMonitoring() {
+    if (this.sessionCheckInterval) {
+      clearInterval(this.sessionCheckInterval);
+      this.sessionCheckInterval = null;
+      console.log('Session monitoring stopped');
+    }
+  }
+
+  /**
+   * Enable/disable auto-refresh
+   */
+  setAutoRefresh(enabled) {
+    this.autoRefreshEnabled = enabled;
+    console.log(`Auto-refresh ${enabled ? 'enabled' : 'disabled'}`);
   }
 
   /**

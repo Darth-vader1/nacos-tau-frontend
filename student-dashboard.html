@@ -667,6 +667,9 @@
           <p class="profile-detail" id="studentMatric">
             <i class="bi bi-card-text" aria-hidden="true"></i> <span id="studentMatricValue">Loading...</span>
           </p>
+          <p class="profile-detail" id="studentLevel">
+            <i class="bi bi-mortarboard" aria-hidden="true"></i> <span id="studentLevelValue">Loading...</span>
+          </p>
           <p class="profile-detail" id="studentDepartment">
             <i class="bi bi-building" aria-hidden="true"></i> <span id="studentDepartmentValue">Loading...</span>
           </p>
@@ -1102,6 +1105,7 @@
     const dashboardContent = document.getElementById('dashboardContent');
     const studentNameEl = document.getElementById('profileName');
     const studentMatricEl = document.getElementById('studentMatricValue');
+    const studentLevelEl = document.getElementById('studentLevelValue');
     const studentDepartmentEl = document.getElementById('studentDepartmentValue');
     const studentEmailEl = document.getElementById('studentEmailValue');
     const profileImageEl = document.getElementById('profileImage');
@@ -1240,8 +1244,9 @@
 
     async function loadStudentData() {
       try {
+        // Query the view instead of the table to get calculated current_level
         const { data, error } = await supabase
-          .from('students')
+          .from('students_with_current_level')
           .select('*')
           .eq('user_id', currentUser.id)
           .maybeSingle();
@@ -1250,6 +1255,18 @@
           studentData = data;
           studentNameEl.textContent = displayName(data);
           studentMatricEl.textContent = data.matric_no || 'N/A';
+          
+          // Display current level with graduation badge if applicable
+          if (data.current_level) {
+            let levelText = `${data.current_level} Level`;
+            if (data.is_graduated) {
+              levelText += ' 🎓';
+            }
+            studentLevelEl.textContent = levelText;
+          } else {
+            studentLevelEl.textContent = 'Not Set';
+          }
+          
           studentDepartmentEl.textContent = data.department || data.course || 'Not Assigned';
           studentEmailEl.textContent = data.email || (currentUser && currentUser.email) || '';
           if (data.profile_picture_url) {
@@ -1261,10 +1278,12 @@
         } else {
           studentNameEl.textContent = (currentUser && currentUser.email ? currentUser.email.split('@')[0] : null) || 'Student';
           studentEmailEl.textContent = (currentUser && currentUser.email) || '';
+          studentLevelEl.textContent = 'Not Set';
         }
       } catch (error) {
         console.error('Error loading student:', error);
         studentNameEl.textContent = 'Welcome Student';
+        studentLevelEl.textContent = 'Not Set';
       }
     }
 
