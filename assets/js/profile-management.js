@@ -292,8 +292,8 @@ function setupProfileForm(supabase, showSuccess, showError, loadStudentData) {
           instagram: normalizeUrl(get('profileInstagram')),
           snapchat: get('profileSnapchat').trim() || null,
           portfolio_url: normalizeUrl(get('profilePortfolio')),
-          year_of_study: Number.parseInt(get('profileYearOfStudy'), 10) || null,
-          graduation_year: Number.parseInt(get('profileGraduationYear'), 10) || null,
+          // year_of_study is calculated from matric number, not user-editable
+          // graduation_year is also calculated, not user-editable
           visibility: document.getElementById('profileVisibility')?.value || 'students-only',
           privacy_settings: {
             show_email: !!document.getElementById('showEmail')?.checked,
