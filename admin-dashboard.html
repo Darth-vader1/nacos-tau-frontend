@@ -1454,6 +1454,7 @@ ALTER TABLE public.payment_verification ENABLE ROW LEVEL SECURITY;`
       if (needsCsrf && window.securityManager) {
         try {
           csrfToken = await window.securityManager.getCsrfToken();
+          console.log(`[apiAdmin] CSRF token obtained for ${method} ${path}:`, csrfToken ? '✅ Yes' : '❌ No');
         } catch (error) {
           console.warn('[apiAdmin] Could not get CSRF token:', error);
         }
@@ -1468,7 +1469,12 @@ ALTER TABLE public.payment_verification ENABLE ROW LEVEL SECURITY;`
       // Add CSRF token if available
       if (csrfToken) {
         headers['X-CSRF-Token'] = csrfToken;
+        console.log(`[apiAdmin] Including CSRF token in ${method} ${path} request`);
+      } else if (needsCsrf) {
+        console.warn(`[apiAdmin] No CSRF token available for ${method} ${path} - request may fail!`);
       }
+      
+      console.log(`[apiAdmin] ${method} ${path} headers:`, Object.keys(headers));
       
       const resp = await fetch(url, {
         method,
