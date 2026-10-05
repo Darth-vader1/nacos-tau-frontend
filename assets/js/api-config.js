@@ -272,6 +272,77 @@ export const api = {
             });
             return response.json();
         }
+    },
+
+    hackathons: {
+        async list(status = '') {
+            const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+            const response = await fetch(`${API_URL}/hackathons${qs}`);
+            return response.json();
+        },
+        async past() {
+            const response = await fetch(`${API_URL}/hackathons/past`);
+            return response.json();
+        },
+        async get(slugOrId) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const headers = session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {};
+            const response = await fetch(`${API_URL}/hackathons/${slugOrId}`, { headers });
+            return response.json();
+        },
+        async register(hackathonId, data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/hackathons/${hackathonId}/register`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+        async submit(hackathonId, data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/hackathons/${hackathonId}/submit`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+        async adminCreate(data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/hackathons/admin/create`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+        async adminGetParticipants(hackathonId) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('GET', `${API_URL}/hackathons/admin/${hackathonId}/participants`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            return response.json();
+        },
+        async adminAssignWinner(subId, data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/hackathons/admin/submissions/${subId}/winner`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        }
     }
 };
 
