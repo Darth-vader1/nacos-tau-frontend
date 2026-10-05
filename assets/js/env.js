@@ -18,13 +18,13 @@ console.log('🌍 Loading environment variables...');
 // ============================================
 
 // Determine API URL based on environment
-const isLocal = window.location.hostname === 'localhost' || 
-                window.location.hostname === '127.0.0.1' ||
-                window.location.hostname === '';
+const isLocal = window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '';
 
-window.API_URL = isLocal 
+window.API_URL = isLocal
     ? 'http://localhost:5000/api'
-    : 'https://naco-tau-backend-production.up.railway.app/api';
+    : 'https://nacos-tau-frontend.onrender.com/api';
 
 // Supabase Storage bucket used for past questions, timetables, event images,
 // and other uploaded assets. Must match the bucket name in the Supabase project
@@ -36,13 +36,13 @@ window.SUPABASE_STORAGE_BUCKET = 'nacos-assets';
 // The resolveBucketFor() helper maps logical flow folders to these names so
 // uploads never land in the legacy monolithic bucket by accident.
 window.SUPABASE_DEDICATED_BUCKETS = Object.freeze({
-  pastQuestions: 'past-questions',
-  timetables: 'timetables',
-  resources: 'resources',
-  eventImages: 'event-images',
-  paymentProofs: 'payment-proofs',
-  profilePictures: 'profile-pictures',
-  votingPhotos: 'voting-photos'
+    pastQuestions: 'past-questions',
+    timetables: 'timetables',
+    resources: 'resources',
+    eventImages: 'event-images',
+    paymentProofs: 'payment-proofs',
+    profilePictures: 'profile-pictures',
+    votingPhotos: 'voting-photos'
 });
 
 // ============================================

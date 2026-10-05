@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
@@ -274,7 +275,9 @@
     }
 
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     /* Buttons */
@@ -349,7 +352,7 @@
 
   <!-- Main Content -->
   <main class="main-container">
-    
+
     <!-- Page Header -->
     <div class="page-header">
       <h1 class="page-title">
@@ -365,13 +368,10 @@
           <label for="searchInput" class="filter-label">
             <i class="bi bi-search"></i> Search Events
           </label>
-          <input type="text" 
-                 id="searchInput" 
-                 class="form-control" 
-                 placeholder="Search by title or description..."
-                 aria-label="Search events">
+          <input type="text" id="searchInput" class="form-control" placeholder="Search by title or description..."
+            aria-label="Search events">
         </div>
-        
+
         <div class="col-md-2">
           <label for="yearFilter" class="filter-label">
             <i class="bi bi-calendar3"></i> Year
@@ -487,7 +487,7 @@
   <!-- Scripts -->
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/env.js"></script>
-  <script src="assets/js/security.js"></script> 
+  <script src="assets/js/security.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script type="module">
     import { supabase } from './assets/js/supabase-config.js';
@@ -541,11 +541,11 @@
       if (!dateString) return 'Date TBA';
       try {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
+        return date.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
         });
       } catch {
         return dateString;
@@ -553,7 +553,7 @@
     }
 
     function debounce(func, delay) {
-      return function(...args) {
+      return function (...args) {
         clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(() => func.apply(this, args), delay);
       };
@@ -578,7 +578,7 @@
         if (filters.type) params.append('type', filters.type);
 
         // Fetch from backend API
-        const apiUrl = window.API_URL || 'https://naco-tau-backend-production.up.railway.app/api';
+        const apiUrl = window.API_URL || 'https://nacos-tau-frontend.onrender.com/api';
         const response = await fetch(`${apiUrl}/events/past?${params}`);
         const result = await response.json();
 
@@ -621,12 +621,12 @@
           <div class="col-md-6 col-lg-4">
             <div class="event-card" onclick="showEventDetails('${escapeHtml(event.id)}')" 
                  role="button" tabindex="0" aria-label="View details for ${title}">
-              ${safeImage 
-                ? `<img src="${escapeHtml(safeImage)}" alt="${title}" class="event-image">`
-                : `<div class="event-image-placeholder">
+              ${safeImage
+            ? `<img src="${escapeHtml(safeImage)}" alt="${title}" class="event-image">`
+            : `<div class="event-image-placeholder">
                      <i class="bi bi-calendar-event"></i>
                    </div>`
-              }
+          }
               <div class="event-content">
                 <span class="event-date">
                   <i class="bi bi-calendar"></i> ${date}
@@ -863,7 +863,7 @@
     // ================================================================
     // Filter Functions
     // ================================================================
-    window.clearFilters = function() {
+    window.clearFilters = function () {
       filters = { search: '', year: '', month: '', type: '' };
       searchInput.value = '';
       yearFilter.value = '';
@@ -873,7 +873,7 @@
       loadPastEvents();
     };
 
-    window.changePage = function(page) {
+    window.changePage = function (page) {
       currentPage = page;
       loadPastEvents();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -920,4 +920,5 @@
 
   </script>
 </body>
+
 </html>

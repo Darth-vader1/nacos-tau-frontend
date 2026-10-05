@@ -1,8 +1,8 @@
 import { supabase } from './supabase-config.js';
 
-const API_URL = window.location.hostname === 'localhost' 
+const API_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api'
-    : 'https://naco-tau-backend-production.up.railway.app/api';
+    : 'https://nacos-tau-frontend.onrender.com/api';
 
 // Make API_URL available globally
 window.API_URL = API_URL;
@@ -19,7 +19,7 @@ async function secureRequest(method, url, options = {}) {
             ...options
         });
     }
-    
+
     // Fallback to regular fetch
     return fetch(url, {
         method,
@@ -32,7 +32,7 @@ export const api = {
         async verify() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return null;
-            
+
             const response = await fetch(`${API_URL}/auth/verify`, {
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`
@@ -45,19 +45,19 @@ export const api = {
             const { data, error } = await supabase.auth.signInWithPassword({
                 email, password
             });
-            
+
             if (error) throw error;
-            
+
             const response = await fetch(`${API_URL}/auth/verify`, {
                 headers: {
                     'Authorization': `Bearer ${data.session.access_token}`
                 }
             });
-            
+
             if (!response.ok) {
                 throw new Error('Verification failed');
             }
-            
+
             return data;
         },
 
@@ -67,12 +67,12 @@ export const api = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.error || 'Login failed');
             }
-            
+
             return response.json();
         },
 
@@ -82,12 +82,12 @@ export const api = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(studentData)
             });
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.error || 'Registration failed');
             }
-            
+
             return response.json();
         }
     },
