@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Student Sign Up | NACOS - Thomas Adewumi University</title>
+    <meta name="description"
+        content="Register for your NACOS student account to access academic resources, past questions, and career materials.">
+    <meta name="keywords" content="NACOS, TAU, student registration, computing students, Nigeria">
+
+    <!-- Favicons -->
+    <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+    <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet">
+
+    <!-- Vendor CSS Files -->
+    <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+    <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+    <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+    <!-- Main CSS File -->
+    <link href="assets/css/main.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 70%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 10;
+        }
+
+        .password-container {
+            position: relative;
+        }
+
+        .loginForm {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-underlay {
+            display: block;
+            margin: 0 auto 20px;
+            max-width: 80px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #1b8c0c;
+            box-shadow: 0 0 5px rgba(27, 140, 12, 0.3);
+        }
+
+        .form-control.error {
+            border-color: #dc3545;
+        }
+
+        .form-control.success {
+            border-color: #28a745;
+        }
+
+        .form-check-input[type="checkbox"] {
+            -webkit-appearance: checkbox !important;
+            -moz-appearance: checkbox !important;
+            appearance: checkbox !important;
+            width: 18px !important;
+            height: 18px !important;
+            margin-top: 0;
+            cursor: pointer !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .checkbx {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .checkbx input {
+            margin: 0;
+        }
+
+        .spinner-border {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            vertical-align: text-bottom;
+            border: 0.2em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner-border 0.75s linear infinite;
+        }
+
+        @keyframes spinner-border {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .password-strength {
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+        #preloader {
+            display: none !important;
+        }
+
+        [data-aos] {
+            opacity: 1 !important;
+            transform: none !important;
+            transition: none !important;
+        }
+
+        .strength-weak {
+            color: #dc3545;
+        }
+
+        .strength-medium {
+            color: #ffc107;
+        }
+
+        .strength-strong {
+            color: #28a745;
+        }
+    </style>
+</head>
+
+<body class="starter-page-page">
+
+    <header id="header" class="header d-flex align-items-center fixed-top" style="justify-content: center;">
+        <div class="container-fluid container-xl position-relative d-flex align-items-center"
+            style="width: 100%;display: flex;justify-content: space-around;">
+            <a href="index.html" class="logo d-flex align-items-center me-auto">
+                <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
+                <h1 class="sitename"><span style="color: #1b8c0c;" id="nacos-text">Nigerian Association of Computing
+                        Students</span><br id="br"> <strong id="tau-text">Thomas Adewumi University</strong></h1>
+            </a>
+        </div>
+    </header>
+
+    <main class="main">
+
+        <div class="page-title" data-aos="fade">
+            <div class="container d-lg-flex justify-content-between align-items-center">
+                <h1 class="mb-2 mb-lg-0">Student Registration</h1>
+            </div>
+        </div>
+
+        <section id="starter-section" class="starter-section section"
+            style="padding: 20px; display: flex;justify-content: center; width: 100%;">
+
+            <div class="loginForm">
+                <img src="assets/img/tau_logo-removebg-preview.png" class="logo-underlay" alt="TAU Logo">
+                <div class="container section-title">
+                    <h2>Sign Up</h2>
+                    <p>Enter details to register on the platform!</p>
+                    <a href="student-login.html">Already registered? <span>Click here to sign in.</span></a>
+                </div>
+
+                <div class="container" style="margin: 0px; padding: 0px;">
+                    <form id="signupForm">
+                        <div class="form-group" style="display: flex;justify-content: space-between; gap: 15px;">
+                            <div style="flex: 1;">
+                                <label for="first_name">First Name:</label>
+                                <input type="text" class="form-control" id="first_name" placeholder="Enter first name"
+                                    required autocomplete="given-name">
+                            </div>
+                            <div style="flex: 1;">
+                                <label for="last_name">Last Name:</label>
+                                <input type="text" class="form-control" id="last_name" placeholder="Enter last name"
+                                    required autocomplete="family-name">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="matric_no">Matric Number:</label>
+                            <input type="text" class="form-control" id="matric_no" placeholder="e.g. 23/10MSC014"
+                                required>
+                            <small class="text-muted">Format: YY/NNDDD### (e.g. 23/10msc014)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="department">Department:</label>
+                            <select class="form-control" id="department" name="department" required>
+                                <option value="">Select your department</option>
+                                <option value="Software Engineering">Software Engineering</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Cyber Security">Cyber Security</option>
+                                <option value="Artificial Intelligence">Artificial Intelligence</option>
+                                <option value="Data Science">Data Science</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Mathematics">Mathematics</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">School Email:</label>
+                            <input type="email" class="form-control" id="email" placeholder="yourname@st.tau.edu.ng"
+                                required autocomplete="email">
+                            <small class="text-muted">Use your TAU email (@st.tau.edu.ng or @tau.edu.ng)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="password-container">
+                                <label for="password">Password:</label>
+                                <input type="password" class="form-control" id="password"
+                                    placeholder="Enter password (min 6 characters)" required
+                                    autocomplete="new-password">
+                                <button id="toggle-password" class="toggle-password" type="button"
+                                    aria-label="Toggle password visibility">
+                                    <i class="bi bi-eye-slash"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength" id="passwordStrength"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="password-container">
+                                <label for="confirm_password">Confirm Password:</label>
+                                <input type="password" class="form-control" id="confirm_password"
+                                    placeholder="Confirm password" required autocomplete="new-password">
+                                <button id="toggle-confirm-password" class="toggle-password" type="button"
+                                    aria-label="Toggle password visibility">
+                                    <i class="bi bi-eye-slash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="termsCheckbox" required>
+                                <label class="form-check-label" for="termsCheckbox">
+                                    I agree to the <a href="terms-conditions.html" target="_blank">Terms and
+                                        Conditions</a>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: center; margin-top: 20px;">
+                            <button type="submit" class="btn btn-primary" id="signupButton"
+                                style="background-color: #1b8c0c; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease-in-out; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);"
+                                onmouseover="this.style.backgroundColor='#166a0a'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 10px rgba(0, 0, 0, 0.3)';"
+                                onmouseout="this.style.backgroundColor='#1b8c0c'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.2)';"
+                                onmousedown="this.style.transform='translateY(1px)'; this.style.boxShadow='0 3px 6px rgba(0, 0, 0, 0.2)';"
+                                onmouseup="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 10px rgba(0, 0, 0, 0.3)';">
+                                Sign Up
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer id="footer" class="footer position-relative light-background">
+        <div class="container footer-top"
+            style="display: flex;justify-content: center;width: 100%;max-width: max-content;">
+            <div class="row gy-4">
+                <div class="col-lg-4 col-md-6 footer-about"
+                    style="width: 100%;justify-content: center;display: flex;flex-direction: column;">
+                    <a href="index.html" class="logo d-flex align-items-center" style="justify-content: center;">
+                        <span class="sitename">NACOS TAU</span>
+                    </a>
+                    <div class="footer-contact pt-3" style="text-align: center;">
+                        <p>Thomas Adewumi University</p>
+                        <p>Oko, Kwara State</p>
+                        <p class="mt-3"><strong>Email:</strong> <span>nacos@tau.edu.ng</span></p>
+                    </div>
+                    <div class="social-links d-flex mt-4" style="justify-content: center;">
+                        <a href=""><i class="bi bi-twitter-x"></i></a>
+                        <a href=""><i class="bi bi-facebook"></i></a>
+                        <a href=""><i class="bi bi-instagram"></i></a>
+                        <a href=""><i class="bi bi-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container copyright text-center mt-4">
+            <p><span>Copyright</span> © <strong class="px-1 sitename">NACOS - TAU Development Team</strong><br><span>All
+                    Rights Reserved.</span></p>
+        </div>
+    </footer>
+
+    <!-- Scroll Top -->
+    <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i
+            class="bi bi-arrow-up-short"></i></a>
+
+    <!-- Vendor JS Files -->
+    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/vendor/php-email-form/validate.js"></script>
+    <script src="assets/vendor/aos/aos.js"></script>
+    <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+    <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
+
+    <!-- Config and Supabase -->
+    <script src="assets/js/env.js"></script>
+    <script src="assets/js/security.js"></script>
+    <script type="module" src="assets/js/supabase-config.js"></script>
+
+    <!-- Input Fix -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const preloader = document.getElementById('preloader');
+            if (preloader) preloader.remove();
+
+            const form = document.querySelector('.loginForm');
+            if (form) {
+                form.style.pointerEvents = 'auto';
+                form.style.position = 'relative';
+                form.style.zIndex = '1000';
+            }
+
+            document.querySelectorAll('input, button, select, textarea').forEach(input => {
+                input.disabled = false;
+                input.readOnly = false;
+                input.style.pointerEvents = 'auto';
+                input.style.opacity = '1';
+
+                if (['text', 'password', 'email', 'number', 'tel', 'url'].includes(input.type) || input.tagName === 'SELECT' || input.tagName === 'TEXTAREA') {
+                    input.style.backgroundColor = 'white';
+                }
+            });
+
+            console.log('✅ Input fix applied');
+        });
+    </script>
+
+    <!-- Main Signup Script -->
+    <script type="module">
+        import { supabase } from './assets/js/supabase-config.js';
+
+        console.log('🚀 Signup page loaded');
+
+        // DOM Elements
+        const form = document.getElementById('signupForm');
+        const firstNameInput = document.getElementById('first_name');
+        const lastNameInput = document.getElementById('last_name');
+        const matricNoInput = document.getElementById('matric_no');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        const signupButton = document.getElementById('signupButton');
+        const termsCheckbox = document.getElementById('termsCheckbox');
+        const departmentInput = document.getElementById('department');
+
+        // ============================================
+        // VALIDATION FUNCTIONS
+        // ============================================
+
+        function validateMatricNumber(matric) {
+            const trimmed = matric.trim().toUpperCase();
+            return /^\d{2}\/\d{2}[A-Z]{2,4}\d{3,4}$/i.test(trimmed);
+        }
+
+        function validateEmail(email) {
+            // Accepts @st.tau.edu.ng and @tau.edu.ng
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@(st\.)?tau\.edu\.ng$/;
+            return emailRegex.test(email.trim().toLowerCase());
+        }
+
+        function validatePasswordStrength(password) {
+            // Mirror the backend authValidationChains.register rules AND validatePassword() in validators.js
+            //  - min 8 characters
+            //  - uppercase letter
+            //  - lowercase letter
+            //  - digit
+            //  - special character: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : ' " , . < > / ? \ | ` ~
+            const rules = [
+                { ok: password.length >= 8, text: 'at least 8 characters' },
+                { ok: /[A-Z]/.test(password), text: 'one uppercase letter (A-Z)' },
+                { ok: /[a-z]/.test(password), text: 'one lowercase letter (a-z)' },
+                { ok: /\d/.test(password), text: 'one number (0-9)' },
+                { ok: /[!@#$%^&*()_+\-=\[\]{};:'",.<>/?\\|`~]/.test(password), text: 'one special character (e.g. !@#$%^&*)' }
+            ];
+
+            const passed = rules.filter(r => r.ok).length;
+            const failed = rules.filter(r => !r.ok);
+
+            if (failed.length > 0) {
+                return {
+                    level: 'weak',
+                    message: `Password needs: ${failed.map(f => f.text).join(', ')}`,
+                    passed,
+                    failed
+                };
+            }
+
+            if (passed === 5 && password.length >= 12) {
+                return { level: 'strong', message: 'Strong password — all requirements met', passed, failed };
+            }
+            return { level: 'medium', message: 'Acceptable — all requirements met', passed, failed };
+        }
+
+        function validateForm() {
+            let isValid = true;
+
+            if (!firstNameInput.value.trim()) {
+                showError(firstNameInput, 'First name is required');
+                isValid = false;
+            } else {
+                clearError(firstNameInput);
+            }
+
+            if (!lastNameInput.value.trim()) {
+                showError(lastNameInput, 'Last name is required');
+                isValid = false;
+            } else {
+                clearError(lastNameInput);
+            }
+
+            if (!validateMatricNumber(matricNoInput.value.trim())) {
+                showError(matricNoInput, 'Invalid matric number format. Use YY/NNDDD### (e.g. 23/10MSC014)');
+                isValid = false;
+            } else {
+                clearError(matricNoInput);
+            }
+
+            if (!departmentInput.value) {
+                showError(departmentInput, 'Please select your department');
+                isValid = false;
+            } else {
+                clearError(departmentInput);
+            }
+
+            if (!validateEmail(emailInput.value.trim())) {
+                showError(emailInput, 'Please use your valid @st.tau.edu.ng or @tau.edu.ng email');
+                isValid = false;
+            } else {
+                clearError(emailInput);
+            }
+
+            const passwordStrength = validatePasswordStrength(passwordInput.value);
+            // Reject anything that does not satisfy ALL 5 backend rules so the form
+            // can never produce "Validation failed" with no visible client-side reason.
+            if (passwordInput.value.length > 0 && passwordStrength.failed?.length > 0) {
+                showError(passwordInput, passwordStrength.message);
+                isValid = false;
+            } else if (passwordInput.value.length > 0) {
+                clearError(passwordInput);
+            }
+
+            if (passwordInput.value !== confirmPasswordInput.value) {
+                showError(confirmPasswordInput, 'Passwords do not match');
+                isValid = false;
+            } else {
+                clearError(confirmPasswordInput);
+            }
+
+            if (!termsCheckbox.checked) {
+                showError(termsCheckbox, 'You must agree to the terms');
+                isValid = false;
+            } else {
+                clearError(termsCheckbox);
+            }
+
+            return isValid;
+        }
+
+        function showError(element, message) {
+            element.classList.add('error');
+            let parent = element.parentElement;
+            if (element.classList.contains('form-check-input')) {
+                parent = element.closest('.form-group');
+            }
+
+            const existingError = parent.querySelector('.error-message');
+            if (existingError) existingError.remove();
+
+            const errorSpan = document.createElement('span');
+            errorSpan.className = 'error-message';
+            errorSpan.setAttribute('role', 'alert');
+            errorSpan.textContent = message;
+            parent.appendChild(errorSpan);
+        }
+
+        function clearError(element) {
+            element.classList.remove('error');
+            let parent = element.parentElement;
+            if (element.classList.contains('form-check-input')) {
+                parent = element.closest('.form-group');
+            }
+            const existingError = parent.querySelector('.error-message');
+            if (existingError) existingError.remove();
+        }
+
+        // ============================================
+        // LIVE VALIDATION
+        // ============================================
+
+        emailInput.addEventListener('input', () => {
+            if (emailInput.value.trim() && !validateEmail(emailInput.value.trim())) {
+                emailInput.style.borderColor = '#dc3545';
+            } else if (emailInput.value.trim()) {
+                emailInput.style.borderColor = '#28a745';
+            } else {
+                emailInput.style.borderColor = '#ddd';
+            }
+        });
+
+        // Password strength indicator
+        passwordInput.addEventListener('input', () => {
+            const strength = validatePasswordStrength(passwordInput.value);
+            const strengthDiv = document.getElementById('passwordStrength');
+            if (passwordInput.value.length === 0) {
+                strengthDiv.textContent = '';
+                return;
+            }
+            strengthDiv.textContent = `💪 ${strength.message}`;
+            strengthDiv.className = `password-strength strength-${strength.level}`;
+        });
+
+        // ============================================
+        // PASSWORD TOGGLE
+        // ============================================
+
+        const togglePassword = document.getElementById('toggle-password');
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            const icon = togglePassword.querySelector('i');
+            icon.classList.toggle('bi-eye');
+            icon.classList.toggle('bi-eye-slash');
+        });
+
+        const toggleConfirmPassword = document.getElementById('toggle-confirm-password');
+        toggleConfirmPassword.addEventListener('click', () => {
+            const type = confirmPasswordInput.type === 'password' ? 'text' : 'password';
+            confirmPasswordInput.type = type;
+            const icon = toggleConfirmPassword.querySelector('i');
+            icon.classList.toggle('bi-eye');
+            icon.classList.toggle('bi-eye-slash');
+        });
+
+        // ============================================
+        // FORM SUBMISSION - Backend /api/auth/register first (avoids Supabase RLS-insert issues)
+        // ============================================
+
+        function getApiBaseUrl() {
+            const hostname = window.location.hostname;
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                return 'http://localhost:5000/api';
+            }
+            return 'https://nacos-tau-frontend.onrender.com/api';
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!validateForm()) {
+                await Swal.fire({
+                    title: 'Validation Error',
+                    text: 'Please check all fields and try again.',
+                    icon: 'warning',
+                    confirmButtonColor: '#1b8c0c'
+                });
+                return;
+            }
+
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+            const fullName = `${firstName} ${lastName}`;
+            const email = emailInput.value.trim().toLowerCase();
+            const password = passwordInput.value;
+            const matricNo = matricNoInput.value.trim().toUpperCase();
+            const department = departmentInput.value;
+
+            console.log('📝 Registering via backend:', { email, matricNo, fullName, department });
+
+            // Show loading state
+            signupButton.disabled = true;
+            signupButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating account...';
+
+            try {
+                // 1. Create user + profile via the backend service-role route
+                //    (no RLS needed because the backend uses the service_role Supabase client)
+                const registerResponse = await fetch(`${getApiBaseUrl()}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        firstName,
+                        lastName,
+                        matricNo,
+                        department,
+                        course: department // treat department as primary course for now
+                    })
+                });
+
+                const registerBody = await registerResponse.json().catch(() => ({}));
+
+                if (!registerResponse.ok) {
+                    // Backend error: prefer validator's per-field detail map (from express-validator validate())
+                    // otherwise fall back to generic error / status text.
+                    console.log('🔍 Backend validation response:', JSON.stringify(registerBody, null, 2));
+                    const serverError = registerBody?.error || `Registration failed (HTTP ${registerResponse.status})`;
+                    const fieldErrors = registerBody?.fields && typeof registerBody.fields === 'object'
+                        ? Object.entries(registerBody.fields)
+                            .map(([field, messages]) => {
+                                const list = Array.isArray(messages) ? messages : [messages];
+                                const fieldKey = (field == null || field === 'undefined' || field === 'unknown' || field === '')
+                                    ? 'General'
+                                    : field;
+                                const pretty = fieldKey === 'matricNo' ? 'Matric number'
+                                    : fieldKey === 'firstName' ? 'First name'
+                                        : fieldKey === 'lastName' ? 'Last name'
+                                            : fieldKey === 'General' ? 'General'
+                                                : fieldKey.charAt(0).toUpperCase() + fieldKey.slice(1);
+                                return `• ${pretty}: ${list.join('; ')}`;
+                            })
+                            .join('\n')
+                        : null;
+
+                    if (/rate limit|too many/i.test(serverError)) {
+                        await Swal.fire({
+                            title: '⏳ Too Many Attempts',
+                            text: 'Please wait 10-15 minutes before trying again.',
+                            icon: 'warning',
+                            confirmButtonColor: '#1b8c0c',
+                            confirmButtonText: 'OK'
+                        });
+                        return;
+                    }
+
+                    const combined = fieldErrors
+                        ? `${serverError}\n\n${fieldErrors}`
+                        : serverError;
+
+                    throw new Error(combined);
+                }
+
+                console.log('✅ Backend registration success:', registerBody);
+
+                // 2. Bootstrap the Supabase browser session after successful backend provisioning.
+                //    Preferred path: the backend already minted a session via the admin API
+                //    (setSession avoids a second password round-trip / any confirmation-race).
+                //    Fallback path: if the session mint was skipped (transient Supabase issue),
+                //    do a regular password sign-in — this now reliably succeeds because the
+                //    backend calls auth.admin.createUser(..., { email_confirm: true }).
+                let loginSession = null;
+                const prebuilt = registerBody?.data?.session;
+                if (prebuilt && prebuilt.access_token && prebuilt.refresh_token) {
+                    console.log('🔐 Using backend-minted session (setSession path)');
+                    const { data: setData, error: setError } = await supabase.auth.setSession({
+                        access_token: prebuilt.access_token,
+                        refresh_token: prebuilt.refresh_token
+                    });
+                    if (setError) {
+                        console.warn('⚠️ setSession failed, falling back to password login:', setError);
+                    } else {
+                        loginSession = setData?.session || prebuilt;
+                    }
+                }
+
+                if (!loginSession) {
+                    console.log('🔑 No backend session; auto-signing in with password (fallback)');
+                    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    if (loginError) {
+                        console.error('❌ Auto-login failed:', loginError);
+                        await Swal.fire({
+                            title: 'Registration Complete',
+                            text: `Welcome ${fullName}! Your account is active, but we could not automatically sign you in. Please log in manually.`,
+                            icon: 'success',
+                            confirmButtonColor: '#1b8c0c',
+                            confirmButtonText: 'Go to Login'
+                        });
+                        window.location.href = 'student-login.html';
+                        return;
+                    }
+                    loginSession = loginData?.session;
+                }
+
+                console.log('✅ Auto-login successful', loginSession);
+
+                await Swal.fire({
+                    title: 'Registration Successful! 🎉',
+                    text: `Welcome ${fullName}! You are now being redirected to your dashboard.`,
+                    icon: 'success',
+                    confirmButtonColor: '#1b8c0c',
+                    confirmButtonText: 'Continue'
+                });
+
+                window.location.href = 'student-dashboard.html';
+
+            } catch (err) {
+                console.error('❌ Signup error:', err);
+
+                let errorMessage = 'An error occurred during registration. Please try again.';
+                const msg = err.message || '';
+
+                if (msg.includes('User already registered') || msg.includes('already registered')) {
+                    errorMessage = 'This email is already registered. Please login instead.';
+                } else if (msg.includes('duplicate key value') || msg.includes('matric number is already registered')) {
+                    errorMessage = 'This email or matric number is already registered.';
+                } else if (msg) {
+                    errorMessage = msg;
+                }
+
+                await Swal.fire({
+                    title: 'Registration Failed',
+                    text: errorMessage,
+                    icon: 'error',
+                    confirmButtonColor: '#1b8c0c',
+                    confirmButtonText: 'Try Again'
+                });
+
+            } finally {
+                signupButton.disabled = false;
+                signupButton.innerHTML = 'Sign Up';
+            }
+        });
+
+        // Enter key support
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && document.activeElement === confirmPasswordInput) {
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+
+</body>
+
+</html>

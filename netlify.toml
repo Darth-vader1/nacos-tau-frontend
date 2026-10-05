@@ -1,0 +1,15 @@
+[build]
+  functions = "functions"
+  publish = "."
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Environment variables (set these in Netlify dashboard)
+# SUPABASE_URL
+# SUPABASE_SERVICE_ROLE_KEY

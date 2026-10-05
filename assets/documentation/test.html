@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+  <h1>Test Page Works</h1>
+  <script src="config.local.js"></script>
+  <script type="module">
+    import { supabase } from './assets/js/supabase-config.js';
+    console.log('Supabase loaded:', !!supabase);
+  </script>
+</body>
+</html>
