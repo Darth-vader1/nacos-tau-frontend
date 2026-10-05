@@ -1065,8 +1065,9 @@
                 <input type="text" class="form-control" id="hk-tracks" placeholder="e.g. FinTech & Payments, HealthTech, AI & Automation, Smart Campus">
               </div>
               <div class="col-md-12">
-                <label class="form-label">Banner Image URL</label>
-                <input type="url" class="form-control" id="hk-banner" placeholder="https://example.com/banner.jpg">
+                <label class="form-label">Banner Image (optional)</label>
+                <input type="file" class="form-control" id="hk-banner" accept="image/jpeg,image/png,image/jpg,image/webp">
+                <small class="text-muted">Max size: 3MB. Allowed formats: JPG, PNG, WebP</small>
               </div>
               <div class="col-md-12">
                 <label class="form-label">Overview & Description *</label>
@@ -3005,7 +3006,7 @@ window.deleteEvent = async function(id) {
       const endDate = document.getElementById('hk-end-date').value;
       const maxTeamSize = parseInt(document.getElementById('hk-max-team').value, 10) || 4;
       const status = document.getElementById('hk-status').value;
-      const bannerUrl = document.getElementById('hk-banner').value.trim();
+      const bannerFile = document.getElementById('hk-banner').files[0];
       const description = document.getElementById('hk-description').value.trim();
       const rules = document.getElementById('hk-rules').value.trim();
 
@@ -3022,6 +3023,16 @@ window.deleteEvent = async function(id) {
       submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Publishing...';
 
       try {
+        let bannerUrl = null;
+        if (bannerFile) {
+          if (bannerFile.size > 3 * 1024 * 1024) throw new Error('Banner image must be less than 3MB');
+          const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+          if (!allowedTypes.includes(bannerFile.type)) throw new Error('Invalid banner image format (must be JPG, PNG, or WebP)');
+
+          const up = await uploadFileToStorage('hackathons', bannerFile);
+          bannerUrl = up.fileUrl;
+        }
+
         const payload = {
           title,
           eventType,

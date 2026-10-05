@@ -219,7 +219,10 @@ export const BUCKET_MAP = Object.freeze({
   voting_photos: 'voting-photos',
   'voting-photos': 'voting-photos',
   voting: 'voting-photos',
-  candidates: 'voting-photos'
+  candidates: 'voting-photos',
+  hackathons: 'event-images',
+  'hackathon-banners': 'event-images',
+  hackathon: 'event-images'
 });
 
 /**
