@@ -706,38 +706,17 @@
                     }
                 }
 
-                if (!loginSession) {
-                    console.log('🔑 No backend session; auto-signing in with password (fallback)');
-                    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-                        email: email,
-                        password: password
-                    });
-                    if (loginError) {
-                        console.error('❌ Auto-login failed:', loginError);
-                        await Swal.fire({
-                            title: 'Registration Complete',
-                            text: `Welcome ${fullName}! Your account is active, but we could not automatically sign you in. Please log in manually.`,
-                            icon: 'success',
-                            confirmButtonColor: '#1b8c0c',
-                            confirmButtonText: 'Go to Login'
-                        });
-                        window.location.href = 'student-login.html';
-                        return;
-                    }
-                    loginSession = loginData?.session;
-                }
-
-                console.log('✅ Auto-login successful', loginSession);
-
+                // Since OTP verification is required, loginSession will always be null here.
+                // Redirect straight to verification page instead of trying to auto-login.
                 await Swal.fire({
                     title: 'Registration Successful! 🎉',
-                    text: `Welcome ${fullName}! You are now being redirected to your dashboard.`,
+                    text: `Welcome ${fullName}! We've sent a 6-digit verification code to ${email}. Please check your inbox.`,
                     icon: 'success',
                     confirmButtonColor: '#1b8c0c',
-                    confirmButtonText: 'Continue'
+                    confirmButtonText: 'Verify Email'
                 });
 
-                window.location.href = 'student-dashboard.html';
+                window.location.href = `student-verify.html?email=${encodeURIComponent(email)}`;
 
             } catch (err) {
                 console.error('❌ Signup error:', err);

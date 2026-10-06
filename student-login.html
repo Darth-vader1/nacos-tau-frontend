@@ -458,7 +458,15 @@ const emailRegex = /^[a-zA-Z0-9._%+-]+@(st\.)?tau\.edu\.ng$/;
         if (error.message === 'Invalid login credentials') {
           errorMessage = 'Invalid email or password. Please check your credentials and try again.';
         } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Please check your email inbox and verify your account before logging in.';
+          await Swal.fire({
+            title: 'Email Not Verified',
+            text: 'You must verify your email before logging in.',
+            icon: 'warning',
+            confirmButtonColor: '#1b8c0c',
+            confirmButtonText: 'Enter OTP Code'
+          });
+          window.location.href = `student-verify.html?email=${encodeURIComponent(email)}`;
+          return;
         } else if (error.message.includes('rate limit')) {
           errorMessage = error.message;
         }

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Verify Email | NACOS - Thomas Adewumi University</title>
+
+  <!-- Favicons -->
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Nunito:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <style>
+    .loginForm {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 30px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+    .logo-underlay {
+      display: block;
+      margin: 0 auto 20px;
+      max-width: 80px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      text-align: center;
+      font-size: 24px;
+      letter-spacing: 5px;
+    }
+    .spinner-border {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      vertical-align: text-bottom;
+      border: 0.2em solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spinner-border 0.75s linear infinite;
+    }
+    @keyframes spinner-border {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+
+<body class="starter-page-page">
+  <header id="header" class="header d-flex align-items-center fixed-top" style="justify-content: center;">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center" style="width: 100%;display: flex;justify-content: space-around;">
+      <a href="index.html" class="logo d-flex align-items-center me-auto">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
+        <h1 class="sitename"><span style="color: #1b8c0c;" id="nacos-text">Nigerian Association of Computing Students</span><br id="br"> <strong id="tau-text">Thomas Adewumi University</strong></h1>
+      </a>
+    </div>
+  </header>
+  
+  <main class="main">
+    <div class="page-title" data-aos="fade">
+      <div class="container d-lg-flex justify-content-between align-items-center">
+        <h1 class="mb-2 mb-lg-0">Verify Email</h1>
+      </div>
+    </div>
+    
+    <section id="starter-section" class="starter-section section">
+      <div class="loginForm">
+        <img src="assets/img/tau_logo-removebg-preview.png" class="logo-underlay" alt="TAU Logo">
+        <div class="container section-title" data-aos="fade-up">
+          <h2>Check Your Email</h2>
+          <p>We've sent a 6-digit OTP code to your email address.</p>
+        </div>
+    
+        <div class="container" data-aos="fade-up" style="margin: 0px; padding: 0px;">
+          <form id="verifyForm">
+            <div class="form-group">
+              <label for="otpCode" class="text-center w-100">Enter OTP Code:</label>
+              <input type="text" class="form-control" id="otpCode" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required autocomplete="one-time-code">
+            </div>
+            
+            <div style="display: flex; justify-content: center; margin-top: 20px;">
+              <button type="submit" class="btn btn-primary" id="verifyButton"
+                style="background-color: #1b8c0c; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease-in-out; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);">
+                Verify & Login
+              </button>
+            </div>
+            
+            <div class="text-center mt-4">
+              <a href="#" id="resendBtn" class="text-muted" style="font-size: 14px;">Didn't receive it? Resend Code</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer" class="footer position-relative light-background">
+    <div class="container copyright text-center mt-4 pt-4">
+      <p><span>Copyright</span> © <strong class="px-1 sitename">NACOS - TAU Development Team</strong><br><span>All Rights Reserved.</span></p>
+    </div>
+  </footer>
+
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/aos/aos.js"></script>
+  
+  <script src="assets/js/env.js"></script>
+  <script type="module" src="assets/js/supabase-config.js"></script>
+  
+  <script type="module">
+    import { supabase } from './assets/js/supabase-config.js';
+    
+    // Extract email from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const userEmail = urlParams.get('email');
+    
+    if (!userEmail) {
+      window.location.href = 'student-login.html';
+    }
+    
+    const verifyForm = document.getElementById('verifyForm');
+    const verifyButton = document.getElementById('verifyButton');
+    const otpInput = document.getElementById('otpCode');
+    const resendBtn = document.getElementById('resendBtn');
+    
+    verifyForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const token = otpInput.value.trim();
+      
+      if (!token || token.length !== 6) {
+        Swal.fire('Error', 'Please enter a valid 6-digit code.', 'error');
+        return;
+      }
+      
+      verifyButton.disabled = true;
+      verifyButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Verifying...';
+      
+      try {
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: userEmail,
+          token: token,
+          type: 'signup' // or 'email' depending on how the initial signup was triggered
+        });
+        
+        if (error) {
+          throw error;
+        }
+        
+        await Swal.fire({
+          title: 'Verified!',
+          text: 'Your email has been verified. Redirecting to dashboard...',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        
+        window.location.href = 'student-dashboard.html';
+        
+      } catch (error) {
+        console.error('Verification error:', error);
+        Swal.fire({
+          title: 'Verification Failed',
+          text: error.message || 'Invalid code. Please try again.',
+          icon: 'error',
+          confirmButtonText: 'Try Again',
+          confirmButtonColor: '#1b8c0c'
+        });
+      } finally {
+        verifyButton.disabled = false;
+        verifyButton.innerHTML = 'Verify & Login';
+      }
+    });
+
+    resendBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      resendBtn.style.pointerEvents = 'none';
+      resendBtn.innerText = 'Sending...';
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: userEmail,
+      });
+
+      if (error) {
+        Swal.fire('Error', error.message, 'error');
+      } else {
+        Swal.fire('Sent!', 'A new OTP has been sent to your email.', 'success');
+      }
+
+      setTimeout(() => {
+        resendBtn.innerText = 'Didn\'t receive it? Resend Code';
+        resendBtn.style.pointerEvents = 'auto';
+      }, 60000); // 1 minute cooldown
+    });
+  </script>
+</body>
+</html>
