@@ -182,6 +182,23 @@
           showConfirmButton: false
         });
         
+        // Activate profile in students table
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const sessionToken = sessionData?.session?.access_token;
+          if (sessionToken) {
+            await fetch(`${window.__CONFIG?.apiUrl || window.API_URL || '/api'}/auth/activate-profile`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionToken}`
+              }
+            });
+          }
+        } catch (err) {
+          console.error('Failed to activate profile:', err);
+        }
+
         window.location.href = 'student-dashboard.html';
         
       } catch (error) {

@@ -442,6 +442,12 @@
         </a>
       </li>
       <li class="nav-item">
+        <a href="#broadcasts" class="nav-link" data-section="broadcasts">
+          <i class="bi bi-envelope-paper"></i>
+          <span>Email Broadcasts</span>
+        </a>
+      </li>
+      <li class="nav-item">
         <a href="#payments" class="nav-link" data-section="payments">
           <i class="bi bi-credit-card"></i>
           <span>Payments</span>
@@ -826,6 +832,49 @@
             </div>
             <!-- Results Info -->
             <div class="p-3 text-muted small" id="studentsResultsInfo"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Broadcasts Section -->
+      <div id="broadcasts-section" class="content-section" style="display: none;">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-envelope-paper me-2"></i>Email Broadcasts</span>
+          </div>
+          <div class="card-body">
+            <p class="text-muted">Send beautifully styled emails to all active students. Emails are dispatched safely in batches of 50 to prevent rate-limiting.</p>
+            
+            <form id="broadcastForm">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Template Type *</label>
+                  <select class="form-select" id="broadcast-type" required>
+                    <option value="" disabled selected>Select an official template...</option>
+                    <option value="announcement">📢 General Announcement</option>
+                    <option value="new_resource">📚 New Academic Resource</option>
+                    <option value="new_event">🎉 Upcoming Event</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Email Subject *</label>
+                  <input type="text" class="form-control" id="broadcast-subject" required placeholder="e.g. Important Exam Update">
+                </div>
+              </div>
+              
+              <div id="broadcast-dynamic-fields">
+                <!-- Fields change based on selected template -->
+                <div class="mb-3">
+                  <label class="form-label">Main Message / Description *</label>
+                  <textarea class="form-control" id="broadcast-message" rows="4" required placeholder="Type the main body of your email here..."></textarea>
+                </div>
+              </div>
+              
+              <div class="text-end mt-4">
+                <button type="submit" class="btn btn-admin" id="sendBroadcastBtn">
+                  <i class="bi bi-send me-1"></i> Send to All Students
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -4252,6 +4301,7 @@ window.deleteEvent = async function(id) {
         'career-paths': 'Career Paths',
         events: 'Events',
         hackathons: 'Hackathons & Pitchathons',
+        broadcasts: 'Email Broadcasts',
         payments: 'Payments',
         students: 'Student Verification'
       };
@@ -4362,6 +4412,149 @@ window.deleteEvent = async function(id) {
     
     init();
     
+    // Broadcast Logic
+    const broadcastTypeSelect = document.getElementById('broadcast-type');
+    const dynamicFieldsContainer = document.getElementById('broadcast-dynamic-fields');
+
+    broadcastTypeSelect?.addEventListener('change', (e) => {
+      const type = e.target.value;
+      let html = '';
+      
+      if (type === 'announcement') {
+        html = `
+          <div class="mb-3">
+            <label class="form-label">Announcement Title (Optional)</label>
+            <input type="text" class="form-control" id="broadcast-title" placeholder="Leave empty to use subject">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Main Message *</label>
+            <textarea class="form-control" id="broadcast-message" rows="4" required></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Link URL (Optional)</label>
+            <input type="url" class="form-control" id="broadcast-link" placeholder="https://...">
+          </div>
+        `;
+      } else if (type === 'new_resource') {
+        html = `
+          <div class="mb-3">
+            <label class="form-label">Resource Title *</label>
+            <input type="text" class="form-control" id="broadcast-title" required>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Course Code *</label>
+              <input type="text" class="form-control" id="broadcast-course" required placeholder="e.g. CSC 201">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Resource Type *</label>
+              <input type="text" class="form-control" id="broadcast-resource-type" required placeholder="e.g. Past Question">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Short Description</label>
+            <textarea class="form-control" id="broadcast-message" rows="2"></textarea>
+          </div>
+        `;
+      } else if (type === 'new_event') {
+        html = `
+          <div class="mb-3">
+            <label class="form-label">Event Title *</label>
+            <input type="text" class="form-control" id="broadcast-title" required>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Date *</label>
+              <input type="date" class="form-control" id="broadcast-date" required>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Time</label>
+              <input type="time" class="form-control" id="broadcast-time">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Location</label>
+              <input type="text" class="form-control" id="broadcast-location">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description / Details *</label>
+            <textarea class="form-control" id="broadcast-message" rows="3" required></textarea>
+          </div>
+        `;
+      }
+      
+      dynamicFieldsContainer.innerHTML = html;
+    });
+
+    document.getElementById('broadcastForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('sendBroadcastBtn');
+      const originalText = btn.innerHTML;
+      
+      const type = document.getElementById('broadcast-type').value;
+      const subject = document.getElementById('broadcast-subject').value;
+      const message = document.getElementById('broadcast-message')?.value || '';
+      
+      const payload = { type, subject, message };
+      
+      if (type === 'announcement') {
+        payload.title = document.getElementById('broadcast-title')?.value;
+        payload.link = document.getElementById('broadcast-link')?.value;
+      } else if (type === 'new_resource') {
+        payload.title = document.getElementById('broadcast-title').value;
+        payload.course = document.getElementById('broadcast-course').value;
+        payload.resource_type = document.getElementById('broadcast-resource-type').value;
+      } else if (type === 'new_event') {
+        payload.title = document.getElementById('broadcast-title').value;
+        payload.date = document.getElementById('broadcast-date').value;
+        payload.time = document.getElementById('broadcast-time')?.value;
+        payload.location = document.getElementById('broadcast-location')?.value;
+      }
+
+      const confirm = await Swal.fire({
+        title: 'Send Broadcast?',
+        text: 'This will send an email to ALL active students. Proceed?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#1b8c0c',
+        confirmButtonText: 'Yes, Send It'
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending...';
+      btn.disabled = true;
+
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        
+        const res = await fetch(`${window.__CONFIG?.apiUrl || window.API_URL || '/api'}/emails/broadcast`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || 'Failed to send broadcast');
+
+        Swal.fire('Success!', data.message, 'success');
+        e.target.reset();
+        dynamicFieldsContainer.innerHTML = '';
+        
+      } catch (err) {
+        Swal.fire('Error', err.message, 'error');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    });
+
   </script>
 </body>
 </html>
