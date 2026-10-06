@@ -102,7 +102,7 @@
           <form id="verifyForm">
             <div class="form-group">
               <label for="otpCode" class="text-center w-100">Enter OTP Code:</label>
-              <input type="text" class="form-control" id="otpCode" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required autocomplete="one-time-code">
+              <input type="text" class="form-control" id="otpCode" placeholder="Enter OTP" maxlength="8" pattern="[0-9]{6,8}" required autocomplete="one-time-code">
             </div>
             
             <div style="display: flex; justify-content: center; margin-top: 20px;">
@@ -155,8 +155,8 @@
       
       const token = otpInput.value.trim();
       
-      if (!token || token.length !== 6) {
-        Swal.fire('Error', 'Please enter a valid 6-digit code.', 'error');
+      if (!token || token.length < 6) {
+        Swal.fire('Error', 'Please enter a valid OTP code.', 'error');
         return;
       }
       
