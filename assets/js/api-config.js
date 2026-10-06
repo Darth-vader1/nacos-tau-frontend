@@ -423,6 +423,31 @@ export const api = {
             });
             return response.json();
         }
+    },
+
+    emails: {
+        async previewRecipients(filter = {}) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/emails/preview-recipients`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(filter)
+            });
+            return response.json();
+        },
+        async broadcast(data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/emails/broadcast`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        }
     }
 };
 
