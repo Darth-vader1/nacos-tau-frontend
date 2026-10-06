@@ -280,8 +280,24 @@ export const api = {
     },
 
     hackathons: {
-        async list(status = '') {
-            const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+        async list(filter = {}) {
+            let eventType = '';
+            let status = '';
+            if (typeof filter === 'string') {
+                const lower = filter.trim().toLowerCase();
+                if (lower === 'hackathon' || lower === 'pitchathon') {
+                    eventType = lower;
+                } else if (lower) {
+                    status = lower;
+                }
+            } else if (typeof filter === 'object' && filter !== null) {
+                eventType = filter.event_type || filter.eventType || '';
+                status = filter.status || '';
+            }
+            const params = new URLSearchParams();
+            if (eventType) params.set('event_type', eventType);
+            if (status) params.set('status', status);
+            const qs = params.toString() ? `?${params.toString()}` : '';
             const response = await fetch(`${API_URL}/hackathons${qs}`);
             return response.json();
         },
@@ -350,6 +366,17 @@ export const api = {
                     'Authorization': `Bearer ${session?.access_token}`
                 },
                 body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+        async adminUpdateStatus(hackathonId, status) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('PATCH', `${API_URL}/hackathons/admin/${hackathonId}/status`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({ status })
             });
             return response.json();
         }

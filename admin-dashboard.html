@@ -1032,8 +1032,8 @@
                 <input type="text" class="form-control" id="hk-location" placeholder="e.g. TAU ICT Complex / Virtual">
               </div>
               <div class="col-md-4">
-                <label class="form-label">Prize Pool</label>
-                <input type="text" class="form-control" id="hk-prizepool" placeholder="e.g. ₦300,000 + Tech Internship">
+                <label class="form-label">Prize Pool / Breakdown</label>
+                <input type="text" class="form-control" id="hk-prizepool" placeholder="e.g. ₦300,000 (1st: ₦150k, 2nd: ₦100k, 3rd: ₦50k)">
               </div>
               <div class="col-md-4">
                 <label class="form-label">Registration Deadline *</label>
@@ -1057,7 +1057,7 @@
                   <option value="upcoming">Upcoming</option>
                   <option value="ongoing">Ongoing</option>
                   <option value="voting">Judging / Voting</option>
-                  <option value="past">Past / Concluded</option>
+                  <option value="completed">Past / Concluded (Hall of Fame)</option>
                 </select>
               </div>
               <div class="col-md-12">
@@ -1094,7 +1094,13 @@
       <div class="modal-content">
         <div class="modal-header">
           <div>
-            <h5 class="modal-title mb-0" id="manageHkTitle"><i class="bi bi-people-fill me-2"></i>Hackathon Management</h5>
+            <div class="d-flex align-items-center gap-2">
+              <h5 class="modal-title mb-0" id="manageHkTitle"><i class="bi bi-people-fill me-2"></i>Hackathon Management</h5>
+              <span id="manageHkStatusBadge" class="badge bg-primary">UPCOMING</span>
+              <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px;" onclick="promptChangeCurrentHackathonStatus()" title="Change competition status">
+                <i class="bi bi-pencil-square"></i> Change Status
+              </button>
+            </div>
             <small class="text-muted" id="manageHkSubtitle">View participants, teams, and project submissions</small>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -1137,6 +1143,12 @@
 
             <!-- Submissions Tab -->
             <div class="tab-pane fade" id="submissions-tab-pane" role="tabpanel">
+              <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Assigned winners will be featured in the <strong>Hall of Fame</strong> once the event is marked <strong>Completed / Hall of Fame</strong>.</small>
+                <button class="btn btn-sm btn-success rounded-pill px-3" onclick="openManualAddSubmissionModal()">
+                  <i class="bi bi-plus-circle me-1"></i> Add Winner / Submission
+                </button>
+              </div>
               <div class="table-responsive">
                 <table class="table table-hover align-middle">
                   <thead>
@@ -2952,10 +2964,11 @@ window.deleteEvent = async function(id) {
 
         tbody.innerHTML = data.map(h => {
           let statusBadge = 'bg-secondary';
-          if (h.status === 'upcoming') statusBadge = 'bg-primary';
-          else if (h.status === 'ongoing') statusBadge = 'bg-success';
-          else if (h.status === 'voting') statusBadge = 'bg-warning text-dark';
-          else if (h.status === 'past') statusBadge = 'bg-dark';
+          const st = (h.status || 'upcoming').toLowerCase();
+          if (st === 'upcoming') statusBadge = 'bg-primary';
+          else if (st === 'ongoing') statusBadge = 'bg-success';
+          else if (st === 'voting' || st === 'judging') statusBadge = 'bg-warning text-dark';
+          else if (st === 'completed' || st === 'past') statusBadge = 'bg-dark';
 
           const typeBadge = h.event_type === 'pitchathon'
             ? '<span class="badge bg-purple" style="background:#6f42c1;">Pitchathon</span>'
@@ -2972,10 +2985,17 @@ window.deleteEvent = async function(id) {
               <td>${typeBadge}</td>
               <td><small>${dates}</small></td>
               <td>${h.min_team_size || 1} - ${h.max_team_size || 4} members</td>
-              <td><span class="badge ${statusBadge}">${escapeHtml(h.status || 'upcoming')}</span></td>
               <td>
-                <button class="btn btn-sm btn-outline-primary me-1" onclick="manageHackathon('${h.id}', '${escapeHtml(h.title)}')">
+                <span class="badge ${statusBadge}" style="cursor: pointer;" onclick="changeHackathonStatus('${h.id}', '${h.status || 'upcoming'}', '${escapeHtml(h.title)}')" title="Click to change status">
+                  ${escapeHtml(h.status || 'upcoming')} <i class="bi bi-pencil-fill ms-1" style="font-size: 9px;"></i>
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="manageHackathon('${h.id}', '${escapeHtml(h.title)}', '${escapeHtml(h.status || 'upcoming')}', '${escapeHtml(h.prize_pool || '')}')">
                   <i class="bi bi-people"></i> Manage
+                </button>
+                <button class="btn btn-sm btn-outline-secondary me-1" onclick="changeHackathonStatus('${h.id}', '${h.status || 'upcoming'}', '${escapeHtml(h.title)}')">
+                  <i class="bi bi-arrow-repeat"></i> Status
                 </button>
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteHackathon('${h.id}')">
                   <i class="bi bi-trash"></i>
@@ -3157,14 +3177,325 @@ window.deleteEvent = async function(id) {
       }
     };
 
-    window.manageHackathon = async function(hackathonId, hackathonTitle) {
+    let currentManagingHackathonStatus = 'upcoming';
+    let currentManagingHackathonTitle = '';
+    let currentManagingHackathonPrizePool = '';
+
+    window.manageHackathon = async function(hackathonId, hackathonTitle, hackathonStatus = 'upcoming', hackathonPrizePool = '') {
       currentManagingHackathonId = hackathonId;
+      currentManagingHackathonTitle = hackathonTitle;
+      currentManagingHackathonStatus = hackathonStatus;
+      currentManagingHackathonPrizePool = hackathonPrizePool;
       document.getElementById('manageHkTitle').textContent = `Manage: ${hackathonTitle}`;
+      const subtitleEl = document.getElementById('manageHkSubtitle');
+      if (subtitleEl) {
+        subtitleEl.innerHTML = 'View participants, teams, and project submissions' +
+          (hackathonPrizePool ? ` &bull; <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5"><i class="bi bi-gift-fill me-1"></i>Prize Pool: ${escapeHtml(hackathonPrizePool)}</span>` : '');
+      }
+      updateManageModalStatusBadge(hackathonStatus);
+
       const modalEl = document.getElementById('manageHackathonModal');
       const bsModal = new bootstrap.Modal(modalEl);
       bsModal.show();
 
       await reloadHackathonParticipants();
+    };
+
+    function updateManageModalStatusBadge(status) {
+      const badge = document.getElementById('manageHkStatusBadge');
+      if (!badge) return;
+      const st = (status || 'upcoming').toLowerCase();
+      let text = st.toUpperCase();
+      if (st === 'voting' || st === 'judging') text = 'JUDGING / VOTING';
+      else if (st === 'completed' || st === 'past') text = 'HALL OF FAME';
+      else if (st === 'ongoing') text = 'LIVE / ONGOING';
+      else text = 'UPCOMING';
+
+      badge.textContent = text;
+      badge.className = 'badge ' + (
+        st === 'ongoing' ? 'bg-success' :
+        (st === 'completed' || st === 'past') ? 'bg-dark' :
+        (st === 'voting' || st === 'judging') ? 'bg-warning text-dark' : 'bg-primary'
+      );
+    }
+
+    window.promptChangeCurrentHackathonStatus = function() {
+      if (!currentManagingHackathonId) return;
+      changeHackathonStatus(currentManagingHackathonId, currentManagingHackathonStatus, currentManagingHackathonTitle);
+    };
+
+    window.changeHackathonStatus = async function(id, currentStatus, title) {
+      const currNorm = (currentStatus || 'upcoming').toLowerCase();
+      const isUpcoming = currNorm === 'upcoming';
+      const isOngoing = currNorm === 'ongoing';
+      const isVoting = currNorm === 'voting' || currNorm === 'judging';
+      const isCompleted = currNorm === 'completed' || currNorm === 'past';
+
+      const { value: newStatus } = await Swal.fire({
+        title: `Update Competition Status`,
+        html: `
+          <div class="text-start">
+            <p class="small text-muted mb-3"><strong>${escapeHtml(title)}</strong></p>
+            <p class="small text-muted mb-2">Select the new lifecycle status:</p>
+            <div class="form-check mb-2.5">
+              <input class="form-check-input" type="radio" name="swal-status" id="st-upcoming" value="upcoming" ${isUpcoming ? 'checked' : ''}>
+              <label class="form-check-label" for="st-upcoming">
+                <strong>Upcoming</strong> <span class="text-muted small">- Open for team registration</span>
+              </label>
+            </div>
+            <div class="form-check mb-2.5">
+              <input class="form-check-input" type="radio" name="swal-status" id="st-ongoing" value="ongoing" ${isOngoing ? 'checked' : ''}>
+              <label class="form-check-label" for="st-ongoing">
+                <strong>Ongoing</strong> <span class="text-muted small">- Hacking / Building in progress</span>
+              </label>
+            </div>
+            <div class="form-check mb-2.5">
+              <input class="form-check-input" type="radio" name="swal-status" id="st-voting" value="voting" ${isVoting ? 'checked' : ''}>
+              <label class="form-check-label" for="st-voting">
+                <strong>Judging / Voting</strong> <span class="text-muted small">- Reviewing pitches & projects</span>
+              </label>
+            </div>
+            <div class="form-check mb-2.5">
+              <input class="form-check-input" type="radio" name="swal-status" id="st-completed" value="completed" ${isCompleted ? 'checked' : ''}>
+              <label class="form-check-label" for="st-completed">
+                <strong>Completed / Hall of Fame</strong> <span class="text-success small fw-semibold">- Concluded & visible in Hall of Fame</span>
+              </label>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Update Status',
+        confirmButtonColor: '#1b8c0c',
+        preConfirm: () => {
+          const selected = document.querySelector('input[name="swal-status"]:checked');
+          return selected ? selected.value : null;
+        }
+      });
+
+      if (!newStatus || newStatus === currentStatus) return;
+
+      try {
+        let updated = false;
+        try {
+          if (window.api && api.hackathons && api.hackathons.adminUpdateStatus) {
+            const res = await api.hackathons.adminUpdateStatus(id, newStatus);
+            if (res && res.success) updated = true;
+          }
+        } catch (apiErr) {
+          console.warn('[changeHackathonStatus] Backend API failed, falling back to direct Supabase:', apiErr);
+        }
+
+        if (!updated) {
+          const { error } = await supabase
+            .from('hackathons')
+            .update({ status: newStatus, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+          if (error) throw error;
+        }
+
+        await logAdminAction('UPDATE_STATUS', 'hackathon', id, { previous: currentStatus, new: newStatus });
+        Swal.fire('Updated', `Competition status successfully updated to "${newStatus}".`, 'success');
+
+        if (currentManagingHackathonId === id) {
+          currentManagingHackathonStatus = newStatus;
+          updateManageModalStatusBadge(newStatus);
+        }
+
+        loadHackathons();
+      } catch (err) {
+        console.error('Error updating hackathon status:', err);
+        Swal.fire('Error', err.message || 'Failed to update status', 'error');
+      }
+    };
+
+    window.openManualAddSubmissionModal = async function() {
+      if (!currentManagingHackathonId) return;
+      const { value: form } = await Swal.fire({
+        title: 'Add Winner / Project Submission',
+        width: '650px',
+        html: `
+          <div class="text-start">
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small fw-bold">Team Name *</label>
+                <input type="text" id="manual-team-name" class="form-control form-control-sm" placeholder="e.g. Innovators" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-bold">Project Title *</label>
+                <input type="text" id="manual-project-title" class="form-control form-control-sm" placeholder="e.g. Campus Ride" required>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-bold">Tagline</label>
+              <input type="text" id="manual-tagline" class="form-control form-control-sm" placeholder="e.g. Smart campus ride sharing">
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-bold">Description / Overview</label>
+              <textarea id="manual-description" class="form-control form-control-sm" rows="2" placeholder="Summary of the project and problem solved..."></textarea>
+            </div>
+            <div class="mb-2">
+              <label class="form-label small fw-bold">Technologies Used (comma-separated)</label>
+              <input type="text" id="manual-tech" class="form-control form-control-sm" placeholder="e.g. React, Node.js, Python">
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label small fw-bold">Live Demo URL</label>
+                <input type="url" id="manual-demo" class="form-control form-control-sm" placeholder="https://...">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-bold">Code Repo URL</label>
+                <input type="url" id="manual-github" class="form-control form-control-sm" placeholder="https://github.com/...">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-bold">Pitch Deck URL</label>
+                <input type="url" id="manual-slides" class="form-control form-control-sm" placeholder="https://...">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-bold">Video Link</label>
+                <input type="url" id="manual-video" class="form-control form-control-sm" placeholder="https://youtube.com/...">
+              </div>
+            </div>
+            <hr class="my-2">
+            ${currentManagingHackathonPrizePool ? `<div class="p-2 mb-2 bg-light rounded border small text-muted"><i class="bi bi-trophy-fill text-warning me-1"></i><strong>Prize Pool:</strong> <span class="text-dark fw-semibold">${escapeHtml(currentManagingHackathonPrizePool)}</span></div>` : ''}
+            <div class="mb-2">
+              <label class="form-label small fw-bold">Winner Position / Rank *</label>
+              <select id="manual-position" class="form-select form-select-sm" onchange="(function(el){
+                const pos = el.value;
+                const awardInput = document.getElementById('manual-award-title');
+                const rankInput = document.getElementById('manual-ranking');
+                const winnerCheck = document.getElementById('manual-is-winner');
+                if (pos === '1') {
+                  awardInput.value = '1st Place Winner';
+                  rankInput.value = 1;
+                  winnerCheck.checked = true;
+                } else if (pos === '2') {
+                  awardInput.value = '2nd Place Winner';
+                  rankInput.value = 2;
+                  winnerCheck.checked = true;
+                } else if (pos === '3') {
+                  awardInput.value = '3rd Place Winner';
+                  rankInput.value = 3;
+                  winnerCheck.checked = true;
+                } else if (pos === '4') {
+                  awardInput.value = '4th Place';
+                  rankInput.value = 4;
+                  winnerCheck.checked = true;
+                } else if (pos === '5') {
+                  awardInput.value = '5th Place';
+                  rankInput.value = 5;
+                  winnerCheck.checked = true;
+                } else if (pos === 'custom') {
+                  awardInput.value = 'Special Recognition / Best Pitch';
+                  rankInput.value = '';
+                  winnerCheck.checked = true;
+                } else {
+                  awardInput.value = '';
+                  rankInput.value = '';
+                  winnerCheck.checked = false;
+                }
+              })(this)">
+                <option value="1" selected>🥇 1st Place (First Position - Gold)</option>
+                <option value="2">🥈 2nd Place (Second Position - Silver)</option>
+                <option value="3">🥉 3rd Place (Third Position - Bronze)</option>
+                <option value="4">🎖️ 4th Place (Fourth Position)</option>
+                <option value="5">🎖️ 5th Place (Fifth Position)</option>
+                <option value="custom">⭐ Special / Category Award</option>
+                <option value="none">📋 Participant Only (Not a Winner)</option>
+              </select>
+            </div>
+            <div class="row g-2 mb-2">
+              <div class="col-8">
+                <label class="form-label small fw-bold">Award Title / Prize Detail</label>
+                <input type="text" id="manual-award-title" class="form-control form-control-sm" placeholder="e.g. 1st Place Winner - ₦150,000" value="1st Place Winner">
+              </div>
+              <div class="col-4">
+                <label class="form-label small fw-bold">Rank (#)</label>
+                <input type="number" id="manual-ranking" class="form-control form-control-sm" value="1" min="1" max="50">
+              </div>
+            </div>
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" id="manual-is-winner" checked>
+              <label class="form-check-label small fw-bold" for="manual-is-winner">Feature in Hall of Fame</label>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Add to Records',
+        confirmButtonColor: '#1b8c0c',
+        preConfirm: () => {
+          const teamName = document.getElementById('manual-team-name').value.trim();
+          const projectTitle = document.getElementById('manual-project-title').value.trim();
+          if (!teamName || !projectTitle) {
+            Swal.showValidationMessage('Team Name and Project Title are required.');
+            return false;
+          }
+          return {
+            teamName,
+            projectTitle,
+            tagline: document.getElementById('manual-tagline').value.trim(),
+            description: document.getElementById('manual-description').value.trim(),
+            techStack: document.getElementById('manual-tech').value.split(',').map(t => t.trim()).filter(Boolean),
+            demoUrl: document.getElementById('manual-demo').value.trim(),
+            githubUrl: document.getElementById('manual-github').value.trim(),
+            pitchDeckUrl: document.getElementById('manual-slides').value.trim(),
+            videoUrl: document.getElementById('manual-video').value.trim(),
+            isWinner: document.getElementById('manual-is-winner').checked,
+            awardTitle: document.getElementById('manual-award-title').value.trim(),
+            ranking: document.getElementById('manual-ranking').value ? parseInt(document.getElementById('manual-ranking').value, 10) : null
+          };
+        }
+      });
+
+      if (!form) return;
+
+      try {
+        const session = await checkAuth();
+        const adminId = session?.user?.id;
+
+        // 1. Insert Registration
+        const { data: reg, error: regErr } = await supabase
+          .from('hackathon_registrations')
+          .insert([{
+            hackathon_id: currentManagingHackathonId,
+            team_name: form.teamName,
+            leader_id: adminId,
+            track_selected: 'General',
+            status: 'submitted',
+            team_members: [{ name: form.teamName + ' Leader', role: 'Leader' }]
+          }])
+          .select()
+          .single();
+
+        if (regErr) throw regErr;
+
+        // 2. Insert Submission
+        const { error: subErr } = await supabase
+          .from('hackathon_submissions')
+          .insert([{
+            hackathon_id: currentManagingHackathonId,
+            registration_id: reg.id,
+            project_title: form.projectTitle,
+            tagline: form.tagline || null,
+            description: form.description || null,
+            tech_stack: form.techStack,
+            demo_url: form.demoUrl || null,
+            github_url: form.githubUrl || null,
+            pitch_deck_url: form.pitchDeckUrl || null,
+            video_url: form.videoUrl || null,
+            is_winner: form.isWinner,
+            award_title: form.awardTitle || null,
+            ranking: form.ranking
+          }]);
+
+        if (subErr) throw subErr;
+
+        Swal.fire('Success', 'Project submission and award added successfully!', 'success');
+        reloadHackathonParticipants();
+      } catch (err) {
+        console.error('Error manually adding submission:', err);
+        Swal.fire('Error', err.message || 'Failed to add submission', 'error');
+      }
     };
 
     async function reloadHackathonParticipants() {
@@ -3409,9 +3740,20 @@ window.deleteEvent = async function(id) {
           subsTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No project submissions yet</td></tr>';
         } else {
           subsTbody.innerHTML = submissions.map(s => {
-            let awardBadge = '<span class="badge bg-light text-muted">Participant</span>';
+            let awardBadge = '<span class="badge bg-light text-muted border">Participant</span>';
             if (s.is_winner) {
-              awardBadge = `<span class="badge bg-warning text-dark"><i class="bi bi-trophy-fill me-1"></i>${escapeHtml(s.award_title || 'Winner')} ${s.ranking ? `(#${s.ranking})` : ''}</span>`;
+              const r = parseInt(s.ranking, 10);
+              if (r === 1) {
+                awardBadge = `<span class="badge bg-warning text-dark border border-warning shadow-sm"><i class="bi bi-trophy-fill me-1 text-dark"></i>🥇 1st Place (${escapeHtml(s.award_title || 'Champion')})</span>`;
+              } else if (r === 2) {
+                awardBadge = `<span class="badge bg-light text-dark border border-secondary shadow-sm"><i class="bi bi-award-fill me-1 text-secondary"></i>🥈 2nd Place (${escapeHtml(s.award_title || 'Runner Up')})</span>`;
+              } else if (r === 3) {
+                awardBadge = `<span class="badge bg-danger-subtle text-danger border border-danger shadow-sm"><i class="bi bi-award-fill me-1 text-danger"></i>🥉 3rd Place (${escapeHtml(s.award_title || '3rd')})</span>`;
+              } else if (r > 3) {
+                awardBadge = `<span class="badge bg-info-subtle text-primary border shadow-sm"><i class="bi bi-award me-1"></i>🎖️ ${r}th Place (${escapeHtml(s.award_title || 'Ranked')})</span>`;
+              } else {
+                awardBadge = `<span class="badge bg-warning-subtle text-dark border border-warning"><i class="bi bi-star-fill me-1 text-warning"></i>⭐ ${escapeHtml(s.award_title || 'Winner')}</span>`;
+              }
             }
 
             const links = [];
@@ -3659,31 +4001,98 @@ window.deleteEvent = async function(id) {
     };
 
     window.promptAssignWinner = async function(subId, projectTitle, isWinnerNow, awardTitleNow, rankingNow, feedbackNow) {
+      let initialPosition = 'none';
+      if (isWinnerNow) {
+        const rStr = String(rankingNow || '');
+        if (['1', '2', '3', '4', '5'].includes(rStr)) {
+          initialPosition = rStr;
+        } else {
+          initialPosition = 'custom';
+        }
+      }
+
       const { value: formValues } = await Swal.fire({
-        title: `Assign Award: ${projectTitle}`,
+        title: `Assign Winner & Prize Position`,
+        width: '600px',
         html: `
           <div class="text-start">
+            <div class="p-2.5 mb-3 bg-light rounded border">
+              <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-folder-check me-1 text-success"></i> ${escapeHtml(projectTitle)}</h6>
+              ${currentManagingHackathonPrizePool ? `<div class="small text-muted mt-1"><i class="bi bi-trophy-fill text-warning me-1"></i><strong>Prize Pool:</strong> <span class="text-dark fw-semibold">${escapeHtml(currentManagingHackathonPrizePool)}</span></div>` : ''}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Select Winner Position / Rank *</label>
+              <select id="swal-position" class="form-select form-select-sm" onchange="(function(el){
+                const pos = el.value;
+                const awardInput = document.getElementById('swal-award');
+                const rankInput = document.getElementById('swal-rank');
+                const winnerCheck = document.getElementById('swal-winner');
+                if (pos === '1') {
+                  awardInput.value = '1st Place Winner';
+                  rankInput.value = 1;
+                  winnerCheck.checked = true;
+                } else if (pos === '2') {
+                  awardInput.value = '2nd Place Winner';
+                  rankInput.value = 2;
+                  winnerCheck.checked = true;
+                } else if (pos === '3') {
+                  awardInput.value = '3rd Place Winner';
+                  rankInput.value = 3;
+                  winnerCheck.checked = true;
+                } else if (pos === '4') {
+                  awardInput.value = '4th Place';
+                  rankInput.value = 4;
+                  winnerCheck.checked = true;
+                } else if (pos === '5') {
+                  awardInput.value = '5th Place';
+                  rankInput.value = 5;
+                  winnerCheck.checked = true;
+                } else if (pos === 'custom') {
+                  if (!awardInput.value || awardInput.value.includes('Place')) awardInput.value = 'Special Recognition / Best Pitch';
+                  rankInput.value = '';
+                  winnerCheck.checked = true;
+                } else {
+                  awardInput.value = '';
+                  rankInput.value = '';
+                  winnerCheck.checked = false;
+                }
+              })(this)">
+                <option value="1" ${initialPosition === '1' ? 'selected' : ''}>🥇 1st Place (First Position - Gold)</option>
+                <option value="2" ${initialPosition === '2' ? 'selected' : ''}>🥈 2nd Place (Second Position - Silver)</option>
+                <option value="3" ${initialPosition === '3' ? 'selected' : ''}>🥉 3rd Place (Third Position - Bronze)</option>
+                <option value="4" ${initialPosition === '4' ? 'selected' : ''}>🎖️ 4th Place (Fourth Position)</option>
+                <option value="5" ${initialPosition === '5' ? 'selected' : ''}>🎖️ 5th Place (Fifth Position)</option>
+                <option value="custom" ${initialPosition === 'custom' ? 'selected' : ''}>⭐ Special / Category Award (e.g. Best Pitch, Most Innovative)</option>
+                <option value="none" ${initialPosition === 'none' ? 'selected' : ''}>📋 Participant Only (Not a Winner)</option>
+              </select>
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-8">
+                <label class="form-label small fw-bold">Award Title / Prize Detail</label>
+                <input type="text" id="swal-award" class="form-control form-control-sm" placeholder="e.g. 1st Place Winner - ₦150,000" value="${escapeHtml(awardTitleNow || (initialPosition === '1' ? '1st Place Winner' : initialPosition === '2' ? '2nd Place Winner' : initialPosition === '3' ? '3rd Place Winner' : ''))}">
+              </div>
+              <div class="col-4">
+                <label class="form-label small fw-bold">Rank (#)</label>
+                <input type="number" id="swal-rank" class="form-control form-control-sm" placeholder="1, 2, 3..." value="${rankingNow || (['1','2','3','4','5'].includes(initialPosition) ? initialPosition : '')}">
+              </div>
+            </div>
+
             <div class="form-check form-switch mb-3">
-              <input class="form-check-input" type="checkbox" id="swal-winner" ${isWinnerNow ? 'checked' : ''}>
-              <label class="form-check-label" for="swal-winner">Mark as Award Winner / Hall of Fame</label>
+              <input class="form-check-input" type="checkbox" id="swal-winner" ${isWinnerNow || ['1','2','3','4','5','custom'].includes(initialPosition) ? 'checked' : ''}>
+              <label class="form-check-label small fw-bold" for="swal-winner">Feature this team in Hall of Fame & Archives</label>
             </div>
-            <div class="mb-3">
-              <label class="form-label small fw-bold">Award Title</label>
-              <input type="text" id="swal-award" class="form-control" placeholder="e.g. 1st Place Winner, Best Pitch, Most Innovative" value="${awardTitleNow || ''}">
-            </div>
-            <div class="mb-3">
-              <label class="form-label small fw-bold">Ranking Position (Optional)</label>
-              <input type="number" id="swal-rank" class="form-control" placeholder="1, 2, 3..." value="${rankingNow || ''}">
-            </div>
+
             <div class="mb-2">
-              <label class="form-label small fw-bold">Judge / Reviewer Feedback</label>
-              <textarea id="swal-feedback" class="form-control" rows="2" placeholder="Constructive feedback for the team...">${feedbackNow || ''}</textarea>
+              <label class="form-label small fw-bold">Judge / Evaluator Feedback</label>
+              <textarea id="swal-feedback" class="form-control form-control-sm" rows="2" placeholder="Constructive feedback, evaluation remarks, or prize claim notes...">${escapeHtml(feedbackNow || '')}</textarea>
             </div>
           </div>
         `,
         focusConfirm: false,
         showCancelButton: true,
-        confirmButtonText: 'Save Award',
+        confirmButtonText: 'Save Award & Position',
         confirmButtonColor: '#1b8c0c',
         preConfirm: () => {
           return {
