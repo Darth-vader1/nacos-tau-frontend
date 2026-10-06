@@ -2925,6 +2925,7 @@ window.deleteEvent = async function(id) {
     // ============================================
 
     let currentManagingHackathonId = null;
+    let currentHackathonRegistrations = [];
 
     async function loadHackathons() {
       const tbody = document.getElementById('hackathons-table-body');
@@ -3201,6 +3202,130 @@ window.deleteEvent = async function(id) {
           registrations = supaRegs || [];
         }
 
+        // Direct query for submissions to guarantee they always populate
+        let directSubs = [];
+        try {
+          const { data: dSubs, error: dErr } = await supabase
+            .from('hackathon_submissions')
+            .select('*')
+            .eq('hackathon_id', currentManagingHackathonId);
+          if (!dErr && Array.isArray(dSubs)) {
+            directSubs = dSubs;
+          }
+        } catch (subErr) {
+          console.warn('[manageHackathon] Error loading direct submissions:', subErr);
+        }
+
+        const subByRegId = new Map();
+        directSubs.forEach(s => {
+          if (s.registration_id) subByRegId.set(String(s.registration_id), s);
+        });
+
+        // Normalize submission object on every registration
+        registrations.forEach(r => {
+          let s = subByRegId.get(String(r.id)) || null;
+          if (!s && r.submission) {
+            s = Array.isArray(r.submission) ? (r.submission[0] || null) : r.submission;
+          }
+          r.submission = s;
+        });
+
+        // Multi-tiered leader profile resolution
+        registrations.forEach(r => {
+          // Check embedded [LEADER_META] in team_members
+          if (!r.leaderProfile && Array.isArray(r.team_members)) {
+            const leaderMeta = r.team_members.find(m => m && m.name === '[LEADER_META]');
+            if (leaderMeta) {
+              r.leaderProfile = {
+                first_name: leaderMeta.leader_name || '',
+                last_name: '',
+                name: leaderMeta.leader_name || '',
+                email: leaderMeta.email || '',
+                matric_no: leaderMeta.matric_no || '',
+                phone: leaderMeta.phone || '',
+                department: leaderMeta.department || '',
+                current_level: leaderMeta.current_level || ''
+              };
+            }
+          }
+
+          // Check in-memory allStudents (loaded at admin dashboard init)
+          if (!r.leaderProfile && Array.isArray(allStudents) && allStudents.length > 0 && r.leader_id) {
+            const found = allStudents.find(s => 
+              String(s.user_id || '').toLowerCase() === String(r.leader_id).toLowerCase() ||
+              String(s.id || '').toLowerCase() === String(r.leader_id).toLowerCase()
+            );
+            if (found) {
+              r.leaderProfile = found;
+            }
+          }
+        });
+
+        // If any registrations still lack leaderProfile, fetch from students
+        const missingLeaderIds = (registrations || [])
+          .filter(r => !r.leaderProfile && r.leader_id)
+          .map(r => r.leader_id);
+
+        if (missingLeaderIds.length > 0) {
+          try {
+            // Tier 1: Try api.students.list
+            try {
+              const res = await api.students.list({ limit: 500 });
+              if (res?.success && Array.isArray(res.data?.students) && res.data.students.length > 0) {
+                allStudents = res.data.students;
+                registrations.forEach(r => {
+                  if (!r.leaderProfile && r.leader_id) {
+                    const found = allStudents.find(s => 
+                      String(s.user_id || '').toLowerCase() === String(r.leader_id).toLowerCase() ||
+                      String(s.id || '').toLowerCase() === String(r.leader_id).toLowerCase()
+                    );
+                    if (found) r.leaderProfile = found;
+                  }
+                });
+              }
+            } catch (e) {
+              console.warn('[reloadHackathonParticipants] api.students.list fallback:', e);
+            }
+
+            // Tier 2: Direct Supabase query with wildcard (select '*')
+            const stillMissing = registrations.filter(r => !r.leaderProfile && r.leader_id).map(r => r.leader_id);
+            if (stillMissing.length > 0) {
+              let studentsData = null;
+              try {
+                const { data } = await supabase
+                  .from('students_with_current_level')
+                  .select('*')
+                  .in('user_id', stillMissing);
+                if (data && data.length) studentsData = data;
+              } catch (_) {}
+
+              if (!studentsData || studentsData.length === 0) {
+                const { data } = await supabase
+                  .from('students')
+                  .select('*')
+                  .in('user_id', stillMissing);
+                if (data && data.length) studentsData = data;
+              }
+
+              if (studentsData && studentsData.length > 0) {
+                const studentMap = new Map();
+                studentsData.forEach(s => {
+                  if (s.user_id) studentMap.set(String(s.user_id).toLowerCase(), s);
+                  if (s.id) studentMap.set(String(s.id).toLowerCase(), s);
+                });
+                registrations.forEach(r => {
+                  if (!r.leaderProfile && r.leader_id && studentMap.has(String(r.leader_id).toLowerCase())) {
+                    r.leaderProfile = studentMap.get(String(r.leader_id).toLowerCase());
+                  }
+                });
+              }
+            }
+          } catch (stErr) {
+            console.warn('[reloadHackathonParticipants] Error loading leader profiles:', stErr);
+          }
+        }
+
+        currentHackathonRegistrations = registrations;
         document.getElementById('count-teams').textContent = registrations.length;
 
         // Render teams
@@ -3208,27 +3333,56 @@ window.deleteEvent = async function(id) {
           teamsTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No registered teams yet</td></tr>';
         } else {
           teamsTbody.innerHTML = registrations.map(r => {
-            const memberCount = (Array.isArray(r.team_members) ? r.team_members.length : 0) + 1;
-            const membersList = Array.isArray(r.team_members)
-              ? r.team_members.map(m => escapeHtml(m.name || m.email || 'Member')).join(', ')
-              : 'Solo';
+            const rawMembers = Array.isArray(r.team_members) ? r.team_members : [];
+            const metaReq = rawMembers.find(m => m && m.name === '[ROLE_REQ]');
+            const actualMembers = rawMembers.filter(m => m && m.name !== '[ROLE_REQ]' && m.name !== '[LEADER_META]');
+            const memberCount = actualMembers.length + 1; // +1 includes leader
 
-            const sub = r.submission && r.submission.length ? r.submission[0] : null;
+            const leader = r.leaderProfile || {};
+            const leaderName = (leader.first_name || leader.last_name)
+              ? `${leader.first_name || ''} ${leader.last_name || ''}`.trim()
+              : (leader.name || `Leader (${String(r.leader_id || '').substring(0, 8)}...)`);
+            const leaderEmail = leader.email || '';
+            const leaderMatric = leader.matric_no || '';
+            const leaderDept = leader.department ? `${leader.department}${leader.current_level ? ` (${leader.current_level}L)` : ''}` : '';
+
+            const sub = r.submission;
 
             return `
               <tr>
                 <td><strong>${escapeHtml(r.team_name)}</strong></td>
                 <td><span class="badge bg-light text-dark border">${escapeHtml(r.track_selected || 'General')}</span></td>
-                <td>Leader ID: <code>${escapeHtml(String(r.leader_id).substring(0, 8))}...</code></td>
                 <td>
-                  <span class="badge bg-secondary">${memberCount} members</span>
-                  <br><small class="text-muted">${membersList}</small>
+                  <div>
+                    <strong class="d-block text-dark">${escapeHtml(leaderName)}</strong>
+                    ${leaderEmail ? `<div class="small text-muted"><i class="bi bi-envelope me-1"></i>${escapeHtml(leaderEmail)}</div>` : ''}
+                    <div class="mt-1 d-flex flex-wrap gap-1">
+                      ${leaderMatric ? `<span class="badge bg-light text-secondary border font-monospace">${escapeHtml(leaderMatric)}</span>` : ''}
+                      ${leaderDept ? `<span class="badge bg-light text-muted border">${escapeHtml(leaderDept)}</span>` : ''}
+                    </div>
+                  </div>
                 </td>
                 <td>
-                  ${r.is_looking_for_members ? '<span class="badge bg-info text-dark">Open to Members</span>' : '<span class="badge bg-light text-muted">Complete</span>'}
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-secondary">${memberCount} member${memberCount > 1 ? 's' : ''}</span>
+                    <button class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;" onclick="viewTeamRosterDetails('${r.id}')" title="View Full Team Profile">
+                      <i class="bi bi-people-fill me-1"></i>Full Details
+                    </button>
+                  </div>
+                  ${actualMembers.length > 0 ? `
+                    <div class="small text-muted" style="max-width: 220px; line-height: 1.35;">
+                      ${actualMembers.map(m => `<div>&bull; <strong>${escapeHtml(m.name || 'Member')}</strong> <span class="text-secondary">(${escapeHtml(m.role || 'Member')})</span></div>`).join('')}
+                    </div>
+                  ` : '<span class="text-muted small">Solo participant</span>'}
                 </td>
                 <td>
-                  ${sub ? '<span class="badge bg-success">Submitted</span>' : '<span class="badge bg-warning text-dark">Pending</span>'}
+                  ${r.is_looking_for_members ? `
+                    <span class="badge bg-info text-dark mb-1"><i class="bi bi-person-plus-fill me-1"></i>Open to Members</span>
+                    ${metaReq?.role ? `<div class="small text-muted"><strong>Need:</strong> ${escapeHtml(metaReq.role)}</div>` : ''}
+                  ` : '<span class="badge bg-light text-muted border">Complete</span>'}
+                </td>
+                <td>
+                  ${sub ? '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Submitted</span>' : '<span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pending</span>'}
                 </td>
               </tr>
             `;
@@ -3238,10 +3392,14 @@ window.deleteEvent = async function(id) {
         // Render submissions
         const submissions = [];
         registrations.forEach(r => {
-          if (r.submission && Array.isArray(r.submission)) {
-            r.submission.forEach(s => {
-              submissions.push({ ...s, team_name: r.team_name });
-            });
+          if (r.submission) {
+            submissions.push({ ...r.submission, team_name: r.team_name });
+          }
+        });
+        directSubs.forEach(s => {
+          if (!submissions.some(item => String(item.id) === String(s.id))) {
+            const matchedReg = registrations.find(r => String(r.id) === String(s.registration_id));
+            submissions.push({ ...s, team_name: matchedReg ? matchedReg.team_name : 'Team' });
           }
         });
 
@@ -3259,13 +3417,20 @@ window.deleteEvent = async function(id) {
             const links = [];
             if (s.demo_url) links.push(`<a href="${escapeHtml(s.demo_url)}" target="_blank" class="badge bg-primary text-decoration-none me-1"><i class="bi bi-globe"></i> Demo</a>`);
             if (s.github_url) links.push(`<a href="${escapeHtml(s.github_url)}" target="_blank" class="badge bg-dark text-decoration-none me-1"><i class="bi bi-github"></i> Code</a>`);
-            if (s.video_url) links.push(`<a href="${escapeHtml(s.video_url)}" target="_blank" class="badge bg-danger text-decoration-none"><i class="bi bi-play-circle"></i> Video</a>`);
+            if (s.video_url) links.push(`<a href="${escapeHtml(s.video_url)}" target="_blank" class="badge bg-danger text-decoration-none me-1"><i class="bi bi-play-circle"></i> Video</a>`);
+            if (s.pitch_deck_url) links.push(`<a href="${escapeHtml(s.pitch_deck_url)}" target="_blank" class="badge bg-warning text-dark text-decoration-none me-1"><i class="bi bi-file-earmark-slides"></i> Slides</a>`);
+
+            const techList = Array.isArray(s.tech_stack)
+              ? s.tech_stack
+              : (typeof s.tech_stack === 'string' && s.tech_stack.trim() ? s.tech_stack.split(',').map(t => t.trim()).filter(Boolean) : []);
 
             return `
               <tr>
                 <td>
                   <strong>${escapeHtml(s.project_title)}</strong>
-                  ${s.tagline ? `<br><small class="text-muted">${escapeHtml(s.tagline)}</small>` : ''}
+                  ${s.tagline ? `<br><small class="text-muted fst-italic">${escapeHtml(s.tagline)}</small>` : ''}
+                  ${s.description ? `<br><small class="text-secondary" style="font-size: 11px;">${escapeHtml(s.description.length > 80 ? s.description.substring(0, 80) + '...' : s.description)}</small>` : ''}
+                  ${techList.length > 0 ? `<div class="mt-1 d-flex flex-wrap gap-1">${techList.map(t => `<span class="badge bg-light text-secondary border font-monospace" style="font-size: 10px;">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
                 </td>
                 <td><strong>${escapeHtml(s.team_name || 'Team')}</strong></td>
                 <td>${links.length ? links.join(' ') : '<span class="text-muted small">No links</span>'}</td>
@@ -3286,6 +3451,212 @@ window.deleteEvent = async function(id) {
         subsTbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">${escapeHtml(err.message)}</td></tr>`;
       }
     }
+
+    window.viewTeamRosterDetails = async function(regId) {
+      const r = (currentHackathonRegistrations || []).find(item => String(item.id) === String(regId));
+      if (!r) {
+        Swal.fire('Error', 'Team record not found', 'error');
+        return;
+      }
+
+      let leader = r.leaderProfile;
+      if (!leader || !leader.email) {
+        if (Array.isArray(allStudents) && allStudents.length > 0) {
+          const match = allStudents.find(s => 
+            String(s.user_id || '').toLowerCase() === String(r.leader_id || '').toLowerCase() ||
+            String(s.id || '').toLowerCase() === String(r.leader_id || '').toLowerCase()
+          );
+          if (match) {
+            leader = match;
+            r.leaderProfile = match;
+          }
+        }
+      }
+
+      if (!leader || !leader.email) {
+        const rawMembers = Array.isArray(r.team_members) ? r.team_members : [];
+        const leaderMeta = rawMembers.find(m => m && m.name === '[LEADER_META]');
+        if (leaderMeta) {
+          leader = {
+            name: leaderMeta.leader_name,
+            first_name: leaderMeta.leader_name,
+            last_name: '',
+            email: leaderMeta.email,
+            matric_no: leaderMeta.matric_no,
+            phone: leaderMeta.phone,
+            department: leaderMeta.department,
+            current_level: leaderMeta.current_level
+          };
+          r.leaderProfile = leader;
+        }
+      }
+
+      leader = leader || {};
+      const leaderName = (leader.first_name || leader.last_name)
+        ? `${leader.first_name || ''} ${leader.last_name || ''}`.trim()
+        : (leader.name || `Leader (ID: ${String(r.leader_id || '').substring(0, 8)}...)`);
+      const leaderEmail = leader.email || 'N/A';
+      const leaderMatric = leader.matric_no || 'N/A';
+      const leaderPhone = leader.phone || 'N/A';
+      const leaderDept = leader.department ? `${leader.department}${leader.current_level ? ` (${leader.current_level} Level)` : ''}` : 'N/A';
+
+      const rawMembers = Array.isArray(r.team_members) ? r.team_members : [];
+      const metaReq = rawMembers.find(m => m && m.name === '[ROLE_REQ]');
+      const actualMembers = rawMembers.filter(m => m && m.name !== '[ROLE_REQ]' && m.name !== '[LEADER_META]');
+
+      let sub = r.submission;
+      if (Array.isArray(sub)) sub = sub[0] || null;
+      if (!sub) {
+        try {
+          const { data: subFound } = await supabase
+            .from('hackathon_submissions')
+            .select('*')
+            .eq('registration_id', r.id)
+            .maybeSingle();
+          if (subFound) {
+            sub = subFound;
+            r.submission = subFound;
+          }
+        } catch (_) {}
+      }
+
+      const teammatesHtml = actualMembers.length === 0
+        ? `<tr><td colspan="4" class="text-center text-muted py-3">No additional teammates added (Solo Participant)</td></tr>`
+        : actualMembers.map((m, idx) => `
+            <tr>
+              <td><span class="badge bg-light text-dark border">#${idx + 2}</span></td>
+              <td><strong>${escapeHtml(m.name || 'Teammate')}</strong></td>
+              <td><a href="mailto:${escapeHtml(m.email || '')}" class="text-decoration-none">${escapeHtml(m.email || 'N/A')}</a></td>
+              <td><span class="badge bg-secondary">${escapeHtml(m.role || 'Member')}</span></td>
+            </tr>
+          `).join('');
+
+      let submissionHtml = '<div class="alert alert-warning py-2 mb-0 small"><i class="bi bi-clock me-1"></i> No project submitted yet for this team.</div>';
+      if (sub) {
+        const techStackList = Array.isArray(sub.tech_stack)
+          ? sub.tech_stack
+          : (typeof sub.tech_stack === 'string' && sub.tech_stack.trim() ? sub.tech_stack.split(',').map(t => t.trim()).filter(Boolean) : []);
+
+        submissionHtml = `
+          <div class="border rounded p-3 bg-light">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h6 class="mb-1 text-success fw-bold"><i class="bi bi-folder-check me-1"></i>${escapeHtml(sub.project_title || 'Untitled Project')}</h6>
+                ${sub.tagline ? `<p class="text-muted small mb-0 fst-italic">"${escapeHtml(sub.tagline)}"</p>` : ''}
+              </div>
+              <div>
+                ${sub.is_winner ? `<span class="badge bg-warning text-dark"><i class="bi bi-trophy-fill me-1"></i>${escapeHtml(sub.award_title || 'Winner')}</span>` : '<span class="badge bg-secondary">Participant</span>'}
+              </div>
+            </div>
+
+            ${sub.description ? `
+              <div class="mt-2 mb-3 p-2.5 bg-white border rounded">
+                <small class="text-muted fw-bold d-block mb-1" style="font-size: 11px; text-transform: uppercase;">
+                  <i class="bi bi-card-text me-1"></i> Description / Problem Solved:
+                </small>
+                <div class="small text-dark" style="white-space: pre-wrap; line-height: 1.5;">${escapeHtml(sub.description)}</div>
+              </div>
+            ` : ''}
+
+            ${techStackList.length > 0 ? `
+              <div class="mb-3">
+                <small class="text-muted fw-bold d-block mb-1" style="font-size: 11px; text-transform: uppercase;">
+                  <i class="bi bi-cpu me-1"></i> Technologies Used:
+                </small>
+                <div class="d-flex flex-wrap gap-1">
+                  ${techStackList.map(t => `<span class="badge bg-light text-secondary border font-monospace px-2 py-1" style="font-size: 11.5px;">${escapeHtml(t)}</span>`).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top">
+              ${sub.demo_url ? `<a href="${escapeHtml(sub.demo_url)}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-globe me-1"></i>Live Demo</a>` : ''}
+              ${sub.github_url ? `<a href="${escapeHtml(sub.github_url)}" target="_blank" class="btn btn-sm btn-outline-dark"><i class="bi bi-github me-1"></i>Code Repository</a>` : ''}
+              ${sub.video_url ? `<a href="${escapeHtml(sub.video_url)}" target="_blank" class="btn btn-sm btn-outline-danger"><i class="bi bi-play-circle me-1"></i>Video Pitch</a>` : ''}
+              ${sub.pitch_deck_url ? `<a href="${escapeHtml(sub.pitch_deck_url)}" target="_blank" class="btn btn-sm btn-outline-warning text-dark"><i class="bi bi-file-earmark-slides me-1"></i>Slide Deck</a>` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      Swal.fire({
+        title: `<strong>${escapeHtml(r.team_name)}</strong>`,
+        width: '780px',
+        html: `
+          <div class="text-start">
+            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                Track: ${escapeHtml(r.track_selected || 'General')}
+              </span>
+              <span class="badge ${r.is_looking_for_members ? 'bg-info text-dark' : 'bg-light text-muted border'} px-2 py-1">
+                ${r.is_looking_for_members ? 'Open for Collaborators' : 'Complete Team'}
+              </span>
+            </div>
+
+            <!-- Leader Profile Card -->
+            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-star-fill text-warning me-1"></i> Team Leader (#1)</h6>
+            <div class="card bg-light border-0 mb-3">
+              <div class="card-body py-2 px-3">
+                <div class="row g-2">
+                  <div class="col-sm-6">
+                    <small class="text-muted d-block">Full Name</small>
+                    <strong>${escapeHtml(leaderName)}</strong>
+                  </div>
+                  <div class="col-sm-6">
+                    <small class="text-muted d-block">Email Address</small>
+                    <a href="mailto:${escapeHtml(leaderEmail)}" class="text-decoration-none">${escapeHtml(leaderEmail)}</a>
+                  </div>
+                  <div class="col-sm-4">
+                    <small class="text-muted d-block">Matric Number</small>
+                    <span class="font-monospace">${escapeHtml(leaderMatric)}</span>
+                  </div>
+                  <div class="col-sm-4">
+                    <small class="text-muted d-block">Phone Number</small>
+                    <span>${escapeHtml(leaderPhone)}</span>
+                  </div>
+                  <div class="col-sm-4">
+                    <small class="text-muted d-block">Dept & Level</small>
+                    <span>${escapeHtml(leaderDept)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Teammates Roster Table -->
+            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-people-fill text-primary me-1"></i> Teammates Roster (${actualMembers.length} member${actualMembers.length === 1 ? '' : 's'})</h6>
+            <div class="table-responsive mb-3 border rounded">
+              <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 50px;">#</th>
+                    <th>Full Name</th>
+                    <th>Student Email</th>
+                    <th>Assigned Role</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${teammatesHtml}
+                </tbody>
+              </table>
+            </div>
+
+            ${r.is_looking_for_members ? `
+              <div class="alert alert-info py-2 px-3 small mb-3">
+                <strong><i class="bi bi-info-circle me-1"></i> Matchmaking Notice:</strong>
+                ${metaReq?.role ? `Seeking: <em>${escapeHtml(metaReq.role)}</em>.` : 'Seeking additional members.'}
+                ${metaReq?.email ? ` Outreach contact: <strong>${escapeHtml(metaReq.email)}</strong>` : ''}
+              </div>
+            ` : ''}
+
+            <!-- Project Submission Summary -->
+            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-trophy-fill text-warning me-1"></i> Project Submission</h6>
+            ${submissionHtml}
+          </div>
+        `,
+        confirmButtonText: 'Close',
+        confirmButtonColor: '#1b8c0c'
+      });
+    };
 
     window.promptAssignWinner = async function(subId, projectTitle, isWinnerNow, awardTitleNow, rankingNow, feedbackNow) {
       const { value: formValues } = await Swal.fire({

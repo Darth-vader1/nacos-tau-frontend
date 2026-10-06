@@ -1366,7 +1366,7 @@
 
       const members = Array.isArray(reg.team_members) ? reg.team_members : [];
       const metaReq = members.find(m => m.name === '[ROLE_REQ]');
-      const actualMembers = members.filter(m => m.name !== '[ROLE_REQ]');
+      const actualMembers = members.filter(m => m.name !== '[ROLE_REQ]' && m.name !== '[LEADER_META]');
 
       if (document.getElementById('rolesNeeded')) {
         document.getElementById('rolesNeeded').value = metaReq ? metaReq.role : '';
@@ -1490,6 +1490,43 @@
         });
       }
 
+      // Embed leader profile snapshot in teamMembers for resilient reporting
+      try {
+        let leaderName = session.user.user_metadata?.full_name ||
+          `${session.user.user_metadata?.first_name || ''} ${session.user.user_metadata?.last_name || ''}`.trim() ||
+          'Leader';
+        let leaderMatric = '';
+        let leaderPhone = '';
+        let leaderDept = '';
+        let leaderLevel = '';
+
+        const { data: myProfile } = await supabase
+          .from('students')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        if (myProfile) {
+          leaderName = myProfile.name || `${myProfile.first_name || ''} ${myProfile.last_name || ''}`.trim() || leaderName;
+          leaderMatric = myProfile.matric_no || '';
+          leaderPhone = myProfile.phone || '';
+          leaderDept = myProfile.department || '';
+          leaderLevel = myProfile.current_level || (myProfile.year_of_study ? `${myProfile.year_of_study}` : '');
+        }
+
+        teamMembers.push({
+          name: '[LEADER_META]',
+          leader_name: leaderName,
+          email: myProfile?.email || session.user.email || '',
+          matric_no: leaderMatric,
+          phone: leaderPhone,
+          department: leaderDept,
+          current_level: leaderLevel
+        });
+      } catch (profErr) {
+        console.warn('Could not embed leader metadata (non-fatal):', profErr);
+      }
+
       const payload = {
         teamName: teamNameVal,
         trackSelected: document.getElementById('trackSelected').value,
@@ -1573,9 +1610,48 @@
       }
     }
 
-    function openSubmissionModal(hackathonId) {
+    async function openSubmissionModal(hackathonId) {
       document.getElementById('subHackathonId').value = hackathonId;
-      new bootstrap.Modal(document.getElementById('submitModal')).show();
+      const modal = new bootstrap.Modal(document.getElementById('submitModal'));
+      modal.show();
+
+      try {
+        const session = await getUserSession();
+        if (session) {
+          const { data: reg } = await supabase
+            .from('hackathon_registrations')
+            .select('id, team_name')
+            .eq('hackathon_id', hackathonId)
+            .eq('leader_id', session.user.id)
+            .maybeSingle();
+
+          if (reg) {
+            const { data: existingSub } = await supabase
+              .from('hackathon_submissions')
+              .select('*')
+              .eq('registration_id', reg.id)
+              .maybeSingle();
+
+            if (existingSub) {
+              document.getElementById('projectTitle').value = existingSub.project_title || '';
+              document.getElementById('subTagline').value = existingSub.tagline || '';
+              document.getElementById('projectDescription').value = existingSub.description || '';
+              document.getElementById('githubUrl').value = existingSub.github_url || '';
+              document.getElementById('demoUrl').value = existingSub.demo_url || '';
+              document.getElementById('videoUrl').value = existingSub.video_url || '';
+              document.getElementById('pitchDeckUrl').value = existingSub.pitch_deck_url || '';
+              document.getElementById('techStack').value = Array.isArray(existingSub.tech_stack) ? existingSub.tech_stack.join(', ') : '';
+              document.getElementById('btnSubmitProject').textContent = 'Update Project Pitch';
+            } else {
+              document.getElementById('submitForm').reset();
+              document.getElementById('subHackathonId').value = hackathonId;
+              document.getElementById('btnSubmitProject').textContent = 'Submit Final Project';
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not pre-populate submission details:', err);
+      }
     }
 
     async function handleSubmission(e) {
@@ -1644,7 +1720,7 @@
               video_url: payload.videoUrl || null,
               pitch_deck_url: payload.pitchDeckUrl || null,
               tech_stack: payload.techStack || []
-            }], { onConflict: 'hackathon_id,registration_id' });
+            }], { onConflict: 'registration_id' });
 
           if (subErr) throw subErr;
 
