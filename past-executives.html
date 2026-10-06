@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Past Executives Roll of Honour | NACOS - Thomas Adewumi University</title>
+  <meta name="description" content="Roll of Honour celebrating past executive leaders of the Nigerian Association of Computing Students (NACOS), Thomas Adewumi University Chapter.">
+  <meta name="keywords" content="NACOS, TAU, Past Executives, Leadership, Alumni, Computer Science, Software Engineering">
+
+  <!-- Favicons -->
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #f8fbfc;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #2c3e50;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header / Navbar */
+    .header {
+      background: #ffffff;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+      padding: 10px 0;
+      min-height: 65px;
+    }
+
+    .logo, .logo img, img.logo {
+      height: 42px !important;
+      max-height: 42px !important;
+      width: 42px !important;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .navmenu ul {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      list-style: none;
+    }
+
+    .navmenu a {
+      padding: 8px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #334155;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .navmenu a:hover,
+    .navmenu a.active {
+      color: #1b8c0c;
+      background: #e8f5e9;
+    }
+
+    .navmenu .dropdown {
+      position: relative;
+    }
+
+    .navmenu .dropdown ul {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #ffffff;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      padding: 8px 0;
+      min-width: 220px;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      z-index: 1000;
+    }
+
+    .navmenu .dropdown:hover ul {
+      display: flex;
+    }
+
+    .navmenu .dropdown ul a {
+      padding: 8px 16px;
+      display: block;
+      color: #334155;
+    }
+
+    .navmenu .dropdown ul a:hover {
+      background: #f1f8e9;
+      color: #1b8c0c;
+    }
+
+    .mobile-nav-toggle {
+      font-size: 28px;
+      cursor: pointer;
+      color: #1b8c0c;
+      display: none;
+    }
+
+    @media (max-width: 1199px) {
+      .mobile-nav-toggle { display: block !important; }
+      .navmenu ul { display: none; }
+      .navmenu.mobile-nav-active ul {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 65px;
+        right: 15px;
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        z-index: 999;
+        min-width: 200px;
+      }
+    }
+
+    /* Main Container */
+    .main-container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 85px 20px 60px;
+      width: 100%;
+      flex: 1;
+    }
+
+    /* Page Header */
+    .page-header {
+      text-align: center;
+      margin-bottom: 35px;
+    }
+
+    .badge-pill-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e8f5e9;
+      color: #1b8c0c;
+      border: 1px solid #c8e6c9;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .page-title {
+      font-size: 2.3rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin-bottom: 10px;
+      font-family: 'Nunito', sans-serif;
+    }
+
+    .page-subtitle {
+      font-size: 1.05rem;
+      color: #64748b;
+      max-width: 680px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Current Session Notification Card */
+    .current-session-banner {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #1b8c0c;
+      border-radius: 12px;
+      padding: 14px 20px;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .current-session-banner p {
+      margin: 0;
+      color: #334155;
+      font-size: 14px;
+    }
+
+    /* Filters Section */
+    .filters-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 18px 22px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+      margin-bottom: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .session-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill-btn {
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 16px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill-btn:hover {
+      background: #e8f5e9;
+      color: #1b8c0c;
+      border-color: #a7f3d0;
+    }
+
+    .pill-btn.active {
+      background: #1b8c0c;
+      color: #ffffff;
+      border-color: #1b8c0c;
+    }
+
+    .search-input-box {
+      position: relative;
+      min-width: 260px;
+      flex: 1;
+      max-width: 360px;
+    }
+
+    .search-input-box i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+    }
+
+    .search-input-box input {
+      width: 100%;
+      padding: 8px 14px 8px 38px;
+      border-radius: 9999px;
+      border: 1px solid #cbd5e1;
+      font-size: 13.5px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input-box input:focus {
+      border-color: #1b8c0c;
+      box-shadow: 0 0 0 3px rgba(27, 140, 12, 0.12);
+    }
+
+    /* Executive Cards */
+    .session-group {
+      margin-bottom: 45px;
+    }
+
+    .session-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 10px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .session-heading h3 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .session-tag {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 9999px;
+    }
+
+    .exec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .exec-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 24px 20px;
+      text-align: center;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+
+    .exec-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-color: #bbf7d0;
+    }
+
+    .exec-card.principal-card {
+      border-color: #fde68a;
+      background: linear-gradient(180deg, #ffffff 0%, #fffdf5 100%);
+    }
+
+    .exec-card.principal-card:hover {
+      border-color: #f59e0b;
+      box-shadow: 0 10px 28px rgba(245, 158, 11, 0.15);
+    }
+
+    .exec-photo-wrap {
+      width: 96px;
+      height: 96px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      padding: 3px;
+      border: 2px solid #e2e8f0;
+      background: #ffffff;
+    }
+
+    .principal-card .exec-photo-wrap {
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+    }
+
+    .exec-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      background: #f1f5f9;
+    }
+
+    .exec-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .portfolio-badge {
+      display: inline-block;
+      background: #e8f5e9;
+      color: #1b8c0c;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 9999px;
+      margin-bottom: 8px;
+    }
+
+    .principal-card .portfolio-badge {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .exec-meta {
+      font-size: 12.5px;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+
+    .exec-bio-snippet {
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.5;
+      margin-bottom: 16px;
+      flex-grow: 1;
+    }
+
+    .exec-linkedin-btn {
+      color: #0a66c2;
+      background: #f0f7ff;
+      border: 1px solid #d0e4f7;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+
+    .exec-linkedin-btn:hover {
+      background: #0a66c2;
+      color: #ffffff;
+    }
+
+    /* Empty State */
+    .empty-state-card {
+      background: #ffffff;
+      border: 1px dashed #cbd5e1;
+      border-radius: 20px;
+      padding: 50px 24px;
+      text-align: center;
+    }
+
+    /* Footer */
+    .footer {
+      background: #0f172a;
+      color: #94a3b8;
+      padding: 35px 20px 20px;
+      font-size: 13.5px;
+      margin-top: auto;
+    }
+
+    @media (max-width: 768px) {
+      .main-container {
+        padding: 85px 15px 40px;
+      }
+      .page-title {
+        font-size: 1.85rem;
+      }
+      .filters-card {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .search-input-box {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <header id="header" class="header fixed-top">
+    <div class="container d-flex align-items-center justify-content-between">
+      <a href="index.html" class="d-flex align-items-center text-decoration-none">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo" class="logo" style="height: 42px; width: 42px; max-height: 42px; object-fit: contain; border-radius: 8px;">
+        <div class="ms-2">
+          <span style="color: #1b8c0c; font-weight: 700; font-size: 18px;">NACOS</span>
+          <span style="font-size: 10px; display: block; color: #64748b;">TAU Chapter</span>
+        </div>
+      </a>
+
+      <nav class="navmenu">
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="index.html#about">About</a></li>
+          <li><a href="events-archive.html">Events</a></li>
+          <li><a href="hackathons.html">Hackathons</a></li>
+          <li class="dropdown">
+            <a href="index.html#execs" class="active">Execs <i class="bi bi-chevron-down"></i></a>
+            <ul>
+              <li><a href="index.html#execs">Current Execs (2025/2026)</a></li>
+              <li><a href="past-executives.html" class="fw-bold text-success">Past Execs (Roll of Honour)</a></li>
+            </ul>
+          </li>
+          <li><a href="index.html#pays">Payments</a></li>
+          <li><a href="student-login.html" class="btn btn-sm btn-outline-success px-3 py-1 rounded-pill ms-2">Sign In</a></li>
+        </ul>
+      </nav>
+      <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-container">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="badge-pill-header">
+        <i class="bi bi-award-fill"></i> Roll of Honour
+      </div>
+      <h1 class="page-title">Past Executives & Alumni</h1>
+      <p class="page-subtitle">
+        Celebrating the pioneer student leaders and past administrations whose service and dedication built the NACOS TAU Chapter.
+      </p>
+    </div>
+
+    <!-- Active Tenure Notice Banner -->
+    <div class="current-session-banner">
+      <div class="d-flex align-items-center gap-3">
+        <div class="bg-success-subtle text-success p-2 rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+          <i class="bi bi-info-circle-fill"></i>
+        </div>
+        <div>
+          <p><strong>Current Active Administration:</strong> The chapter is currently led by the <strong>2025/2026 Executive Council</strong> (President Ajetomobi Praise Jesutofunmi).</p>
+        </div>
+      </div>
+      <a href="index.html#execs" class="btn btn-sm btn-outline-success rounded-pill fw-semibold text-nowrap">
+        View Current 2025/2026 Team <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="filters-card">
+      <div class="session-pills" id="sessionPillsContainer">
+        <button class="pill-btn active" data-session="" onclick="filterBySession('')">
+          <i class="bi bi-collection"></i> All Past Administrations
+        </button>
+      </div>
+
+      <div class="search-input-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="execSearchInput" placeholder="Search by name, portfolio, or department..." oninput="handleSearch()">
+      </div>
+    </div>
+
+    <!-- Executives Display Container -->
+    <div id="executivesDisplayContainer">
+      <!-- Loading State -->
+      <div class="text-center py-5" id="loadingState">
+        <div class="spinner-border text-success" role="status"></div>
+        <p class="text-muted small mt-2">Loading Roll of Honour...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer text-center">
+    <div class="container">
+      <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS" style="height: 32px; border-radius: 6px;">
+        <span class="text-white fw-bold">NACOS TAU Chapter</span>
+      </div>
+      <p class="small text-muted mb-2">Nigerian Association of Computing Students &bull; Thomas Adewumi University, Oko-Irese, Kwara State</p>
+      <div class="small text-muted">&copy; 2026 NACOS TAU. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <!-- Scripts (Ensures env.js loads before supabase-config.js to prevent configuration errors) -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/env.js"></script>
+  <script src="assets/js/security.js"></script>
+  <script type="module" src="assets/js/supabase-config.js"></script>
+  <script type="module" src="assets/js/api-config.js"></script>
+
+  <script type="module">
+    import { supabase } from './assets/js/supabase-config.js';
+
+    let allExecutives = [];
+    let currentSession = '';
+    let searchQuery = '';
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function loadData() {
+      const container = document.getElementById('executivesDisplayContainer');
+      try {
+        let items = [];
+
+        // 1. Try Backend API first
+        try {
+          const res = await fetch('/api/past-executives');
+          if (res.ok) {
+            const json = await res.json();
+            if (json && json.success && Array.isArray(json.data?.executives)) {
+              items = json.data.executives;
+            }
+          }
+        } catch (apiErr) {
+          console.warn('[loadData] API fetch fallback to Supabase:', apiErr.message);
+        }
+
+        // 2. Direct Supabase Query Fallback
+        if (!items.length && supabase) {
+          try {
+            const { data, error } = await supabase
+              .from('past_executives')
+              .select('*')
+              .order('academic_session', { ascending: false })
+              .order('rank_order', { ascending: true });
+
+            if (!error && Array.isArray(data)) {
+              items = data;
+            }
+          } catch (supaErr) {
+            console.warn('[loadData] Supabase direct query:', supaErr.message);
+          }
+        }
+
+        allExecutives = items;
+        populatePills();
+        renderList();
+
+      } catch (err) {
+        console.error('[loadData] Error:', err);
+        allExecutives = [];
+        populatePills();
+        renderList();
+      }
+    }
+
+    function populatePills() {
+      const container = document.getElementById('sessionPillsContainer');
+      if (!container) return;
+
+      const sessions = [...new Set(allExecutives.map(e => e.academic_session).filter(Boolean))].sort().reverse();
+
+      if (!sessions.length) {
+        container.innerHTML = `
+          <button class="pill-btn active" onclick="filterBySession('')">
+            <i class="bi bi-collection"></i> Roll of Honour Archive
+          </button>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <button class="pill-btn ${currentSession === '' ? 'active' : ''}" onclick="filterBySession('')">
+          <i class="bi bi-collection"></i> All Past Administrations
+        </button>
+      ` + sessions.map(s => {
+        const first = allExecutives.find(e => e.academic_session === s);
+        const label = first?.administration_name ? `${s} (${first.administration_name})` : `${s} Administration`;
+        return `
+          <button class="pill-btn ${currentSession === s ? 'active' : ''}" onclick="filterBySession('${escapeHtml(s)}')">
+            <i class="bi bi-calendar3"></i> ${escapeHtml(label)}
+          </button>
+        `;
+      }).join('');
+    }
+
+    window.filterBySession = function(session) {
+      currentSession = session;
+      populatePills();
+      renderList();
+    };
+
+    window.handleSearch = function() {
+      searchQuery = (document.getElementById('execSearchInput')?.value || '').trim().toLowerCase();
+      renderList();
+    };
+
+    function renderList() {
+      const container = document.getElementById('executivesDisplayContainer');
+      if (!container) return;
+
+      let filtered = allExecutives;
+
+      if (currentSession) {
+        filtered = filtered.filter(e => e.academic_session === currentSession);
+      }
+
+      if (searchQuery) {
+        filtered = filtered.filter(e => 
+          (e.full_name && e.full_name.toLowerCase().includes(searchQuery)) ||
+          (e.portfolio && e.portfolio.toLowerCase().includes(searchQuery)) ||
+          (e.department && e.department.toLowerCase().includes(searchQuery)) ||
+          (e.academic_session && e.academic_session.toLowerCase().includes(searchQuery))
+        );
+      }
+
+      // Empty State
+      if (!filtered.length) {
+        if (!allExecutives.length) {
+          container.innerHTML = `
+            <div class="empty-state-card">
+              <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle p-3 mb-3" style="width: 68px; height: 68px;">
+                <i class="bi bi-award-fill fs-2"></i>
+              </div>
+              <h4 class="fw-bold text-dark mb-2">Past Administrations Archive</h4>
+              <p class="text-muted mx-auto mb-4" style="max-width: 580px; font-size: 14.5px; line-height: 1.6;">
+                The chapter is currently serving in the <strong>2025/2026 Academic Session</strong>.
+                Past administration records (such as 2024/2025 and the 2023/2024 Pioneer administration) will be honoured on this page once archived.
+              </p>
+              <div class="d-flex justify-content-center">
+                <a href="index.html#execs" class="btn btn-success px-4 py-2 rounded-pill fw-semibold shadow-sm" style="background-color: #1b8c0c; border: none;">
+                  <i class="bi bi-people-fill me-1"></i> Meet Current 2025/2026 Executives
+                </a>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="empty-state-card py-5">
+            <i class="bi bi-search fs-2 text-muted d-block mb-2"></i>
+            <h5 class="fw-bold">No past executives found</h5>
+            <p class="text-muted small">No executives match your current search or filter criteria.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Group by Session
+      const grouped = {};
+      filtered.forEach(e => {
+        const sess = e.academic_session || 'Past Administration';
+        if (!grouped[sess]) grouped[sess] = [];
+        grouped[sess].push(e);
+      });
+
+      const sessionKeys = Object.keys(grouped).sort().reverse();
+
+      container.innerHTML = sessionKeys.map(sess => {
+        const list = grouped[sess].sort((a, b) => (Number(a.rank_order) || 99) - (Number(b.rank_order) || 99));
+        const adminName = list[0]?.administration_name || `${sess} Executive Council`;
+
+        return `
+          <div class="session-group">
+            <div class="session-heading">
+              <h3>
+                <i class="bi bi-award-fill text-success"></i> ${escapeHtml(adminName)}
+              </h3>
+              <span class="session-tag">
+                <i class="bi bi-calendar-check me-1"></i> ${escapeHtml(sess)} Session
+              </span>
+            </div>
+
+            <div class="exec-grid">
+              ${list.map(exec => {
+                const isPrincipal = Number(exec.rank_order) <= 2;
+                const photoSrc = exec.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(exec.full_name || 'NACOS')}&background=1b8c0c&color=fff&size=150`;
+
+                return `
+                  <div class="exec-card ${isPrincipal ? 'principal-card' : ''}">
+                    <div class="exec-photo-wrap">
+                      <img src="${escapeHtml(photoSrc)}" alt="${escapeHtml(exec.full_name)}" class="exec-photo"
+                           onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(exec.full_name || 'NACOS')}&background=1b8c0c&color=fff&size=150'">
+                    </div>
+                    <h4 class="exec-name">${escapeHtml(exec.full_name)}</h4>
+                    <span class="portfolio-badge">
+                      ${isPrincipal ? '<i class="bi bi-star-fill me-1 text-warning"></i>' : ''}${escapeHtml(exec.portfolio)}
+                    </span>
+                    <div class="exec-meta">
+                      ${exec.department ? escapeHtml(exec.department) : ''}
+                      ${exec.level_or_set ? ` &bull; ${escapeHtml(exec.level_or_set)}` : ''}
+                    </div>
+                    ${exec.bio ? `<p class="exec-bio-snippet">${escapeHtml(exec.bio)}</p>` : ''}
+                    ${exec.linkedin_url ? `
+                      <a href="${escapeHtml(exec.linkedin_url)}" target="_blank" rel="noopener noreferrer" class="exec-linkedin-btn mt-auto">
+                        <i class="bi bi-linkedin"></i> LinkedIn
+                      </a>
+                    ` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    document.querySelector('.mobile-nav-toggle')?.addEventListener('click', function() {
+      document.querySelector('.navmenu')?.classList.toggle('mobile-nav-active');
+      this.classList.toggle('bi-list');
+      this.classList.toggle('bi-x');
+    });
+
+    loadData();
+  </script>
+</body>
+
+</html>
