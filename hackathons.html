@@ -361,28 +361,74 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="assets/js/api-config.js"></script>
+  <script src="assets/js/env.js"></script>
+  <script src="assets/js/security.js"></script>
+  <script type="module" src="assets/js/supabase-config.js"></script>
+  <script type="module" src="assets/js/api-config.js"></script>
 
-  <script>
-    const API_BASE = window.API_BASE_URL || '/api';
+  <script type="module">
+    import { supabase } from './assets/js/supabase-config.js';
+    import { api } from './assets/js/api-config.js';
+
     let currentHackathons = [];
 
-    function getAuthToken() {
-      return localStorage.getItem('token') || sessionStorage.getItem('token');
+    async function getUserSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session;
     }
 
     async function loadHackathons() {
       const grid = document.getElementById('hackathonsGrid');
       const filterType = document.getElementById('filterType').value;
-      const url = `${API_BASE}/hackathons${filterType ? '?event_type=' + filterType : ''}`;
+      grid.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-success" role="status"></div><p class="text-muted mt-2">Loading hackathons...</p></div>';
 
       try {
-        const token = getAuthToken();
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const res = await fetch(url, { headers });
-        const json = await res.json();
+        let hackathons = [];
+        let usedFallback = false;
 
-        if (!json.success || !json.data.hackathons.length) {
+        try {
+          const res = await api.hackathons.list(filterType);
+          if (res && res.success && Array.isArray(res.data?.hackathons)) {
+            hackathons = res.data.hackathons;
+          } else {
+            usedFallback = true;
+          }
+        } catch (apiErr) {
+          console.warn('[loadHackathons] API request failed, falling back to direct Supabase:', apiErr.message);
+          usedFallback = true;
+        }
+
+        if (usedFallback) {
+          let query = supabase.from('hackathons').select('*');
+          if (filterType) query = query.eq('event_type', filterType);
+          query = query.in('status', ['upcoming', 'ongoing']).order('created_at', { ascending: false });
+          const { data, error } = await query;
+          if (error) throw error;
+          hackathons = data || [];
+        }
+
+        // Attach user registrations if session exists
+        const session = await getUserSession();
+        if (session?.user?.id && hackathons.length) {
+          const hIds = hackathons.map(h => h.id);
+          const { data: regs } = await supabase
+            .from('hackathon_registrations')
+            .select('*')
+            .in('hackathon_id', hIds)
+            .eq('user_id', session.user.id);
+
+          if (regs && regs.length) {
+            const regMap = {};
+            regs.forEach(r => { regMap[r.hackathon_id] = r; });
+            hackathons.forEach(h => {
+              if (!h.userRegistration) {
+                h.userRegistration = regMap[h.id] || null;
+              }
+            });
+          }
+        }
+
+        if (!hackathons.length) {
           grid.innerHTML = `
             <div class="col-12 text-center py-5">
               <i class="bi bi-calendar-x fs-1 text-muted d-block mb-2"></i>
@@ -392,10 +438,12 @@
           return;
         }
 
-        currentHackathons = json.data.hackathons;
+        currentHackathons = hackathons;
         grid.innerHTML = currentHackathons.map(h => {
           const isLive = h.status === 'ongoing';
-          const deadline = new Date(h.registration_deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          const deadline = h.registration_deadline
+            ? new Date(h.registration_deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : 'TBD';
           const reg = h.userRegistration;
 
           return `
@@ -407,14 +455,14 @@
                     <span class="${isLive ? 'status-badge-live' : 'status-badge-upcoming'}">
                       ${isLive ? 'Hacking Live' : 'Open for Registration'}
                     </span>
-                    <span class="text-muted small"><i class="bi bi-geo-alt me-1"></i>${h.mode}</span>
+                    <span class="text-muted small"><i class="bi bi-geo-alt me-1"></i>${h.mode || 'Hybrid'}</span>
                   </div>
 
                   <h5 class="fw-bold mb-1">${h.title}</h5>
-                  <p class="text-muted small mb-3 flex-grow-1">${h.tagline || h.description?.substring(0, 90) + '...'}</p>
+                  <p class="text-muted small mb-3 flex-grow-1">${h.tagline || (h.description ? h.description.substring(0, 90) + '...' : '')}</p>
 
                   <div class="mb-3 d-flex flex-wrap gap-1">
-                    ${(h.tracks || []).slice(0, 3).map(t => `<span class="track-tag">${t.name || t}</span>`).join('')}
+                    ${(Array.isArray(h.tracks) ? h.tracks : []).slice(0, 3).map(t => `<span class="track-tag">${t.name || t}</span>`).join('')}
                   </div>
 
                   <div class="border-top pt-3 mt-auto d-flex justify-content-between align-items-center">
@@ -439,27 +487,67 @@
         }).join('');
 
       } catch (err) {
-        console.error(err);
-        grid.innerHTML = `<div class="col-12 text-center text-danger py-4">Failed to load hackathons.</div>`;
+        console.error('[loadHackathons] Error:', err);
+        grid.innerHTML = `<div class="col-12 text-center text-danger py-4">Failed to load hackathons. Please try refreshing.</div>`;
       }
     }
 
     async function loadPastHackathons() {
       const container = document.getElementById('pastHackathonsList');
-      try {
-        const res = await fetch(`${API_BASE}/hackathons/past`);
-        const json = await res.json();
+      container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-success" role="status"></div><p class="text-muted mt-2">Loading past events...</p></div>';
 
-        if (!json.success || !json.data.pastHackathons.length) {
+      try {
+        let past = [];
+        let usedFallback = false;
+
+        try {
+          const res = await api.hackathons.past();
+          if (res && res.success && Array.isArray(res.data?.pastHackathons)) {
+            past = res.data.pastHackathons;
+          } else {
+            usedFallback = true;
+          }
+        } catch (apiErr) {
+          console.warn('[loadPastHackathons] API failed, falling back to direct Supabase:', apiErr.message);
+          usedFallback = true;
+        }
+
+        if (usedFallback) {
+          const { data, error } = await supabase
+            .from('hackathons')
+            .select('*, hackathon_submissions(*, hackathon_registrations(*))')
+            .eq('status', 'completed')
+            .order('end_date', { ascending: false });
+
+          if (error) throw error;
+          past = (data || []).map(h => {
+            const winners = (h.hackathon_submissions || [])
+              .filter(s => s.ranking !== null)
+              .sort((a, b) => (a.ranking || 99) - (b.ranking || 99))
+              .map(s => ({
+                id: s.id,
+                ranking: s.ranking,
+                award_title: s.award_title,
+                project_title: s.project_title,
+                tagline: s.tagline,
+                github_url: s.github_url,
+                demo_url: s.demo_url,
+                registration: s.hackathon_registrations
+              }));
+            return { ...h, winners };
+          });
+        }
+
+        if (!past.length) {
           container.innerHTML = `<div class="text-center py-5 text-muted">No past hackathons archived yet.</div>`;
           return;
         }
 
-        container.innerHTML = json.data.pastHackathons.map(h => `
+        container.innerHTML = past.map(h => `
           <div class="hall-of-fame-card mb-4">
             <div class="row align-items-center mb-4">
               <div class="col-md-8">
-                <span class="badge bg-secondary mb-2">${h.event_type.toUpperCase()} ARCHIVE</span>
+                <span class="badge bg-secondary mb-2">${(h.event_type || 'HACKATHON').toUpperCase()} ARCHIVE</span>
                 <h4 class="fw-bold mb-1">${h.title}</h4>
                 <p class="text-muted mb-0">${h.tagline || ''}</p>
               </div>
@@ -471,7 +559,7 @@
 
             <h6 class="fw-bold mb-3 text-uppercase text-muted" style="letter-spacing: 0.5px; font-size: 12px;">Top Winning Projects</h6>
             <div class="row g-3">
-              ${(h.winners || []).map(w => `
+              ${(h.winners && h.winners.length ? h.winners : []).map(w => `
                 <div class="col-md-4">
                   <div class="p-3 rounded-3 border bg-light h-100 position-relative">
                     <span class="winner-rank-badge ${w.ranking === 1 ? 'rank-1' : w.ranking === 2 ? 'rank-2' : 'rank-3'}">
@@ -479,7 +567,7 @@
                     </span>
                     <h6 class="fw-bold mt-2 mb-1">${w.project_title}</h6>
                     <small class="text-muted d-block mb-2">by ${w.registration?.team_name || 'Team'}</small>
-                    <p class="small text-secondary mb-3">${w.tagline || w.description?.substring(0, 80) + '...'}</p>
+                    <p class="small text-secondary mb-3">${w.tagline || (w.description ? w.description.substring(0, 80) + '...' : '')}</p>
                     <div class="d-flex gap-2">
                       ${w.github_url ? `<a href="${w.github_url}" target="_blank" class="btn btn-xs btn-outline-dark rounded-pill px-2 py-1 small" style="font-size:11px;"><i class="bi bi-github"></i> Code</a>` : ''}
                       ${w.demo_url ? `<a href="${w.demo_url}" target="_blank" class="btn btn-xs btn-outline-success rounded-pill px-2 py-1 small" style="font-size:11px;"><i class="bi bi-play-circle"></i> Demo</a>` : ''}
@@ -487,19 +575,20 @@
                   </div>
                 </div>
               `).join('')}
+              ${(!h.winners || !h.winners.length) ? '<div class="col-12 text-muted small">Winner details pending announcement.</div>' : ''}
             </div>
           </div>
         `).join('');
 
       } catch (err) {
-        console.error(err);
+        console.error('[loadPastHackathons] Error:', err);
         container.innerHTML = `<div class="text-danger text-center py-4">Failed to load Hall of Fame.</div>`;
       }
     }
 
-    function openRegisterModal(hackathonId) {
-      const token = getAuthToken();
-      if (!token) {
+    async function openRegisterModal(hackathonId) {
+      const session = await getUserSession();
+      if (!session) {
         Swal.fire({
           title: 'Sign In Required',
           text: 'Please sign in to register your team for this hackathon.',
@@ -515,7 +604,7 @@
 
       const trackSelect = document.getElementById('trackSelected');
       trackSelect.innerHTML = '<option value="">Select track (optional)</option>' +
-        ((h && h.tracks) || []).map(t => `<option value="${t.name || t}">${t.name || t}</option>`).join('');
+        ((h && Array.isArray(h.tracks)) ? h.tracks : []).map(t => `<option value="${t.name || t}">${t.name || t}</option>`).join('');
 
       document.getElementById('teammatesContainer').innerHTML = '';
       new bootstrap.Modal(document.getElementById('registerModal')).show();
@@ -535,21 +624,29 @@
 
     async function handleRegistration(e) {
       e.preventDefault();
-      const token = getAuthToken();
+      const session = await getUserSession();
+      if (!session) {
+        Swal.fire('Sign In Required', 'Please log in to register.', 'warning');
+        return;
+      }
+
       const hackathonId = document.getElementById('regHackathonId').value;
       const btn = document.getElementById('btnSubmitReg');
       btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Registering...';
 
       // Extract teammates
       const rows = document.getElementById('teammatesContainer').children;
       const teamMembers = [];
       for (let r of rows) {
         const inputs = r.querySelectorAll('input');
-        teamMembers.push({
-          name: inputs[0].value,
-          email: inputs[1].value,
-          role: inputs[2].value
-        });
+        if (inputs.length >= 2 && inputs[0].value) {
+          teamMembers.push({
+            name: inputs[0].value,
+            email: inputs[1].value,
+            role: inputs[2] ? inputs[2].value : ''
+          });
+        }
       }
 
       const payload = {
@@ -560,24 +657,45 @@
       };
 
       try {
-        const res = await fetch(`${API_BASE}/hackathons/${hackathonId}/register`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-        if (!json.success) throw new Error(json.error || 'Failed to register');
+        let success = false;
+        try {
+          const res = await api.hackathons.register(hackathonId, payload);
+          if (res && res.success) {
+            success = true;
+          }
+        } catch (apiErr) {
+          console.warn('[handleRegistration] API failed, falling back to direct Supabase:', apiErr.message);
+        }
 
-        bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
-        Swal.fire('Registered!', 'Your team has been successfully registered.', 'success');
+        if (!success) {
+          // Direct Supabase fallback
+          const { error: dbErr } = await supabase
+            .from('hackathon_registrations')
+            .insert([{
+              hackathon_id: hackathonId,
+              user_id: session.user.id,
+              team_name: payload.teamName,
+              track_selected: payload.trackSelected || null,
+              team_members: payload.teamMembers,
+              is_looking_for_members: payload.isLookingForMembers,
+              status: 'registered'
+            }]);
+
+          if (dbErr) throw dbErr;
+        }
+
+        const modalEl = document.getElementById('registerModal');
+        document.activeElement?.blur();
+        bootstrap.Modal.getInstance(modalEl)?.hide();
+        document.getElementById('regForm').reset();
+        await Swal.fire('Registered!', 'Your team has been successfully registered.', 'success');
         loadHackathons();
       } catch (err) {
-        Swal.fire('Registration Error', err.message, 'error');
+        console.error('[handleRegistration] Error:', err);
+        Swal.fire('Registration Error', err.message || 'Failed to complete registration.', 'error');
       } finally {
         btn.disabled = false;
+        btn.textContent = 'Complete Registration';
       }
     }
 
@@ -588,10 +706,16 @@
 
     async function handleSubmission(e) {
       e.preventDefault();
-      const token = getAuthToken();
+      const session = await getUserSession();
+      if (!session) {
+        Swal.fire('Sign In Required', 'Please log in to submit your project.', 'warning');
+        return;
+      }
+
       const hackathonId = document.getElementById('subHackathonId').value;
       const btn = document.getElementById('btnSubmitProject');
       btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Submitting...';
 
       const techStack = document.getElementById('techStack').value
         .split(',')
@@ -610,30 +734,80 @@
       };
 
       try {
-        const res = await fetch(`${API_BASE}/hackathons/${hackathonId}/submit`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-        if (!json.success) throw new Error(json.error || 'Failed to submit');
+        let success = false;
+        try {
+          const res = await api.hackathons.submit(hackathonId, payload);
+          if (res && res.success) {
+            success = true;
+          }
+        } catch (apiErr) {
+          console.warn('[handleSubmission] API failed, falling back to direct Supabase:', apiErr.message);
+        }
 
-        bootstrap.Modal.getInstance(document.getElementById('submitModal')).hide();
-        Swal.fire('Submitted!', 'Your project was submitted successfully.', 'success');
+        if (!success) {
+          // Find user's registration
+          const { data: reg, error: regErr } = await supabase
+            .from('hackathon_registrations')
+            .select('id')
+            .eq('hackathon_id', hackathonId)
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (regErr || !reg) {
+            throw new Error('You must register your team before submitting a project.');
+          }
+
+          const { error: subErr } = await supabase
+            .from('hackathon_submissions')
+            .upsert([{
+              hackathon_id: hackathonId,
+              registration_id: reg.id,
+              project_title: payload.projectTitle,
+              tagline: payload.tagline || null,
+              description: payload.description,
+              github_url: payload.githubUrl || null,
+              demo_url: payload.demoUrl || null,
+              video_url: payload.videoUrl || null,
+              pitch_deck_url: payload.pitchDeckUrl || null,
+              tech_stack: payload.techStack || []
+            }], { onConflict: 'hackathon_id,registration_id' });
+
+          if (subErr) throw subErr;
+
+          await supabase
+            .from('hackathon_registrations')
+            .update({ status: 'submitted' })
+            .eq('id', reg.id);
+        }
+
+        const modalEl = document.getElementById('submitModal');
+        document.activeElement?.blur();
+        bootstrap.Modal.getInstance(modalEl)?.hide();
+        document.getElementById('submitForm').reset();
+        await Swal.fire('Submitted!', 'Your project was submitted successfully.', 'success');
         loadHackathons();
       } catch (err) {
-        Swal.fire('Submission Error', err.message, 'error');
+        console.error('[handleSubmission] Error:', err);
+        Swal.fire('Submission Error', err.message || 'Failed to submit project.', 'error');
       } finally {
         btn.disabled = false;
+        btn.textContent = 'Submit Final Project';
       }
     }
 
+    // Export to global window scope so HTML onclick/onsubmit attributes work seamlessly
+    window.loadHackathons = loadHackathons;
+    window.loadPastHackathons = loadPastHackathons;
+    window.openRegisterModal = openRegisterModal;
+    window.openSubmissionModal = openSubmissionModal;
+    window.addTeammateField = addTeammateField;
+    window.handleRegistration = handleRegistration;
+    window.handleSubmission = handleSubmission;
+
     document.addEventListener('DOMContentLoaded', () => {
       loadHackathons();
-      document.getElementById('past-tab').addEventListener('click', loadPastHackathons);
+      document.getElementById('past-tab')?.addEventListener('click', loadPastHackathons);
+      document.getElementById('filterType')?.addEventListener('change', loadHackathons);
     });
   </script>
 </body>

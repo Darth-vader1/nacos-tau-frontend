@@ -1,8 +1,13 @@
 import { supabase } from './supabase-config.js';
 
-const API_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:5000/api'
-    : 'https://nacos-tau-frontend.onrender.com/api';
+const isLocal = window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '0.0.0.0' ||
+    window.location.hostname === '';
+
+const API_URL = (window.__CONFIG && window.__CONFIG.apiUrl) ||
+    window.API_URL ||
+    (isLocal ? 'http://localhost:5000/api' : 'https://nacos-tau-frontend.onrender.com/api');
 
 // Make API_URL available globally
 window.API_URL = API_URL;

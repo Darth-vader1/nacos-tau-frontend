@@ -3051,14 +3051,63 @@ window.deleteEvent = async function(id) {
           tracks
         };
 
-        const res = await api.hackathons.adminCreate(payload);
-        if (!res?.success) {
-          throw new Error(res?.error || 'Failed to create hackathon');
+        const slug = (title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'hackathon') + '-' + Date.now().toString(36);
+
+        const dbPayload = {
+          title,
+          slug,
+          event_type: eventType,
+          tagline: tagline || null,
+          mode: mode || 'hybrid',
+          location: location || 'TAU Campus / Online',
+          prize_pool: prizePool || null,
+          registration_deadline: registrationDeadline,
+          start_date: startDate,
+          end_date: endDate,
+          max_team_size: maxTeamSize || 4,
+          min_team_size: 1,
+          status: status || 'upcoming',
+          banner_url: bannerUrl || null,
+          description: description || null,
+          rules: rules || null,
+          tracks: tracks || [],
+          is_published: true,
+          created_by: session.user.id
+        };
+
+        let createdHackathon = null;
+
+        // Strategy 1: Try dedicated backend API route (when deployed on server)
+        try {
+          const res = await api.hackathons.adminCreate(payload);
+          if (res?.success) {
+            createdHackathon = res.data?.hackathon;
+          }
+        } catch (apiErr) {
+          console.warn('[addHackathon] Backend route failed or not found, falling back to direct database insert:', apiErr.message);
         }
 
-        await logAdminAction('CREATE', 'hackathon', res.data?.hackathon?.id, { title, eventType });
+        // Strategy 2: Direct Supabase client insert (works immediately without waiting for Render redeployment)
+        if (!createdHackathon) {
+          const { data: supaData, error: supaErr } = await supabase
+            .from('hackathons')
+            .insert([dbPayload])
+            .select()
+            .single();
+
+          if (supaErr) {
+            if (isMissingTableError(supaErr, 'hackathons')) {
+              throw new Error('Database table "hackathons" is missing. Please run backend/migrations/012_hackathons.sql in Supabase SQL Editor.');
+            }
+            throw new Error(supaErr.message || 'Database insert failed');
+          }
+          createdHackathon = supaData;
+        }
+
+        await logAdminAction('CREATE', 'hackathon', createdHackathon?.id, { title, eventType });
 
         Swal.fire('Success', 'Hackathon published successfully!', 'success').then(() => {
+          document.activeElement?.blur();
           bootstrap.Modal.getInstance(document.getElementById('addHackathonModal'))?.hide();
           e.target.reset();
           loadHackathons();
@@ -3085,7 +3134,19 @@ window.deleteEvent = async function(id) {
       if (!result.isConfirmed) return;
 
       try {
-        await apiAdmin.remove('hackathons', id);
+        let deleted = false;
+        try {
+          await apiAdmin.remove('hackathons', id);
+          deleted = true;
+        } catch (e) {
+          console.warn('[deleteHackathon] apiAdmin failed, falling back to Supabase:', e.message);
+        }
+
+        if (!deleted) {
+          const { error: supaErr } = await supabase.from('hackathons').delete().eq('id', id);
+          if (supaErr) throw supaErr;
+        }
+
         await logAdminAction('DELETE', 'hackathon', id);
         Swal.fire('Deleted', 'Hackathon removed successfully', 'success');
         loadHackathons();
@@ -3114,12 +3175,32 @@ window.deleteEvent = async function(id) {
       subsTbody.innerHTML = '<tr><td colspan="6" class="text-center py-3">Loading submissions...</td></tr>';
 
       try {
-        const res = await api.hackathons.adminGetParticipants(currentManagingHackathonId);
-        if (!res?.success) {
-          throw new Error(res?.error || 'Failed to load participants');
+        let registrations = null;
+        try {
+          const res = await api.hackathons.adminGetParticipants(currentManagingHackathonId);
+          if (res?.success && Array.isArray(res.data?.registrations)) {
+            registrations = res.data.registrations;
+          }
+        } catch (apiErr) {
+          console.warn('[manageHackathon] API participants call failed, falling back to Supabase:', apiErr);
         }
 
-        const registrations = res.data?.registrations || [];
+        if (registrations === null) {
+          const { data: supaRegs, error: supaErr } = await supabase
+            .from('hackathon_registrations')
+            .select(`
+              *,
+              submission:hackathon_submissions (*)
+            `)
+            .eq('hackathon_id', currentManagingHackathonId)
+            .order('created_at', { ascending: false });
+
+          if (supaErr && !isMissingTableError(supaErr, 'hackathon_registrations')) {
+            throw supaErr;
+          }
+          registrations = supaRegs || [];
+        }
+
         document.getElementById('count-teams').textContent = registrations.length;
 
         // Render teams
@@ -3245,8 +3326,29 @@ window.deleteEvent = async function(id) {
 
       if (formValues) {
         try {
-          const res = await api.hackathons.adminAssignWinner(subId, formValues);
-          if (!res?.success) throw new Error(res?.error || 'Failed to update winner');
+          let updated = false;
+          try {
+            const res = await api.hackathons.adminAssignWinner(subId, formValues);
+            if (res?.success) updated = true;
+          } catch (apiErr) {
+            console.warn('[assignWinner] API call failed, falling back to Supabase update:', apiErr);
+          }
+
+          if (!updated) {
+            const { error: supaErr } = await supabase
+              .from('hackathon_submissions')
+              .update({
+                is_winner: formValues.isWinner,
+                award_title: formValues.awardTitle || null,
+                ranking: formValues.ranking ? parseInt(formValues.ranking, 10) : null,
+                feedback: formValues.feedback || null,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', subId);
+
+            if (supaErr) throw supaErr;
+          }
+
           Swal.fire('Updated!', 'Award details saved successfully.', 'success');
           reloadHackathonParticipants();
         } catch (err) {
