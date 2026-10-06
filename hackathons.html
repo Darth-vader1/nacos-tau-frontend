@@ -12,288 +12,710 @@
   <link href="assets/img/nacos logo.jpg" rel="apple-touch-icon">
 
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Inter:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
   <link href="assets/css/main.css" rel="stylesheet">
 
   <style>
+    :root {
+      --brand-green: #1b8c0c;
+      --brand-green-hover: #15730a;
+      --brand-green-subtle: #e8f5e9;
+      --text-dark: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --bg-page: #f8fafc;
+    }
+
     body {
-      font-family: 'Poppins', sans-serif;
-      background-color: #f8fafc;
-      color: #1e293b;
+      background-color: var(--bg-page);
+      color: #334155;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
+
+    /* Fixed Header Styling matching main portal */
     .header {
-      background: white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-      padding: 12px 0;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      padding: 10px 0;
     }
-    .hero-banner {
-      background: linear-gradient(135deg, #0d5c14 0%, #1b8c0c 100%);
-      color: white;
-      padding: 80px 0 60px;
-      margin-top: 60px;
+
+    /* Clean, Professional Hero */
+    .hackathon-hero {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 125px 0 45px;
       position: relative;
-      overflow: hidden;
     }
-    .hero-banner::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -10%;
-      width: 400px;
-      height: 400px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 50%;
-    }
-    .badge-pill-custom {
-      background: rgba(255,255,255,0.2);
-      backdrop-filter: blur(4px);
-      padding: 6px 16px;
-      border-radius: 20px;
-      font-weight: 500;
+
+    .hero-tag {
+      background: #f1f5f9;
+      border: 1px solid var(--border-color);
+      color: #475569;
+      padding: 5px 14px;
+      border-radius: 9999px;
       font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
+
+    .hero-tag .tag-accent {
+      color: var(--brand-green);
+    }
+
+    .hero-title {
+      color: var(--text-dark) !important;
+      font-family: 'Nunito', 'Inter', sans-serif;
+      font-weight: 800;
+      font-size: 2.6rem;
+      letter-spacing: -0.03em;
+      margin-top: 14px;
+      margin-bottom: 12px;
+    }
+
+    .hero-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+      max-width: 620px;
+      margin: 0 auto 30px;
+    }
+
+    /* Modern Segmented Switcher */
+    .segmented-nav-wrapper {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 9999px;
+      padding: 4px;
+      display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      gap: 4px;
+    }
+
+    .segmented-nav-btn {
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 8px 20px;
+      border-radius: 9999px;
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .segmented-nav-btn:hover {
+      color: var(--text-dark);
+    }
+
+    .segmented-nav-btn.active {
+      background: var(--brand-green);
+      color: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(27, 140, 12, 0.25);
+    }
+
+    .segmented-nav-btn.active i {
+      color: #ffffff !important;
+    }
+
+    /* Section Header & Filters */
+    .section-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .section-heading {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-select {
+      border-radius: 9999px;
+      border: 1px solid var(--border-color);
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #334155;
+      background-color: #ffffff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+      cursor: pointer;
+    }
+
+    .filter-select:focus {
+      border-color: var(--brand-green);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(27, 140, 12, 0.15);
+    }
+
+    /* Modern Card UI */
     .card-hackathon {
-      background: white;
-      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
       border-radius: 16px;
       overflow: hidden;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-      height: 100%;
       display: flex;
       flex-direction: column;
+      height: 100%;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     }
+
     .card-hackathon:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.08);
-      border-color: #86efac;
+      transform: translateY(-4px);
+      box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.08);
+      border-color: #cbd5e1;
     }
-    .hackathon-banner-img {
-      height: 190px;
+
+    .card-banner-wrapper {
+      position: relative;
+      height: 185px;
       width: 100%;
-      object-fit: cover;
       background: #e2e8f0;
+      overflow: hidden;
     }
+
+    .card-banner-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .card-hackathon:hover .card-banner-img {
+      transform: scale(1.03);
+    }
+
+    .banner-badge-left {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 2;
+    }
+
+    .banner-badge-right {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 2;
+    }
+
     .status-badge-live {
-      background: #fee2e2;
+      background: rgba(254, 242, 242, 0.95);
       color: #dc2626;
-      font-weight: 600;
+      border: 1px solid #fecaca;
+      backdrop-filter: blur(4px);
       font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
       padding: 4px 10px;
-      border-radius: 12px;
+      border-radius: 9999px;
       display: inline-flex;
       align-items: center;
       gap: 5px;
     }
-    .status-badge-live::before {
-      content: '';
+
+    .status-badge-live .pulse-dot {
       width: 6px;
       height: 6px;
       background: #dc2626;
       border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
       animation: pulse 1.5s infinite;
     }
+
     @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.3; }
-      100% { opacity: 1; }
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+      100% { opacity: 1; transform: scale(1); }
     }
+
     .status-badge-upcoming {
-      background: #e0f2fe;
-      color: #0284c7;
-      font-weight: 600;
+      background: rgba(240, 253, 244, 0.95);
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+      backdrop-filter: blur(4px);
       font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
       padding: 4px 10px;
-      border-radius: 12px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
-    .status-badge-completed {
-      background: #f1f5f9;
-      color: #64748b;
-      font-weight: 600;
+
+    .mode-badge {
+      background: rgba(15, 23, 42, 0.75);
+      color: #ffffff;
+      backdrop-filter: blur(4px);
       font-size: 11px;
-      text-transform: uppercase;
+      font-weight: 600;
       padding: 4px 10px;
-      border-radius: 12px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
-    .track-tag {
-      background: #f1f5f9;
-      color: #334155;
+
+    .card-body-content {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    .event-type-chip {
+      color: var(--brand-green);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .card-title-text {
+      color: var(--text-dark);
+      font-weight: 700;
+      font-size: 1.15rem;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+
+    .card-desc-text {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.5;
+      margin-bottom: 14px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 42px;
+    }
+
+    .track-pill {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      color: #475569;
       font-size: 11px;
       font-weight: 500;
-      padding: 4px 10px;
-      border-radius: 8px;
+      padding: 3px 9px;
+      border-radius: 6px;
     }
-    .hall-of-fame-card {
-      background: white;
+
+    .card-footer-divider {
+      border-top: 1px solid #f1f5f9;
+      padding-top: 14px;
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .deadline-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: block;
+    }
+
+    .deadline-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    /* Teammate Finder Card */
+    .card-team-collab {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
       border-radius: 16px;
-      border: 1px solid #e2e8f0;
+      padding: 22px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    }
+
+    .card-team-collab:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.08);
+      border-color: #93c5fd;
+    }
+
+    .member-avatar-chip {
+      background: #f1f5f9;
+      border-radius: 9999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: #334155;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .role-req-badge {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+
+    /* Buttons */
+    .btn-nacos-primary {
+      background: var(--brand-green);
+      border: 1px solid var(--brand-green);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 13px;
+      border-radius: 9999px;
+      padding: 7px 18px;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .btn-nacos-primary:hover {
+      background: var(--brand-green-hover);
+      border-color: var(--brand-green-hover);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(27, 140, 12, 0.25);
+    }
+
+    .btn-nacos-outline {
+      border: 1px solid var(--brand-green);
+      color: var(--brand-green);
+      background: transparent;
+      font-weight: 600;
+      font-size: 13px;
+      border-radius: 9999px;
+      padding: 6px 16px;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .btn-nacos-outline:hover {
+      background: var(--brand-green-subtle);
+      color: var(--brand-green);
+    }
+
+    /* Hall of Fame Styling */
+    .hall-of-fame-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
       padding: 24px;
       margin-bottom: 24px;
-      position: relative;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     }
-    .winner-rank-badge {
-      position: absolute;
-      top: -12px;
-      right: 20px;
-      padding: 6px 14px;
-      border-radius: 12px;
+
+    .hof-header {
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+
+    .hof-prize-pill {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #15803d;
       font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 9999px;
       font-size: 13px;
     }
-    .rank-1 { background: #fef08a; color: #854d0e; }
-    .rank-2 { background: #e2e8f0; color: #334155; }
-    .rank-3 { background: #fed7aa; color: #9a3412; }
-    .btn-nacos {
-      background: #1b8c0c;
-      color: white;
-      font-weight: 600;
-      border-radius: 10px;
-      padding: 10px 20px;
+
+    .winner-project-card {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      height: 100%;
+      position: relative;
+    }
+
+    .rank-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+
+    .rank-1 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .rank-2 { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+    .rank-3 { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+
+    /* Modals Clean Style */
+    .modal-content {
       border: none;
-      transition: all 0.2s;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
     }
-    .btn-nacos:hover {
-      background: #15730a;
-      color: white;
+
+    .modal-header {
+      border-bottom: 1px solid #f1f5f9;
+      padding: 20px 24px 16px;
     }
-    .nav-pills .nav-link.active {
-      background-color: #1b8c0c;
+
+    .modal-title {
+      font-weight: 700;
+      color: var(--text-dark);
+      font-size: 1.25rem;
+    }
+
+    .modal-body {
+      padding: 24px;
+    }
+
+    .form-control, .form-select {
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      padding: 9px 14px;
+      font-size: 14px;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: var(--brand-green);
+      box-shadow: 0 0 0 3px rgba(27, 140, 12, 0.15);
+    }
+
+    .form-label {
+      font-weight: 600;
+      font-size: 13px;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    /* Footer styling */
+    .footer {
+      background: #ffffff;
+      border-top: 1px solid var(--border-color);
+      padding: 50px 0 25px;
+      color: var(--text-muted);
     }
   </style>
 </head>
 
-<body>
+<body class="index-page">
 
-  <!-- Header -->
+  <!-- Official Navigation Bar -->
   <header id="header" class="header d-flex align-items-center fixed-top">
-    <div class="container d-flex align-items-center justify-content-between">
-      <a href="index.html" class="logo d-flex align-items-center text-decoration-none">
-        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo" style="height: 45px; border-radius: 8px;">
-        <div class="ms-2">
-          <span style="color: #1b8c0c; font-weight: 700; font-size: 18px;">NACOS</span>
-          <span style="font-size: 10px; display: block; color: #777;">TAU Chapter</span>
-        </div>
+    <div class="container-fluid container-xl position-relative d-flex align-items-center" style="width: 100%; display: flex; justify-content: space-around;">
+      <a href="index.html" class="logo d-flex align-items-center me-auto text-decoration-none">
+        <img src="assets/img/nacos logo.jpg" alt="NACOS Logo" style="height: 42px; border-radius: 6px; margin-right: 8px;">
+        <h1 class="sitename mb-0" style="font-size: 20px; line-height: 1.1;">
+          <span style="color: #1b8c0c; font-weight: 800;">NACOS</span><br>
+          <strong style="font-size: 11px; color: #64748b; font-weight: 500;">Thomas Adewumi University</strong>
+        </h1>
       </a>
 
-      <nav class="navmenu d-flex align-items-center gap-3">
-        <a href="index.html" class="text-decoration-none text-dark fw-medium">Home</a>
-        <a href="index.html#events" class="text-decoration-none text-dark fw-medium">Events</a>
-        <a href="hackathons.html" class="text-decoration-none text-success fw-bold">Hackathons</a>
-        <a href="student-dashboard.html" class="btn btn-sm btn-outline-success rounded-pill px-3">Dashboard</a>
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="past-questions.html">Past Questions</a></li>
+          <li><a href="timetables.html">Timetables</a></li>
+          <li><a href="resources.html">Resources</a></li>
+          <li><a href="career-paths.html">Career Paths</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="hackathons.html" class="active">Hackathons</a></li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
     </div>
   </header>
 
-  <!-- Hero Section -->
-  <section class="hero-banner text-center">
-    <div class="container">
-      <span class="badge-pill-custom mb-3 d-inline-block">⚡ Build, Pitch & Innovate</span>
-      <h1 class="display-5 fw-bold mb-3">Hackathons & Pitchathons</h1>
-      <p class="lead mb-4 mx-auto" style="max-width: 680px; opacity: 0.95;">
-        Transform real campus and global challenges into groundbreaking prototypes. Join as a team or find collaborators across TAU.
-      </p>
-
-      <ul class="nav nav-pills justify-content-center mb-0" id="hackathonTabs" role="tablist">
-        <li class="nav-item">
-          <button class="nav-link active rounded-pill px-4 text-white me-2" id="open-tab" data-bs-toggle="pill" data-bs-target="#openings" type="button">Active & Upcoming</button>
-        </li>
-        <li class="nav-item">
-          <button class="nav-link rounded-pill px-4 text-white" id="past-tab" data-bs-toggle="pill" data-bs-target="#hallOfFame" type="button">🏆 Hall of Fame & Past</button>
-        </li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- Main Content -->
-  <div class="container py-5">
-    <div class="tab-content" id="hackathonTabsContent">
-
-      <!-- Tab 1: Openings -->
-      <div class="tab-pane fade show active" id="openings" role="tabpanel">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h3 class="fw-bold m-0">Open Opportunities</h3>
-          <div class="d-flex gap-2">
-            <select class="form-select form-select-sm rounded-pill" id="filterType" style="width: 160px;" onchange="loadHackathons()">
-              <option value="">All Types</option>
-              <option value="hackathon">Hackathons</option>
-              <option value="pitchathon">Pitchathons</option>
-            </select>
-          </div>
+  <!-- Clean, Professional Hero Section -->
+  <main class="main">
+    <section class="hackathon-hero text-center">
+      <div class="container">
+        <div class="hero-tag">
+          <i class="bi bi-lightning-charge-fill tag-accent"></i>
+          <span>NACOS Innovation & Competitions Hub</span>
         </div>
 
-        <div class="row g-4" id="hackathonsGrid">
-          <div class="col-12 text-center py-5 text-muted">
-            <div class="spinner-border text-success" role="status"></div>
-            <p class="mt-2">Loading hackathons...</p>
-          </div>
+        <h1 class="hero-title">Hackathons & Pitchathons</h1>
+
+        <p class="hero-desc">
+          Build groundbreaking solutions, pitch transformative ideas, and collaborate with tech minds across Thomas Adewumi University.
+        </p>
+
+        <!-- Segmented Tab Navigation -->
+        <div class="segmented-nav-wrapper">
+          <button class="segmented-nav-btn active" id="open-tab" data-bs-toggle="pill" data-bs-target="#openings" type="button">
+            <i class="bi bi-grid-fill text-success"></i> Open Opportunities
+          </button>
+          <button class="segmented-nav-btn" id="collab-tab" data-bs-toggle="pill" data-bs-target="#collaborators" type="button">
+            <i class="bi bi-people-fill text-primary"></i> Teammate Finder <span class="badge rounded-pill bg-primary ms-1" id="openTeamsCountBadge" style="display: none; font-size: 10px;">0</span>
+          </button>
+          <button class="segmented-nav-btn" id="past-tab" data-bs-toggle="pill" data-bs-target="#hallOfFame" type="button">
+            <i class="bi bi-trophy-fill text-warning"></i> Hall of Fame & Archives
+          </button>
         </div>
       </div>
+    </section>
 
-      <!-- Tab 2: Hall of Fame & Past -->
-      <div class="tab-pane fade" id="hallOfFame" role="tabpanel">
-        <div class="mb-4">
-          <h3 class="fw-bold m-0">🏆 Past Winners & Project Gallery</h3>
-          <p class="text-muted">Celebrating high-impact projects built by Thomas Adewumi University students.</p>
-        </div>
+    <!-- Content Sections -->
+    <div class="container py-5">
+      <div class="tab-content" id="hackathonTabsContent">
 
-        <div id="pastHackathonsList">
-          <div class="text-center py-5 text-muted">
-            <div class="spinner-border text-success" role="status"></div>
-            <p class="mt-2">Loading Hall of Fame...</p>
+        <!-- Tab 1: Open Opportunities -->
+        <div class="tab-pane fade show active" id="openings" role="tabpanel">
+          <div class="section-toolbar">
+            <h3 class="section-heading">
+              <i class="bi bi-fire text-danger"></i> Current Openings
+            </h3>
+            <div class="d-flex align-items-center gap-2">
+              <label for="filterType" class="small text-muted fw-semibold">Filter:</label>
+              <select class="form-select form-select-sm filter-select" id="filterType" style="width: 170px;">
+                <option value="">All Categories</option>
+                <option value="hackathon">Hackathons</option>
+                <option value="pitchathon">Pitchathons</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-4" id="hackathonsGrid">
+            <div class="col-12 text-center py-5">
+              <div class="spinner-border text-success" role="status"></div>
+              <p class="text-muted mt-2">Loading hackathons...</p>
+            </div>
           </div>
         </div>
+
+        <!-- Tab 2: Teammate Finder (Teams Open to Collaborators) -->
+        <div class="tab-pane fade" id="collaborators" role="tabpanel">
+          <div class="section-toolbar">
+            <div>
+              <h3 class="section-heading">
+                <i class="bi bi-people-fill text-primary"></i> Teams Seeking Collaborators
+              </h3>
+              <p class="text-muted small mb-0">Looking for a squad or need one more member? Connect with open teams across TAU.</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <label for="filterCollabHackathon" class="small text-muted fw-semibold">Event:</label>
+              <select class="form-select form-select-sm filter-select" id="filterCollabHackathon" style="width: 220px;">
+                <option value="">All Competitions</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-4" id="openTeamsGrid">
+            <div class="col-12 text-center py-5">
+              <div class="spinner-border text-primary" role="status"></div>
+              <p class="text-muted mt-2">Loading open squads...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Hall of Fame & Past Projects -->
+        <div class="tab-pane fade" id="hallOfFame" role="tabpanel">
+          <div class="section-toolbar">
+            <div>
+              <h3 class="section-heading">
+                <i class="bi bi-award-fill text-warning"></i> Hall of Fame & Archives
+              </h3>
+              <p class="text-muted small mb-0">Celebrating winning projects and technical innovations built by TAU students.</p>
+            </div>
+          </div>
+
+          <div id="pastHackathonsList">
+            <div class="text-center py-5 text-muted">
+              <div class="spinner-border text-success" role="status"></div>
+              <p class="mt-2">Loading Hall of Fame...</p>
+            </div>
+          </div>
+        </div>
+
       </div>
-
     </div>
-  </div>
+  </main>
 
-  <!-- Registration Modal -->
+  <!-- Team Registration Modal -->
   <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content rounded-4 border-0 shadow">
-        <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title fw-bold" id="registerModalLabel">Register for Hackathon</h5>
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title" id="registerModalLabel">Register Your Team</h5>
+            <small class="text-muted">Enter your team details to secure participation.</small>
+          </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body p-4">
+        <div class="modal-body">
           <form id="regForm" onsubmit="handleRegistration(event)">
             <input type="hidden" id="regHackathonId">
             <div class="mb-3">
-              <label class="form-label fw-semibold">Team Name *</label>
-              <input type="text" class="form-control rounded-3" id="teamName" required placeholder="e.g. Apex Innovators">
+              <label class="form-label">Team Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="teamName" required placeholder="e.g. Apex Innovators">
             </div>
 
             <div class="mb-3">
-              <label class="form-label fw-semibold">Focus Track</label>
-              <select class="form-select rounded-3" id="trackSelected">
+              <label class="form-label">Focus Track</label>
+              <select class="form-select" id="trackSelected">
                 <option value="">Select track (optional)</option>
               </select>
             </div>
 
-            <div class="form-check form-switch mb-3">
-              <input class="form-check-input" type="checkbox" id="isLookingForMembers">
-              <label class="form-check-label fw-medium" for="isLookingForMembers">
-                Looking for teammates? (Displays your team on the public directory)
-              </label>
+            <div class="p-3 bg-light rounded-3 mb-3 border">
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="isLookingForMembers" onchange="toggleLookingForFields(this.checked)">
+                <label class="form-check-label fw-semibold text-dark small" for="isLookingForMembers">
+                  Open to Collaborators? <span class="fw-normal text-muted d-block" style="font-size: 12px;">Display your team in the Teammate Finder so students with matching skills can join.</span>
+                </label>
+              </div>
+
+              <div id="collabFieldsContainer" class="mt-3 pt-3 border-top" style="display: none;">
+                <div class="mb-2">
+                  <label class="form-label" style="font-size: 12px;">What roles / skills are you seeking?</label>
+                  <input type="text" class="form-control form-control-sm" id="rolesNeeded" placeholder="e.g. UI/UX Designer, Frontend React, Pitch Deck Specialist">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 12px;">Leader Contact Email or WhatsApp (for teammate outreach)</label>
+                  <input type="text" class="form-control form-control-sm" id="leaderContact" placeholder="e.g. 08123456789 or student@tau.edu.ng">
+                </div>
+              </div>
             </div>
 
             <div class="mb-3">
-              <label class="form-label fw-semibold">Additional Teammates (Optional)</label>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label mb-0">Additional Teammates (Optional)</label>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="addTeammateField()">
+                  <i class="bi bi-person-plus me-1"></i> Add Teammate
+                </button>
+              </div>
               <div id="teammatesContainer"></div>
-              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill mt-2" onclick="addTeammateField()">
-                <i class="bi bi-person-plus me-1"></i> Add Teammate
-              </button>
             </div>
 
             <div class="d-grid mt-4">
-              <button type="submit" class="btn btn-nacos py-2.5" id="btnSubmitReg">Complete Registration</button>
+              <button type="submit" class="btn btn-nacos-primary py-2.5" id="btnSubmitReg">Complete Registration</button>
             </div>
           </form>
         </div>
@@ -301,68 +723,99 @@
     </div>
   </div>
 
-  <!-- Submission Modal -->
+  <!-- Project Submission Modal -->
   <div class="modal fade" id="submitModal" tabindex="-1" aria-labelledby="submitModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content rounded-4 border-0 shadow">
-        <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title fw-bold" id="submitModalLabel">Submit Project</h5>
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title" id="submitModalLabel">Submit Project</h5>
+            <small class="text-muted">Showcase your prototype, repository, and demo pitch.</small>
+          </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body p-4">
+        <div class="modal-body">
           <form id="submitForm" onsubmit="handleSubmission(event)">
             <input type="hidden" id="subHackathonId">
             <div class="mb-3">
-              <label class="form-label fw-semibold">Project Title *</label>
-              <input type="text" class="form-control rounded-3" id="projectTitle" required placeholder="e.g. CampusRide AI">
+              <label class="form-label">Project Title <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="projectTitle" required placeholder="e.g. CampusRide AI">
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Tagline / One-Liner</label>
-              <input type="text" class="form-control rounded-3" id="subTagline" placeholder="Brief 1-sentence summary">
+              <label class="form-label">Tagline / One-Liner</label>
+              <input type="text" class="form-control" id="subTagline" placeholder="Brief 1-sentence summary">
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Detailed Description *</label>
-              <textarea class="form-control rounded-3" id="projectDescription" rows="4" required placeholder="What problem did you solve? How did you build it?"></textarea>
+              <label class="form-label">Detailed Description <span class="text-danger">*</span></label>
+              <textarea class="form-control" id="projectDescription" rows="4" required placeholder="What problem did you solve? How does your prototype work?"></textarea>
             </div>
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="form-label fw-semibold">GitHub Repo URL</label>
-                <input type="url" class="form-control rounded-3" id="githubUrl" placeholder="https://github.com/...">
+                <label class="form-label"><i class="bi bi-github me-1"></i> GitHub Repo URL</label>
+                <input type="url" class="form-control" id="githubUrl" placeholder="https://github.com/...">
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Live Prototype / Demo URL</label>
-                <input type="url" class="form-control rounded-3" id="demoUrl" placeholder="https://...">
+                <label class="form-label"><i class="bi bi-globe me-1"></i> Live Demo / Prototype URL</label>
+                <input type="url" class="form-control" id="demoUrl" placeholder="https://...">
               </div>
             </div>
             <div class="row g-3 mb-3">
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Video Pitch / Demo Link</label>
-                <input type="url" class="form-control rounded-3" id="videoUrl" placeholder="YouTube or Loom link">
+                <label class="form-label"><i class="bi bi-play-circle me-1"></i> Video Pitch Link</label>
+                <input type="url" class="form-control" id="videoUrl" placeholder="YouTube, Loom or Drive link">
               </div>
               <div class="col-md-6">
-                <label class="form-label fw-semibold">Slide Deck Link</label>
-                <input type="url" class="form-control rounded-3" id="pitchDeckUrl" placeholder="Canva or Google Slides link">
+                <label class="form-label"><i class="bi bi-file-earmark-slides me-1"></i> Slide Deck Link</label>
+                <input type="url" class="form-control" id="pitchDeckUrl" placeholder="Canva or Google Slides link">
               </div>
             </div>
             <div class="mb-4">
-              <label class="form-label fw-semibold">Technologies Used (comma separated)</label>
-              <input type="text" class="form-control rounded-3" id="techStack" placeholder="React, Node.js, Supabase, Tailwind">
+              <label class="form-label">Technologies Used (comma separated)</label>
+              <input type="text" class="form-control" id="techStack" placeholder="React, Node.js, Supabase, Python">
             </div>
 
             <div class="d-grid">
-              <button type="submit" class="btn btn-nacos py-2.5" id="btnSubmitProject">Submit Final Project</button>
+              <button type="submit" class="btn btn-nacos-primary py-2.5" id="btnSubmitProject">Submit Final Project</button>
             </div>
           </form>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Standard NACOS TAU Portal Footer -->
+  <footer id="footer" class="footer text-center">
+    <div class="container footer-top">
+      <div class="row gy-4 justify-content-center">
+        <div class="col-lg-6 col-md-8">
+          <div class="d-flex justify-content-center align-items-center mb-3">
+            <img src="assets/img/nacos logo.jpg" class="img-fluid me-3" alt="NACOS Logo" style="max-height: 44px; border-radius: 6px;">
+            <img src="assets/img/tau_logo-removebg-preview.png" alt="TAU Logo" class="img-fluid" style="max-height: 52px;">
+          </div>
+          <p class="mb-1 fw-bold text-dark">Nigerian Association of Computing Students (NACOS)</p>
+          <p class="small text-muted mb-2">Thomas Adewumi University Chapter • Oko-Irese, Kwara State</p>
+          <p class="small text-muted"><strong>Email:</strong> nacos@tau.edu.ng</p>
+
+          <div class="social-links d-flex justify-content-center gap-3 mt-3">
+            <a href="https://www.instagram.com/nacos_tauchapter" target="_blank" class="text-secondary fs-5"><i class="bi bi-instagram"></i></a>
+            <a href="https://www.linkedin.com/company/nacos-tauchapter" target="_blank" class="text-secondary fs-5"><i class="bi bi-linkedin"></i></a>
+            <a href="https://www.tiktok.com/@nacos_tau" target="_blank" class="text-secondary fs-5"><i class="bi bi-tiktok"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container copyright text-center mt-4 pt-3 border-top">
+      <p class="small text-muted mb-0">Copyright © <strong class="text-dark">NACOS - TAU Development Team.</strong> All Rights Reserved.</p>
+    </div>
+  </footer>
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script>
+  <script src="assets/js/main.js"></script>
   <script type="module" src="assets/js/supabase-config.js"></script>
   <script type="module" src="assets/js/api-config.js"></script>
 
@@ -371,10 +824,16 @@
     import { api } from './assets/js/api-config.js';
 
     let currentHackathons = [];
+    let openTeamsCache = [];
 
     async function getUserSession() {
       const { data: { session } } = await supabase.auth.getSession();
       return session;
+    }
+
+    function toggleLookingForFields(isChecked) {
+      const container = document.getElementById('collabFieldsContainer');
+      if (container) container.style.display = isChecked ? 'block' : 'none';
     }
 
     async function loadHackathons() {
@@ -428,12 +887,19 @@
           }
         }
 
+        // Populate event dropdown in Teammate Finder tab
+        const collabSelect = document.getElementById('filterCollabHackathon');
+        if (collabSelect) {
+          collabSelect.innerHTML = '<option value="">All Competitions</option>' +
+            hackathons.map(h => `<option value="${h.id}">${h.title}</option>`).join('');
+        }
+
         if (!hackathons.length) {
           grid.innerHTML = `
             <div class="col-12 text-center py-5">
-              <i class="bi bi-calendar-x fs-1 text-muted d-block mb-2"></i>
-              <h5>No active hackathons right now</h5>
-              <p class="text-muted">Check back soon or browse past winners in the Hall of Fame!</p>
+              <i class="bi bi-calendar-x fs-1 text-muted d-block mb-3"></i>
+              <h5 class="fw-bold text-dark">No active hackathons right now</h5>
+              <p class="text-muted small">Check back soon for upcoming editions or browse past winners in the Hall of Fame.</p>
             </div>`;
           return;
         }
@@ -449,34 +915,41 @@
           return `
             <div class="col-md-6 col-lg-4">
               <div class="card-hackathon">
-                <img src="${h.banner_url || 'assets/img/tau sample image.jpg'}" class="hackathon-banner-img" alt="${h.title}">
-                <div class="p-4 d-flex flex-column flex-grow-1">
-                  <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="card-banner-wrapper">
+                  <img src="${h.banner_url || 'assets/img/tau sample image.jpg'}" class="card-banner-img" alt="${h.title}">
+                  
+                  <div class="banner-badge-left">
                     <span class="${isLive ? 'status-badge-live' : 'status-badge-upcoming'}">
-                      ${isLive ? 'Hacking Live' : 'Open for Registration'}
+                      ${isLive ? '<span class="pulse-dot"></span> Live Hacking' : '<i class="bi bi-door-open me-1"></i> Registering'}
                     </span>
-                    <span class="text-muted small"><i class="bi bi-geo-alt me-1"></i>${h.mode || 'Hybrid'}</span>
                   </div>
 
-                  <h5 class="fw-bold mb-1">${h.title}</h5>
-                  <p class="text-muted small mb-3 flex-grow-1">${h.tagline || (h.description ? h.description.substring(0, 90) + '...' : '')}</p>
+                  <div class="banner-badge-right">
+                    <span class="mode-badge"><i class="bi bi-geo-alt-fill"></i> ${h.mode || 'Hybrid'}</span>
+                  </div>
+                </div>
+
+                <div class="card-body-content">
+                  <span class="event-type-chip">${(h.event_type || 'HACKATHON').toUpperCase()}</span>
+                  <h5 class="card-title-text">${h.title}</h5>
+                  <p class="card-desc-text">${h.tagline || (h.description ? h.description.substring(0, 90) + '...' : '')}</p>
 
                   <div class="mb-3 d-flex flex-wrap gap-1">
-                    ${(Array.isArray(h.tracks) ? h.tracks : []).slice(0, 3).map(t => `<span class="track-tag">${t.name || t}</span>`).join('')}
+                    ${(Array.isArray(h.tracks) ? h.tracks : []).slice(0, 3).map(t => `<span class="track-pill">${t.name || t}</span>`).join('')}
                   </div>
 
-                  <div class="border-top pt-3 mt-auto d-flex justify-content-between align-items-center">
+                  <div class="card-footer-divider">
                     <div>
-                      <small class="text-muted d-block" style="font-size: 11px;">DEADLINE</small>
-                      <strong style="font-size: 13px;">${deadline}</strong>
+                      <span class="deadline-label">Registration Deadline</span>
+                      <span class="deadline-value">${deadline}</span>
                     </div>
 
                     ${reg ? `
-                      <button class="btn btn-sm btn-outline-success rounded-pill px-3" onclick="openSubmissionModal('${h.id}')">
-                        ${reg.status === 'submitted' ? 'Update Submission' : 'Submit Project'}
+                      <button class="btn btn-nacos-outline" onclick="openSubmissionModal('${h.id}')">
+                        ${reg.status === 'submitted' ? '<i class="bi bi-pencil-square me-1"></i> Edit Pitch' : '<i class="bi bi-cloud-arrow-up me-1"></i> Submit'}
                       </button>
                     ` : `
-                      <button class="btn btn-sm btn-nacos rounded-pill px-3" onclick="openRegisterModal('${h.id}')">
+                      <button class="btn btn-nacos-primary" onclick="openRegisterModal('${h.id}')">
                         Register Team
                       </button>
                     `}
@@ -486,10 +959,202 @@
             </div>`;
         }).join('');
 
+        // Silently refresh open teams count badge
+        refreshOpenTeamsCount();
+
       } catch (err) {
         console.error('[loadHackathons] Error:', err);
         grid.innerHTML = `<div class="col-12 text-center text-danger py-4">Failed to load hackathons. Please try refreshing.</div>`;
       }
+    }
+
+    async function loadOpenTeams(hackathonId = '') {
+      const grid = document.getElementById('openTeamsGrid');
+      grid.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="text-muted mt-2">Loading open squads...</p></div>';
+
+      try {
+        let teams = [];
+        let usedFallback = false;
+
+        try {
+          const res = await api.hackathons.openTeams(hackathonId);
+          if (res && res.success && Array.isArray(res.data?.openTeams)) {
+            teams = res.data.openTeams;
+          } else {
+            usedFallback = true;
+          }
+        } catch (apiErr) {
+          console.warn('[loadOpenTeams] API failed, falling back to direct Supabase:', apiErr.message);
+          usedFallback = true;
+        }
+
+        if (usedFallback) {
+          let query = supabase
+            .from('hackathon_registrations')
+            .select('*, hackathons(id, title, event_type)')
+            .eq('is_looking_for_members', true)
+            .eq('status', 'registered');
+
+          if (hackathonId) {
+            query = query.eq('hackathon_id', hackathonId);
+          }
+
+          const { data, error } = await query.order('created_at', { ascending: false });
+          if (error) throw error;
+          teams = data || [];
+        }
+
+        openTeamsCache = teams;
+
+        // Update badge count
+        const badge = document.getElementById('openTeamsCountBadge');
+        if (badge) {
+          badge.textContent = teams.length;
+          badge.style.display = teams.length > 0 ? 'inline-block' : 'none';
+        }
+
+        if (!teams.length) {
+          grid.innerHTML = `
+            <div class="col-12 text-center py-5">
+              <i class="bi bi-people fs-1 text-muted d-block mb-3"></i>
+              <h5 class="fw-bold text-dark">No open teams listed yet</h5>
+              <p class="text-muted small">Teams seeking collaborators will appear here. When registering your team, check <strong>"Open to Collaborators"</strong> to recruit peers!</p>
+            </div>`;
+          return;
+        }
+
+        grid.innerHTML = teams.map(t => {
+          const hackathonTitle = t.hackathons?.title || 'NACOS Competition';
+          const members = Array.isArray(t.team_members) ? t.team_members : [];
+
+          // Find special roles requested or contact if stored in metadata
+          const metaReq = members.find(m => m.name === '[ROLE_REQ]');
+          const actualMembers = members.filter(m => m.name !== '[ROLE_REQ]');
+          const rolesNeeded = metaReq ? metaReq.role : (t.track_selected ? `${t.track_selected} collaborators` : 'Passionate Builders');
+          const contact = metaReq ? metaReq.email : (actualMembers[0]?.email || '');
+
+          return `
+            <div class="col-md-6 col-lg-4">
+              <div class="card-team-collab">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1" style="font-size: 11px;">
+                    <i class="bi bi-person-plus-fill me-1"></i> Seeking Teammates
+                  </span>
+                  <span class="text-muted small" style="font-size: 11px;">${t.track_selected ? `<i class="bi bi-compass me-1"></i>${t.track_selected}` : ''}</span>
+                </div>
+
+                <h5 class="fw-bold text-dark mb-1">${t.team_name}</h5>
+                <small class="text-secondary d-block mb-3"><i class="bi bi-calendar-event me-1"></i>${hackathonTitle}</small>
+
+                <div class="mb-3">
+                  <span class="d-block text-muted small fw-semibold mb-1" style="font-size: 11px; text-transform: uppercase;">Looking For:</span>
+                  <div class="d-flex flex-wrap gap-1">
+                    <span class="role-req-badge"><i class="bi bi-search me-1"></i>${rolesNeeded}</span>
+                  </div>
+                </div>
+
+                <div class="mb-4 flex-grow-1">
+                  <span class="d-block text-muted small fw-semibold mb-1" style="font-size: 11px; text-transform: uppercase;">Current Members (${actualMembers.length || 1}):</span>
+                  <div class="d-flex flex-wrap gap-1">
+                    ${actualMembers.map(m => `
+                      <span class="member-avatar-chip">
+                        <i class="bi bi-person-circle text-muted"></i>
+                        <span>${m.name}</span>
+                        ${m.role ? `<span class="text-muted">(${m.role})</span>` : ''}
+                      </span>
+                    `).join('')}
+                    ${!actualMembers.length ? `<span class="member-avatar-chip"><i class="bi bi-person-circle"></i> Team Leader</span>` : ''}
+                  </div>
+                </div>
+
+                <div class="pt-3 border-top mt-auto d-flex justify-content-between align-items-center">
+                  <small class="text-muted" style="font-size: 11px;">Formed recently</small>
+                  <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" onclick="connectWithTeam('${t.team_name.replace(/'/g, "\\'")}', '${hackathonTitle.replace(/'/g, "\\'")}', '${(contact || '').replace(/'/g, "\\'")}', '${rolesNeeded.replace(/'/g, "\\'")}')">
+                    <i class="bi bi-chat-dots me-1"></i> Connect & Join
+                  </button>
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+
+      } catch (err) {
+        console.error('[loadOpenTeams] Error:', err);
+        grid.innerHTML = `<div class="col-12 text-center text-danger py-4">Failed to load open teams.</div>`;
+      }
+    }
+
+    async function refreshOpenTeamsCount() {
+      try {
+        let count = 0;
+        try {
+          const res = await api.hackathons.openTeams();
+          if (res && res.success && Array.isArray(res.data?.openTeams)) {
+            count = res.data.openTeams.length;
+          }
+        } catch (e) {
+          const { count: c } = await supabase
+            .from('hackathon_registrations')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_looking_for_members', true)
+            .eq('status', 'registered');
+          count = c || 0;
+        }
+
+        const badge = document.getElementById('openTeamsCountBadge');
+        if (badge) {
+          badge.textContent = count;
+          badge.style.display = count > 0 ? 'inline-block' : 'none';
+        }
+      } catch (err) {
+        // Silently skip badge update if table not accessible
+      }
+    }
+
+    function connectWithTeam(teamName, hackathonTitle, contact, rolesNeeded) {
+      const isPhone = /^[0-9+ ]{8,}$/.test(contact.trim());
+      const isEmail = contact.includes('@');
+
+      let contactHtml = '';
+      if (isPhone) {
+        const cleanPhone = contact.replace(/[^0-9]/g, '');
+        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hi ${teamName}, I saw that your team is looking for collaborators (${rolesNeeded}) for ${hackathonTitle} on NACOS TAU portal. I would love to join your team!`)}`;
+        contactHtml = `
+          <div class="p-3 bg-light rounded-3 text-start mb-3 border">
+            <p class="mb-1 small"><strong>Phone / WhatsApp:</strong> ${contact}</p>
+            <p class="mb-0 small text-muted">Roles Needed: ${rolesNeeded}</p>
+          </div>
+          <a href="${waUrl}" target="_blank" class="btn btn-success rounded-pill w-100 py-2 fw-semibold">
+            <i class="bi bi-whatsapp me-1"></i> Message on WhatsApp
+          </a>`;
+      } else if (isEmail) {
+        const mailUrl = `mailto:${contact}?subject=${encodeURIComponent(`Joining ${teamName} for ${hackathonTitle}`)}&body=${encodeURIComponent(`Hi ${teamName},\n\nI saw that your team is looking for collaborators (${rolesNeeded}) on the NACOS portal. I'd love to join your squad!\n\nBest,\n`)}`;
+        contactHtml = `
+          <div class="p-3 bg-light rounded-3 text-start mb-3 border">
+            <p class="mb-1 small"><strong>Contact Email:</strong> ${contact}</p>
+            <p class="mb-0 small text-muted">Roles Needed: ${rolesNeeded}</p>
+          </div>
+          <a href="${mailUrl}" class="btn btn-primary rounded-pill w-100 py-2 fw-semibold">
+            <i class="bi bi-envelope me-1"></i> Send Email
+          </a>`;
+      } else {
+        contactHtml = `
+          <div class="p-3 bg-light rounded-3 text-start mb-3 border">
+            <p class="mb-1 small"><strong>Team:</strong> ${teamName}</p>
+            <p class="mb-0 small text-muted">Roles Needed: ${rolesNeeded}</p>
+            ${contact ? `<p class="mb-0 small mt-1"><strong>Contact:</strong> ${contact}</p>` : ''}
+          </div>
+          <p class="small text-muted mb-0">Reach out directly to the team leader or via the NACOS student directory.</p>`;
+      }
+
+      Swal.fire({
+        title: `Join ${teamName}`,
+        html: contactHtml,
+        showConfirmButton: false,
+        showCloseButton: true,
+        customClass: {
+          popup: 'rounded-4'
+        }
+      });
     }
 
     async function loadPastHackathons() {
@@ -539,43 +1204,47 @@
         }
 
         if (!past.length) {
-          container.innerHTML = `<div class="text-center py-5 text-muted">No past hackathons archived yet.</div>`;
+          container.innerHTML = `
+            <div class="text-center py-5 text-muted">
+              <i class="bi bi-trophy fs-1 d-block mb-3 text-secondary"></i>
+              <h5 class="fw-bold text-dark">No past hackathons archived yet</h5>
+              <p class="small text-muted">Past winners and submissions will appear here once competitions conclude.</p>
+            </div>`;
           return;
         }
 
         container.innerHTML = past.map(h => `
-          <div class="hall-of-fame-card mb-4">
-            <div class="row align-items-center mb-4">
-              <div class="col-md-8">
-                <span class="badge bg-secondary mb-2">${(h.event_type || 'HACKATHON').toUpperCase()} ARCHIVE</span>
-                <h4 class="fw-bold mb-1">${h.title}</h4>
-                <p class="text-muted mb-0">${h.tagline || ''}</p>
+          <div class="hall-of-fame-card">
+            <div class="hof-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div>
+                <span class="badge bg-secondary-subtle text-secondary mb-1 fw-bold" style="font-size: 11px;">${(h.event_type || 'HACKATHON').toUpperCase()} ARCHIVE</span>
+                <h4 class="fw-bold text-dark mb-1">${h.title}</h4>
+                <p class="text-muted small mb-0">${h.tagline || ''}</p>
               </div>
-              <div class="col-md-4 text-md-end mt-2 mt-md-0">
-                <span class="text-muted small d-block">PRIZE POOL</span>
-                <span class="text-success fw-bold fs-5">${h.prize_pool || 'Prizes Awarded'}</span>
+              <div>
+                <span class="hof-prize-pill"><i class="bi bi-trophy me-1"></i> ${h.prize_pool || 'Prizes Awarded'}</span>
               </div>
             </div>
 
-            <h6 class="fw-bold mb-3 text-uppercase text-muted" style="letter-spacing: 0.5px; font-size: 12px;">Top Winning Projects</h6>
+            <h6 class="fw-bold mb-3 text-uppercase text-muted" style="letter-spacing: 0.5px; font-size: 11px;">Top Winning Projects</h6>
             <div class="row g-3">
               ${(h.winners && h.winners.length ? h.winners : []).map(w => `
                 <div class="col-md-4">
-                  <div class="p-3 rounded-3 border bg-light h-100 position-relative">
-                    <span class="winner-rank-badge ${w.ranking === 1 ? 'rank-1' : w.ranking === 2 ? 'rank-2' : 'rank-3'}">
+                  <div class="winner-project-card">
+                    <span class="rank-badge ${w.ranking === 1 ? 'rank-1' : w.ranking === 2 ? 'rank-2' : 'rank-3'}">
                       #${w.ranking || 1} ${w.award_title || 'Winner'}
                     </span>
-                    <h6 class="fw-bold mt-2 mb-1">${w.project_title}</h6>
+                    <h6 class="fw-bold text-dark mt-1 mb-1">${w.project_title}</h6>
                     <small class="text-muted d-block mb-2">by ${w.registration?.team_name || 'Team'}</small>
-                    <p class="small text-secondary mb-3">${w.tagline || (w.description ? w.description.substring(0, 80) + '...' : '')}</p>
+                    <p class="small text-muted mb-3" style="min-height: 38px;">${w.tagline || (w.description ? w.description.substring(0, 80) + '...' : '')}</p>
                     <div class="d-flex gap-2">
-                      ${w.github_url ? `<a href="${w.github_url}" target="_blank" class="btn btn-xs btn-outline-dark rounded-pill px-2 py-1 small" style="font-size:11px;"><i class="bi bi-github"></i> Code</a>` : ''}
-                      ${w.demo_url ? `<a href="${w.demo_url}" target="_blank" class="btn btn-xs btn-outline-success rounded-pill px-2 py-1 small" style="font-size:11px;"><i class="bi bi-play-circle"></i> Demo</a>` : ''}
+                      ${w.github_url ? `<a href="${w.github_url}" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-2.5 py-1 small" style="font-size: 11px;"><i class="bi bi-github"></i> Code</a>` : ''}
+                      ${w.demo_url ? `<a href="${w.demo_url}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-1 small" style="font-size: 11px;"><i class="bi bi-play-circle"></i> Demo</a>` : ''}
                     </div>
                   </div>
                 </div>
               `).join('')}
-              ${(!h.winners || !h.winners.length) ? '<div class="col-12 text-muted small">Winner details pending announcement.</div>' : ''}
+              ${(!h.winners || !h.winners.length) ? '<div class="col-12 text-muted small py-2">Winner projects are being documented.</div>' : ''}
             </div>
           </div>
         `).join('');
@@ -607,6 +1276,8 @@
         ((h && Array.isArray(h.tracks)) ? h.tracks : []).map(t => `<option value="${t.name || t}">${t.name || t}</option>`).join('');
 
       document.getElementById('teammatesContainer').innerHTML = '';
+      document.getElementById('isLookingForMembers').checked = false;
+      toggleLookingForFields(false);
       new bootstrap.Modal(document.getElementById('registerModal')).show();
     }
 
@@ -649,10 +1320,23 @@
         }
       }
 
+      const isLooking = document.getElementById('isLookingForMembers').checked;
+      const rolesNeeded = document.getElementById('rolesNeeded')?.value?.trim();
+      const leaderContact = document.getElementById('leaderContact')?.value?.trim();
+
+      // Store metadata inside teamMembers for zero-migration compatibility
+      if (isLooking && (rolesNeeded || leaderContact)) {
+        teamMembers.push({
+          name: '[ROLE_REQ]',
+          role: rolesNeeded || 'Open to Collaborators',
+          email: leaderContact || ''
+        });
+      }
+
       const payload = {
         teamName: document.getElementById('teamName').value,
         trackSelected: document.getElementById('trackSelected').value,
-        isLookingForMembers: document.getElementById('isLookingForMembers').checked,
+        isLookingForMembers: isLooking,
         teamMembers
       };
 
@@ -688,8 +1372,9 @@
         document.activeElement?.blur();
         bootstrap.Modal.getInstance(modalEl)?.hide();
         document.getElementById('regForm').reset();
-        await Swal.fire('Registered!', 'Your team has been successfully registered.', 'success');
+        await Swal.fire('Registered!', 'Your team has been successfully registered.' + (isLooking ? ' Your squad is now visible in the Teammate Finder directory!' : ''), 'success');
         loadHackathons();
+        refreshOpenTeamsCount();
       } catch (err) {
         console.error('[handleRegistration] Error:', err);
         Swal.fire('Registration Error', err.message || 'Failed to complete registration.', 'error');
@@ -797,17 +1482,50 @@
 
     // Export to global window scope so HTML onclick/onsubmit attributes work seamlessly
     window.loadHackathons = loadHackathons;
+    window.loadOpenTeams = loadOpenTeams;
     window.loadPastHackathons = loadPastHackathons;
     window.openRegisterModal = openRegisterModal;
     window.openSubmissionModal = openSubmissionModal;
     window.addTeammateField = addTeammateField;
     window.handleRegistration = handleRegistration;
     window.handleSubmission = handleSubmission;
+    window.toggleLookingForFields = toggleLookingForFields;
+    window.connectWithTeam = connectWithTeam;
 
     document.addEventListener('DOMContentLoaded', () => {
       loadHackathons();
+
       document.getElementById('past-tab')?.addEventListener('click', loadPastHackathons);
+      document.getElementById('open-tab')?.addEventListener('click', loadHackathons);
+      document.getElementById('collab-tab')?.addEventListener('click', () => {
+        loadOpenTeams(document.getElementById('filterCollabHackathon')?.value || '');
+      });
+
       document.getElementById('filterType')?.addEventListener('change', loadHackathons);
+      document.getElementById('filterCollabHackathon')?.addEventListener('change', (e) => {
+        loadOpenTeams(e.target.value);
+      });
+
+      // Handle tab switching styling on click
+      const tabButtons = document.querySelectorAll('.segmented-nav-btn');
+      const tabPanes = document.querySelectorAll('.tab-pane');
+      
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          tabButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          
+          // Switch tab panes
+          const targetId = btn.getAttribute('data-bs-target');
+          tabPanes.forEach(pane => {
+            pane.classList.remove('show', 'active');
+          });
+          const targetPane = document.querySelector(targetId);
+          if (targetPane) {
+            targetPane.classList.add('show', 'active');
+          }
+        });
+      });
     });
   </script>
 </body>

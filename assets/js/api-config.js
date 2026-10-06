@@ -289,6 +289,11 @@ export const api = {
             const response = await fetch(`${API_URL}/hackathons/past`);
             return response.json();
         },
+        async openTeams(hackathonId = '') {
+            const qs = hackathonId ? `?hackathon_id=${encodeURIComponent(hackathonId)}` : '';
+            const response = await fetch(`${API_URL}/hackathons/open-teams${qs}`);
+            return response.json();
+        },
         async get(slugOrId) {
             const { data: { session } } = await supabase.auth.getSession();
             const headers = session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {};
