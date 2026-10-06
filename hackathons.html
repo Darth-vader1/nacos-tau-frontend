@@ -665,13 +665,14 @@
         <div class="modal-header">
           <div>
             <h5 class="modal-title" id="registerModalLabel">Register Your Team</h5>
-            <small class="text-muted">Enter your team details to secure participation.</small>
+            <small class="text-muted" id="registerModalSubtitle">Enter your team details to secure participation.</small>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="regForm" onsubmit="handleRegistration(event)">
             <input type="hidden" id="regHackathonId">
+            <input type="hidden" id="editingRegId">
             <div class="mb-3">
               <label class="form-label">Team Name <span class="text-danger">*</span></label>
               <input type="text" class="form-control" id="teamName" required placeholder="e.g. Apex Innovators">
@@ -831,6 +832,13 @@
       return session;
     }
 
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
     function toggleLookingForFields(isChecked) {
       const container = document.getElementById('collabFieldsContainer');
       if (container) container.style.display = isChecked ? 'block' : 'none';
@@ -866,7 +874,7 @@
           hackathons = data || [];
         }
 
-        // Attach user registrations if session exists
+        // Attach user registrations if session exists (using leader_id!)
         const session = await getUserSession();
         if (session?.user?.id && hackathons.length) {
           const hIds = hackathons.map(h => h.id);
@@ -874,7 +882,7 @@
             .from('hackathon_registrations')
             .select('*')
             .in('hackathon_id', hIds)
-            .eq('user_id', session.user.id);
+            .eq('leader_id', session.user.id);
 
           if (regs && regs.length) {
             const regMap = {};
@@ -911,6 +919,8 @@
             ? new Date(h.registration_deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
             : 'TBD';
           const reg = h.userRegistration;
+          const isDeadlinePassed = h.registration_deadline && new Date(h.registration_deadline) < new Date();
+          const isClosed = h.status === 'completed' || isDeadlinePassed;
 
           return `
             <div class="col-md-6 col-lg-4">
@@ -945,13 +955,26 @@
                     </div>
 
                     ${reg ? `
-                      <button class="btn btn-nacos-outline" onclick="openSubmissionModal('${h.id}')">
-                        ${reg.status === 'submitted' ? '<i class="bi bi-pencil-square me-1"></i> Edit Pitch' : '<i class="bi bi-cloud-arrow-up me-1"></i> Submit'}
-                      </button>
+                      <div class="d-flex align-items-center gap-2">
+                        ${!isClosed ? `
+                          <button class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1" onclick="openManageTeamModal('${h.id}')" title="Edit team details before deadline">
+                            <i class="bi bi-gear me-1"></i> Manage Team
+                          </button>
+                        ` : `
+                          <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1 small">Closed</span>
+                        `}
+                        <button class="btn btn-sm btn-nacos-outline px-3 py-1" onclick="openSubmissionModal('${h.id}')">
+                          ${reg.status === 'submitted' ? '<i class="bi bi-pencil-square me-1"></i> Edit Pitch' : '<i class="bi bi-cloud-arrow-up me-1"></i> Submit'}
+                        </button>
+                      </div>
                     ` : `
-                      <button class="btn btn-nacos-primary" onclick="openRegisterModal('${h.id}')">
-                        Register Team
-                      </button>
+                      ${isClosed ? `
+                        <button class="btn btn-sm btn-secondary rounded-pill px-3 py-1.5" disabled>Registration Closed</button>
+                      ` : `
+                        <button class="btn btn-nacos-primary" onclick="openRegisterModal('${h.id}')">
+                          Register Team
+                        </button>
+                      `}
                     `}
                   </div>
                 </div>
@@ -1059,8 +1082,8 @@
                     ${actualMembers.map(m => `
                       <span class="member-avatar-chip">
                         <i class="bi bi-person-circle text-muted"></i>
-                        <span>${m.name}</span>
-                        ${m.role ? `<span class="text-muted">(${m.role})</span>` : ''}
+                        <span>${escapeHtml(m.name)}</span>
+                        ${m.role ? `<span class="text-muted">(${escapeHtml(m.role)})</span>` : ''}
                       </span>
                     `).join('')}
                     ${!actualMembers.length ? `<span class="member-avatar-chip"><i class="bi bi-person-circle"></i> Team Leader</span>` : ''}
@@ -1269,7 +1292,23 @@
       }
 
       const h = currentHackathons.find(x => x.id === hackathonId);
+      const isDeadlinePassed = h?.registration_deadline && new Date(h.registration_deadline) < new Date();
+      const isClosed = (h?.status === 'completed') || isDeadlinePassed;
+      if (isClosed) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Registration Closed',
+          text: 'The registration deadline for this event has passed.'
+        });
+        return;
+      }
+
       document.getElementById('regHackathonId').value = hackathonId;
+      document.getElementById('editingRegId').value = '';
+      document.getElementById('registerModalLabel').textContent = 'Register Your Team';
+      document.getElementById('registerModalSubtitle').textContent = 'Enter your team details to secure participation.';
+      document.getElementById('btnSubmitReg').textContent = 'Complete Registration';
+      document.getElementById('teamName').value = '';
 
       const trackSelect = document.getElementById('trackSelected');
       trackSelect.innerHTML = '<option value="">Select track (optional)</option>' +
@@ -1278,6 +1317,77 @@
       document.getElementById('teammatesContainer').innerHTML = '';
       document.getElementById('isLookingForMembers').checked = false;
       toggleLookingForFields(false);
+      if (document.getElementById('rolesNeeded')) document.getElementById('rolesNeeded').value = '';
+      if (document.getElementById('leaderContact')) document.getElementById('leaderContact').value = '';
+
+      new bootstrap.Modal(document.getElementById('registerModal')).show();
+    }
+
+    async function openManageTeamModal(hackathonId) {
+      const session = await getUserSession();
+      if (!session) {
+        Swal.fire('Sign In Required', 'Please sign in to manage your registration.', 'info');
+        return;
+      }
+
+      const h = currentHackathons.find(x => x.id === hackathonId);
+      const reg = h?.userRegistration;
+      if (!reg) {
+        openRegisterModal(hackathonId);
+        return;
+      }
+
+      const isDeadlinePassed = h?.registration_deadline && new Date(h.registration_deadline) < new Date();
+      const isClosed = (h?.status === 'completed') || isDeadlinePassed;
+      if (isClosed) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Registration Closed',
+          text: 'The registration deadline for this event has passed. Team details can no longer be modified.'
+        });
+        return;
+      }
+
+      document.getElementById('regHackathonId').value = hackathonId;
+      document.getElementById('editingRegId').value = reg.id;
+      document.getElementById('registerModalLabel').textContent = 'Manage Team Registration';
+      document.getElementById('registerModalSubtitle').textContent = `Editing registration for ${h.title}`;
+      document.getElementById('btnSubmitReg').textContent = 'Save Changes';
+
+      document.getElementById('teamName').value = reg.team_name || '';
+
+      const trackSelect = document.getElementById('trackSelected');
+      trackSelect.innerHTML = '<option value="">Select track (optional)</option>' +
+        ((h && Array.isArray(h.tracks)) ? h.tracks : []).map(t => `<option value="${t.name || t}">${t.name || t}</option>`).join('');
+      trackSelect.value = reg.track_selected || '';
+
+      document.getElementById('isLookingForMembers').checked = !!reg.is_looking_for_members;
+      toggleLookingForFields(!!reg.is_looking_for_members);
+
+      const members = Array.isArray(reg.team_members) ? reg.team_members : [];
+      const metaReq = members.find(m => m.name === '[ROLE_REQ]');
+      const actualMembers = members.filter(m => m.name !== '[ROLE_REQ]');
+
+      if (document.getElementById('rolesNeeded')) {
+        document.getElementById('rolesNeeded').value = metaReq ? metaReq.role : '';
+      }
+      if (document.getElementById('leaderContact')) {
+        document.getElementById('leaderContact').value = metaReq ? metaReq.email : '';
+      }
+
+      const container = document.getElementById('teammatesContainer');
+      container.innerHTML = '';
+      actualMembers.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'input-group mb-2';
+        div.innerHTML = `
+          <input type="text" class="form-control rounded-start" placeholder="Teammate Name" value="${escapeHtml(m.name || '')}" required>
+          <input type="email" class="form-control" placeholder="Student Email" value="${escapeHtml(m.email || '')}" required>
+          <input type="text" class="form-control" placeholder="Role (e.g. Backend)" value="${escapeHtml(m.role || '')}">
+          <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()"><i class="bi bi-trash"></i></button>`;
+        container.appendChild(div);
+      });
+
       new bootstrap.Modal(document.getElementById('registerModal')).show();
     }
 
@@ -1302,20 +1412,67 @@
       }
 
       const hackathonId = document.getElementById('regHackathonId').value;
+      const editingRegId = document.getElementById('editingRegId').value;
+      const teamNameVal = document.getElementById('teamName').value.trim();
+
+      if (!teamNameVal) {
+        Swal.fire('Missing Field', 'Please enter a valid team name.', 'warning');
+        return;
+      }
+
+      // Validate deadline before proceeding
+      const targetH = currentHackathons.find(x => x.id === hackathonId);
+      if (targetH && targetH.registration_deadline) {
+        const deadlineDate = new Date(targetH.registration_deadline);
+        if (deadlineDate < new Date()) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Deadline Passed',
+            text: 'Registration for this event has closed because the deadline has passed.'
+          });
+          return;
+        }
+      }
+
       const btn = document.getElementById('btnSubmitReg');
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Registering...';
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+      // 1. Team Name Uniqueness Check
+      try {
+        const { data: nameCheck, error: nameErr } = await supabase
+          .from('hackathon_registrations')
+          .select('id, leader_id, team_name')
+          .eq('hackathon_id', hackathonId)
+          .ilike('team_name', teamNameVal);
+
+        if (!nameErr && nameCheck && nameCheck.length) {
+          const isTakenByOther = nameCheck.some(t => t.id !== editingRegId && t.leader_id !== session.user.id);
+          if (isTakenByOther) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Team Name Taken',
+              text: `The team name "${teamNameVal}" is already registered for this event. Please choose another unique name.`
+            });
+            btn.disabled = false;
+            btn.textContent = editingRegId ? 'Save Changes' : 'Complete Registration';
+            return;
+          }
+        }
+      } catch (checkErr) {
+        console.warn('Uniqueness check error (proceeding):', checkErr);
+      }
 
       // Extract teammates
       const rows = document.getElementById('teammatesContainer').children;
       const teamMembers = [];
       for (let r of rows) {
         const inputs = r.querySelectorAll('input');
-        if (inputs.length >= 2 && inputs[0].value) {
+        if (inputs.length >= 2 && inputs[0].value.trim()) {
           teamMembers.push({
-            name: inputs[0].value,
-            email: inputs[1].value,
-            role: inputs[2] ? inputs[2].value : ''
+            name: inputs[0].value.trim(),
+            email: inputs[1].value.trim(),
+            role: inputs[2] ? inputs[2].value.trim() : ''
           });
         }
       }
@@ -1334,7 +1491,7 @@
       }
 
       const payload = {
-        teamName: document.getElementById('teamName').value,
+        teamName: teamNameVal,
         trackSelected: document.getElementById('trackSelected').value,
         isLookingForMembers: isLooking,
         teamMembers
@@ -1352,27 +1509,59 @@
         }
 
         if (!success) {
-          // Direct Supabase fallback
-          const { error: dbErr } = await supabase
-            .from('hackathon_registrations')
-            .insert([{
-              hackathon_id: hackathonId,
-              user_id: session.user.id,
-              team_name: payload.teamName,
-              track_selected: payload.trackSelected || null,
-              team_members: payload.teamMembers,
-              is_looking_for_members: payload.isLookingForMembers,
-              status: 'registered'
-            }]);
+          // Direct Supabase fallback: update if editing or user already has registration
+          let regIdToUpdate = editingRegId;
 
-          if (dbErr) throw dbErr;
+          if (!regIdToUpdate) {
+            const { data: myExisting } = await supabase
+              .from('hackathon_registrations')
+              .select('id')
+              .eq('hackathon_id', hackathonId)
+              .eq('leader_id', session.user.id)
+              .maybeSingle();
+
+            if (myExisting) regIdToUpdate = myExisting.id;
+          }
+
+          if (regIdToUpdate) {
+            const { error: updErr } = await supabase
+              .from('hackathon_registrations')
+              .update({
+                team_name: payload.teamName,
+                track_selected: payload.trackSelected || null,
+                is_looking_for_members: payload.isLookingForMembers,
+                team_members: payload.teamMembers,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', regIdToUpdate);
+
+            if (updErr) throw updErr;
+          } else {
+            const { error: insErr } = await supabase
+              .from('hackathon_registrations')
+              .insert([{
+                hackathon_id: hackathonId,
+                leader_id: session.user.id,
+                team_name: payload.teamName,
+                track_selected: payload.trackSelected || null,
+                is_looking_for_members: payload.isLookingForMembers,
+                team_members: payload.teamMembers,
+                status: 'registered'
+              }]);
+
+            if (insErr) throw insErr;
+          }
         }
 
         const modalEl = document.getElementById('registerModal');
         document.activeElement?.blur();
         bootstrap.Modal.getInstance(modalEl)?.hide();
         document.getElementById('regForm').reset();
-        await Swal.fire('Registered!', 'Your team has been successfully registered.' + (isLooking ? ' Your squad is now visible in the Teammate Finder directory!' : ''), 'success');
+        await Swal.fire(
+          editingRegId ? 'Updated!' : 'Registered!',
+          editingRegId ? 'Your team details have been updated successfully.' : 'Your team has been successfully registered.' + (isLooking ? ' Your squad is now visible in the Teammate Finder!' : ''),
+          'success'
+        );
         loadHackathons();
         refreshOpenTeamsCount();
       } catch (err) {
@@ -1380,7 +1569,7 @@
         Swal.fire('Registration Error', err.message || 'Failed to complete registration.', 'error');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Complete Registration';
+        btn.textContent = editingRegId ? 'Save Changes' : 'Complete Registration';
       }
     }
 
@@ -1430,12 +1619,12 @@
         }
 
         if (!success) {
-          // Find user's registration
+          // Find user's registration using leader_id!
           const { data: reg, error: regErr } = await supabase
             .from('hackathon_registrations')
             .select('id')
             .eq('hackathon_id', hackathonId)
-            .eq('user_id', session.user.id)
+            .eq('leader_id', session.user.id)
             .single();
 
           if (regErr || !reg) {
@@ -1485,6 +1674,7 @@
     window.loadOpenTeams = loadOpenTeams;
     window.loadPastHackathons = loadPastHackathons;
     window.openRegisterModal = openRegisterModal;
+    window.openManageTeamModal = openManageTeamModal;
     window.openSubmissionModal = openSubmissionModal;
     window.addTeammateField = addTeammateField;
     window.handleRegistration = handleRegistration;
