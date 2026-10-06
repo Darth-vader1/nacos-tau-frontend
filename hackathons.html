@@ -844,17 +844,27 @@
       if (container) container.style.display = isChecked ? 'block' : 'none';
     }
 
-    async function loadHackathons() {
+    let allHackathons = [];
+
+    async function loadHackathons(forceReload = false) {
+      const isForceReload = forceReload === true;
       const grid = document.getElementById('hackathonsGrid');
-      const filterType = document.getElementById('filterType').value;
-      grid.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-success" role="status"></div><p class="text-muted mt-2">Loading hackathons...</p></div>';
+      const filterType = (document.getElementById('filterType')?.value || '').trim().toLowerCase();
+
+      // If we already have hackathons loaded in memory and not forcing a reload, filter instantly
+      if (!isForceReload && allHackathons.length > 0) {
+        renderFilteredHackathons(filterType);
+        return;
+      }
+
+      grid.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-success" role="status"></div><p class="text-muted mt-2">Loading opportunities...</p></div>';
 
       try {
         let hackathons = [];
         let usedFallback = false;
 
         try {
-          const res = await api.hackathons.list(filterType);
+          const res = await api.hackathons.list();
           if (res && res.success && Array.isArray(res.data?.hackathons)) {
             hackathons = res.data.hackathons;
           } else {
@@ -866,9 +876,12 @@
         }
 
         if (usedFallback) {
-          let query = supabase.from('hackathons').select('*');
-          if (filterType) query = query.eq('event_type', filterType);
-          query = query.in('status', ['upcoming', 'ongoing']).order('created_at', { ascending: false });
+          let query = supabase
+            .from('hackathons')
+            .select('*')
+            .neq('is_published', false)
+            .not('status', 'in', '("completed","past")')
+            .order('start_date', { ascending: true });
           const { data, error } = await query;
           if (error) throw error;
           hackathons = data || [];
@@ -895,100 +908,120 @@
           }
         }
 
-        // Populate event dropdown in Teammate Finder tab
+        // Populate event dropdown in Teammate Finder tab with all active competitions
         const collabSelect = document.getElementById('filterCollabHackathon');
         if (collabSelect) {
           collabSelect.innerHTML = '<option value="">All Competitions</option>' +
-            hackathons.map(h => `<option value="${h.id}">${h.title}</option>`).join('');
+            hackathons.map(h => `<option value="${h.id}">${escapeHtml(h.title)}</option>`).join('');
         }
 
-        if (!hackathons.length) {
-          grid.innerHTML = `
-            <div class="col-12 text-center py-5">
-              <i class="bi bi-calendar-x fs-1 text-muted d-block mb-3"></i>
-              <h5 class="fw-bold text-dark">No active hackathons right now</h5>
-              <p class="text-muted small">Check back soon for upcoming editions or browse past winners in the Hall of Fame.</p>
-            </div>`;
-          return;
-        }
+        allHackathons = hackathons;
+        currentHackathons = hackathons; // Ensure modal lookups always work
 
-        currentHackathons = hackathons;
-        grid.innerHTML = currentHackathons.map(h => {
-          const isLive = h.status === 'ongoing';
-          const deadline = h.registration_deadline
-            ? new Date(h.registration_deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            : 'TBD';
-          const reg = h.userRegistration;
-          const isDeadlinePassed = h.registration_deadline && new Date(h.registration_deadline) < new Date();
-          const isClosed = h.status === 'completed' || isDeadlinePassed;
-
-          return `
-            <div class="col-md-6 col-lg-4">
-              <div class="card-hackathon">
-                <div class="card-banner-wrapper">
-                  <img src="${h.banner_url || 'assets/img/tau sample image.jpg'}" class="card-banner-img" alt="${h.title}">
-                  
-                  <div class="banner-badge-left">
-                    <span class="${isLive ? 'status-badge-live' : 'status-badge-upcoming'}">
-                      ${isLive ? '<span class="pulse-dot"></span> Live Hacking' : '<i class="bi bi-door-open me-1"></i> Registering'}
-                    </span>
-                  </div>
-
-                  <div class="banner-badge-right">
-                    <span class="mode-badge"><i class="bi bi-geo-alt-fill"></i> ${h.mode || 'Hybrid'}</span>
-                  </div>
-                </div>
-
-                <div class="card-body-content">
-                  <span class="event-type-chip">${(h.event_type || 'HACKATHON').toUpperCase()}</span>
-                  <h5 class="card-title-text">${h.title}</h5>
-                  <p class="card-desc-text">${h.tagline || (h.description ? h.description.substring(0, 90) + '...' : '')}</p>
-
-                  <div class="mb-3 d-flex flex-wrap gap-1">
-                    ${(Array.isArray(h.tracks) ? h.tracks : []).slice(0, 3).map(t => `<span class="track-pill">${t.name || t}</span>`).join('')}
-                  </div>
-
-                  <div class="card-footer-divider">
-                    <div>
-                      <span class="deadline-label">Registration Deadline</span>
-                      <span class="deadline-value">${deadline}</span>
-                    </div>
-
-                    ${reg ? `
-                      <div class="d-flex align-items-center gap-2">
-                        ${!isClosed ? `
-                          <button class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1" onclick="openManageTeamModal('${h.id}')" title="Edit team details before deadline">
-                            <i class="bi bi-gear me-1"></i> Manage Team
-                          </button>
-                        ` : `
-                          <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1 small">Closed</span>
-                        `}
-                        <button class="btn btn-sm btn-nacos-outline px-3 py-1" onclick="openSubmissionModal('${h.id}')">
-                          ${reg.status === 'submitted' ? '<i class="bi bi-pencil-square me-1"></i> Edit Pitch' : '<i class="bi bi-cloud-arrow-up me-1"></i> Submit'}
-                        </button>
-                      </div>
-                    ` : `
-                      ${isClosed ? `
-                        <button class="btn btn-sm btn-secondary rounded-pill px-3 py-1.5" disabled>Registration Closed</button>
-                      ` : `
-                        <button class="btn btn-nacos-primary" onclick="openRegisterModal('${h.id}')">
-                          Register Team
-                        </button>
-                      `}
-                    `}
-                  </div>
-                </div>
-              </div>
-            </div>`;
-        }).join('');
+        renderFilteredHackathons(filterType);
 
         // Silently refresh open teams count badge
         refreshOpenTeamsCount();
 
       } catch (err) {
         console.error('[loadHackathons] Error:', err);
-        grid.innerHTML = `<div class="col-12 text-center text-danger py-4">Failed to load hackathons. Please try refreshing.</div>`;
+        grid.innerHTML = `<div class="col-12 text-center text-danger py-4">Failed to load opportunities. Please try refreshing.</div>`;
       }
+    }
+
+    function renderFilteredHackathons(filterType = '') {
+      const grid = document.getElementById('hackathonsGrid');
+      if (!grid) return;
+
+      const normFilter = (filterType || '').trim().toLowerCase();
+      const displayed = allHackathons.filter(h => {
+        if (!normFilter) return true;
+        const et = (h.event_type || 'hackathon').toLowerCase();
+        if (normFilter === 'hackathon') {
+          return et === 'hackathon' || !h.event_type;
+        }
+        return et === normFilter;
+      });
+
+      if (!displayed.length) {
+        const catLabel = normFilter === 'pitchathon' ? 'pitchathons' : (normFilter === 'hackathon' ? 'hackathons' : 'competitions');
+        grid.innerHTML = `
+          <div class="col-12 text-center py-5">
+            <i class="bi bi-calendar-x fs-1 text-muted d-block mb-3"></i>
+            <h5 class="fw-bold text-dark">No active ${catLabel} right now</h5>
+            <p class="text-muted small">${allHackathons.length > 0 ? `Switch to <strong>All Categories</strong> to view other active competitions, or browse past winners in the Hall of Fame.` : 'Check back soon for upcoming editions or browse past winners in the Hall of Fame.'}</p>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = displayed.map(h => {
+        const isLive = h.status === 'ongoing';
+        const deadline = h.registration_deadline
+          ? new Date(h.registration_deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'TBD';
+        const reg = h.userRegistration;
+        const isDeadlinePassed = h.registration_deadline && new Date(h.registration_deadline) < new Date();
+        const isClosed = h.status === 'completed' || isDeadlinePassed;
+
+        return `
+          <div class="col-md-6 col-lg-4">
+            <div class="card-hackathon">
+              <div class="card-banner-wrapper">
+                <img src="${h.banner_url || 'assets/img/tau sample image.jpg'}" class="card-banner-img" alt="${escapeHtml(h.title)}">
+                
+                <div class="banner-badge-left">
+                  <span class="${isLive ? 'status-badge-live' : 'status-badge-upcoming'}">
+                    ${isLive ? '<span class="pulse-dot"></span> Live Hacking' : '<i class="bi bi-door-open me-1"></i> Registering'}
+                  </span>
+                </div>
+
+                <div class="banner-badge-right">
+                  <span class="mode-badge"><i class="bi bi-geo-alt-fill"></i> ${escapeHtml(h.mode || 'Hybrid')}</span>
+                </div>
+              </div>
+
+              <div class="card-body-content">
+                <span class="event-type-chip">${escapeHtml((h.event_type || 'HACKATHON').toUpperCase())}</span>
+                <h5 class="card-title-text">${escapeHtml(h.title)}</h5>
+                <p class="card-desc-text">${escapeHtml(h.tagline || (h.description ? h.description.substring(0, 90) + '...' : ''))}</p>
+
+                <div class="mb-3 d-flex flex-wrap gap-1">
+                  ${(Array.isArray(h.tracks) ? h.tracks : []).slice(0, 3).map(t => `<span class="track-pill">${escapeHtml(t.name || t)}</span>`).join('')}
+                </div>
+
+                <div class="card-footer-divider">
+                  <div>
+                    <span class="deadline-label">Registration Deadline</span>
+                    <span class="deadline-value">${deadline}</span>
+                  </div>
+
+                  ${reg ? `
+                    <div class="d-flex align-items-center gap-2">
+                      ${!isClosed ? `
+                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1" onclick="openManageTeamModal('${h.id}')" title="Edit team details before deadline">
+                          <i class="bi bi-gear me-1"></i> Manage Team
+                        </button>
+                      ` : `
+                        <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1 small">Closed</span>
+                      `}
+                      <button class="btn btn-sm btn-nacos-outline px-3 py-1" onclick="openSubmissionModal('${h.id}')">
+                        ${reg.status === 'submitted' ? '<i class="bi bi-pencil-square me-1"></i> Edit Pitch' : '<i class="bi bi-cloud-arrow-up me-1"></i> Submit'}
+                      </button>
+                    </div>
+                  ` : `
+                    ${isClosed ? `
+                      <button class="btn btn-sm btn-secondary rounded-pill px-3 py-1.5" disabled>Registration Closed</button>
+                    ` : `
+                      <button class="btn btn-nacos-primary" onclick="openRegisterModal('${h.id}')">
+                        Register Team
+                      </button>
+                    `}
+                  `}
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
     }
 
     async function loadOpenTeams(hackathonId = '') {
@@ -1599,7 +1632,7 @@
           editingRegId ? 'Your team details have been updated successfully.' : 'Your team has been successfully registered.' + (isLooking ? ' Your squad is now visible in the Teammate Finder!' : ''),
           'success'
         );
-        loadHackathons();
+        loadHackathons(true);
         refreshOpenTeamsCount();
       } catch (err) {
         console.error('[handleRegistration] Error:', err);
@@ -1735,7 +1768,7 @@
         bootstrap.Modal.getInstance(modalEl)?.hide();
         document.getElementById('submitForm').reset();
         await Swal.fire('Submitted!', 'Your project was submitted successfully.', 'success');
-        loadHackathons();
+        loadHackathons(true);
       } catch (err) {
         console.error('[handleSubmission] Error:', err);
         Swal.fire('Submission Error', err.message || 'Failed to submit project.', 'error');
@@ -1762,12 +1795,12 @@
       loadHackathons();
 
       document.getElementById('past-tab')?.addEventListener('click', loadPastHackathons);
-      document.getElementById('open-tab')?.addEventListener('click', loadHackathons);
+      document.getElementById('open-tab')?.addEventListener('click', () => loadHackathons(false));
       document.getElementById('collab-tab')?.addEventListener('click', () => {
         loadOpenTeams(document.getElementById('filterCollabHackathon')?.value || '');
       });
 
-      document.getElementById('filterType')?.addEventListener('change', loadHackathons);
+      document.getElementById('filterType')?.addEventListener('change', () => loadHackathons(false));
       document.getElementById('filterCollabHackathon')?.addEventListener('change', (e) => {
         loadOpenTeams(e.target.value);
       });

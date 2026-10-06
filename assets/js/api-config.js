@@ -280,8 +280,24 @@ export const api = {
     },
 
     hackathons: {
-        async list(status = '') {
-            const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+        async list(filter = {}) {
+            let eventType = '';
+            let status = '';
+            if (typeof filter === 'string') {
+                const lower = filter.trim().toLowerCase();
+                if (lower === 'hackathon' || lower === 'pitchathon') {
+                    eventType = lower;
+                } else if (lower) {
+                    status = lower;
+                }
+            } else if (typeof filter === 'object' && filter !== null) {
+                eventType = filter.event_type || filter.eventType || '';
+                status = filter.status || '';
+            }
+            const params = new URLSearchParams();
+            if (eventType) params.set('event_type', eventType);
+            if (status) params.set('status', status);
+            const qs = params.toString() ? `?${params.toString()}` : '';
             const response = await fetch(`${API_URL}/hackathons${qs}`);
             return response.json();
         },
