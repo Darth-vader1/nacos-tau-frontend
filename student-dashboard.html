@@ -1276,6 +1276,7 @@
         if (error) throw error;
         if (data) {
           studentData = data;
+          window.studentData = data; // Fix: Keep global state in sync so modal and completion bar use fresh data
           studentNameEl.textContent = displayName(data);
           studentMatricEl.textContent = data.matric_no || 'N/A';
           
