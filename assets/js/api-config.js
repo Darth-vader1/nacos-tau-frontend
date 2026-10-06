@@ -368,6 +368,17 @@ export const api = {
                 body: JSON.stringify(data)
             });
             return response.json();
+        },
+        async adminUpdateStatus(hackathonId, status) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('PATCH', `${API_URL}/hackathons/admin/${hackathonId}/status`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({ status })
+            });
+            return response.json();
         }
     }
 };

@@ -266,6 +266,36 @@
       gap: 4px;
     }
 
+    .status-badge-judging {
+      background: rgba(254, 249, 195, 0.95);
+      color: #a16207;
+      border: 1px solid #fef08a;
+      backdrop-filter: blur(4px);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-badge-concluded {
+      background: rgba(241, 245, 249, 0.95);
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      backdrop-filter: blur(4px);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
     .mode-badge {
       background: rgba(15, 23, 42, 0.75);
       color: #ffffff;
@@ -470,8 +500,9 @@
     }
 
     .rank-1 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-    .rank-2 { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; }
+    .rank-2 { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
     .rank-3 { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+    .rank-other { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
 
     /* Modals Clean Style */
     .modal-content {
@@ -955,13 +986,27 @@
       }
 
       grid.innerHTML = displayed.map(h => {
-        const isLive = h.status === 'ongoing';
+        const st = (h.status || 'upcoming').toLowerCase();
+        const isLive = st === 'ongoing';
+        const isJudging = st === 'voting' || st === 'judging';
+        const isConcluded = st === 'completed' || st === 'past';
         const deadline = h.registration_deadline
           ? new Date(h.registration_deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
           : 'TBD';
         const reg = h.userRegistration;
         const isDeadlinePassed = h.registration_deadline && new Date(h.registration_deadline) < new Date();
-        const isClosed = h.status === 'completed' || isDeadlinePassed;
+        const isClosed = isConcluded || isJudging || isDeadlinePassed;
+
+        let statusBadgeHtml = '';
+        if (isLive) {
+          statusBadgeHtml = '<span class="status-badge-live"><span class="pulse-dot"></span> Live Hacking</span>';
+        } else if (isJudging) {
+          statusBadgeHtml = '<span class="status-badge-judging"><i class="bi bi-hourglass-split"></i> Judging / Voting</span>';
+        } else if (isConcluded) {
+          statusBadgeHtml = '<span class="status-badge-concluded"><i class="bi bi-trophy-fill text-warning"></i> Concluded</span>';
+        } else {
+          statusBadgeHtml = '<span class="status-badge-upcoming"><i class="bi bi-door-open me-1"></i> Registering</span>';
+        }
 
         return `
           <div class="col-md-6 col-lg-4">
@@ -970,9 +1015,7 @@
                 <img src="${h.banner_url || 'assets/img/tau sample image.jpg'}" class="card-banner-img" alt="${escapeHtml(h.title)}">
                 
                 <div class="banner-badge-left">
-                  <span class="${isLive ? 'status-badge-live' : 'status-badge-upcoming'}">
-                    ${isLive ? '<span class="pulse-dot"></span> Live Hacking' : '<i class="bi bi-door-open me-1"></i> Registering'}
-                  </span>
+                  ${statusBadgeHtml}
                 </div>
 
                 <div class="banner-badge-right">
@@ -1002,7 +1045,7 @@
                           <i class="bi bi-gear me-1"></i> Manage Team
                         </button>
                       ` : `
-                        <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1 small">Closed</span>
+                        <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1 small">${isJudging ? 'Judging Phase' : 'Closed'}</span>
                       `}
                       <button class="btn btn-sm btn-nacos-outline px-3 py-1" onclick="openSubmissionModal('${h.id}')">
                         ${reg.status === 'submitted' ? '<i class="bi bi-pencil-square me-1"></i> Edit Pitch' : '<i class="bi bi-cloud-arrow-up me-1"></i> Submit'}
@@ -1010,7 +1053,7 @@
                     </div>
                   ` : `
                     ${isClosed ? `
-                      <button class="btn btn-sm btn-secondary rounded-pill px-3 py-1.5" disabled>Registration Closed</button>
+                      <button class="btn btn-sm btn-secondary rounded-pill px-3 py-1.5" disabled>${isJudging ? 'Judging in Progress' : 'Registration Closed'}</button>
                     ` : `
                       <button class="btn btn-nacos-primary" onclick="openRegisterModal('${h.id}')">
                         Register Team
@@ -1237,22 +1280,26 @@
           const { data, error } = await supabase
             .from('hackathons')
             .select('*, hackathon_submissions(*, hackathon_registrations(*))')
-            .eq('status', 'completed')
+            .in('status', ['completed', 'past'])
             .order('end_date', { ascending: false });
 
           if (error) throw error;
           past = (data || []).map(h => {
             const winners = (h.hackathon_submissions || [])
-              .filter(s => s.ranking !== null)
+              .filter(s => s.is_winner || s.ranking !== null)
               .sort((a, b) => (a.ranking || 99) - (b.ranking || 99))
               .map(s => ({
                 id: s.id,
                 ranking: s.ranking,
-                award_title: s.award_title,
+                award_title: s.award_title || (s.ranking ? `Rank #${s.ranking}` : 'Winner'),
                 project_title: s.project_title,
                 tagline: s.tagline,
+                description: s.description,
                 github_url: s.github_url,
                 demo_url: s.demo_url,
+                video_url: s.video_url,
+                pitch_deck_url: s.pitch_deck_url,
+                tech_stack: s.tech_stack,
                 registration: s.hackathon_registrations
               }));
             return { ...h, winners };
@@ -1287,15 +1334,17 @@
               ${(h.winners && h.winners.length ? h.winners : []).map(w => `
                 <div class="col-md-4">
                   <div class="winner-project-card">
-                    <span class="rank-badge ${w.ranking === 1 ? 'rank-1' : w.ranking === 2 ? 'rank-2' : 'rank-3'}">
-                      #${w.ranking || 1} ${w.award_title || 'Winner'}
+                    <span class="rank-badge ${w.ranking === 1 ? 'rank-1' : w.ranking === 2 ? 'rank-2' : w.ranking === 3 ? 'rank-3' : 'rank-other'}">
+                      ${w.ranking === 1 ? '🥇 1st Place' : w.ranking === 2 ? '🥈 2nd Place' : w.ranking === 3 ? '🥉 3rd Place' : (w.ranking ? `🎖️ #${w.ranking}` : '⭐')} ${escapeHtml(w.award_title && !w.award_title.toLowerCase().includes('place') ? `• ${w.award_title}` : (w.award_title || 'Winner'))}
                     </span>
-                    <h6 class="fw-bold text-dark mt-1 mb-1">${w.project_title}</h6>
-                    <small class="text-muted d-block mb-2">by ${w.registration?.team_name || 'Team'}</small>
-                    <p class="small text-muted mb-3" style="min-height: 38px;">${w.tagline || (w.description ? w.description.substring(0, 80) + '...' : '')}</p>
-                    <div class="d-flex gap-2">
-                      ${w.github_url ? `<a href="${w.github_url}" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-2.5 py-1 small" style="font-size: 11px;"><i class="bi bi-github"></i> Code</a>` : ''}
-                      ${w.demo_url ? `<a href="${w.demo_url}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-1 small" style="font-size: 11px;"><i class="bi bi-play-circle"></i> Demo</a>` : ''}
+                    <h6 class="fw-bold text-dark mt-1 mb-1">${escapeHtml(w.project_title)}</h6>
+                    <small class="text-muted d-block mb-2">by ${escapeHtml(w.registration?.team_name || 'Team')}</small>
+                    <p class="small text-muted mb-3" style="min-height: 38px;">${escapeHtml(w.tagline || (w.description ? w.description.substring(0, 80) + '...' : ''))}</p>
+                    <div class="d-flex flex-wrap gap-1 mt-auto pt-2 border-top">
+                      ${w.demo_url ? `<a href="${escapeHtml(w.demo_url)}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-1 small" style="font-size: 11px;"><i class="bi bi-globe"></i> Demo</a>` : ''}
+                      ${w.github_url ? `<a href="${escapeHtml(w.github_url)}" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-2.5 py-1 small" style="font-size: 11px;"><i class="bi bi-github"></i> Code</a>` : ''}
+                      ${w.pitch_deck_url ? `<a href="${escapeHtml(w.pitch_deck_url)}" target="_blank" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-2.5 py-1 small" style="font-size: 11px;"><i class="bi bi-file-earmark-slides"></i> Slides</a>` : ''}
+                      ${w.video_url ? `<a href="${escapeHtml(w.video_url)}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 py-1 small" style="font-size: 11px;"><i class="bi bi-play-circle"></i> Pitch</a>` : ''}
                     </div>
                   </div>
                 </div>
@@ -1325,13 +1374,17 @@
       }
 
       const h = currentHackathons.find(x => x.id === hackathonId);
+      const st = (h?.status || 'upcoming').toLowerCase();
+      const isJudging = st === 'voting' || st === 'judging';
+      const isConcluded = st === 'completed' || st === 'past';
       const isDeadlinePassed = h?.registration_deadline && new Date(h.registration_deadline) < new Date();
-      const isClosed = (h?.status === 'completed') || isDeadlinePassed;
-      if (isClosed) {
+      if (isConcluded || isJudging || isDeadlinePassed) {
         Swal.fire({
           icon: 'warning',
           title: 'Registration Closed',
-          text: 'The registration deadline for this event has passed.'
+          text: isJudging
+            ? 'This competition is currently in the Judging & Voting phase. New team registrations are closed.'
+            : 'The registration deadline for this event has passed.'
         });
         return;
       }
@@ -1370,13 +1423,18 @@
         return;
       }
 
+      const st = (h?.status || 'upcoming').toLowerCase();
+      const isJudging = st === 'voting' || st === 'judging';
+      const isConcluded = st === 'completed' || st === 'past';
       const isDeadlinePassed = h?.registration_deadline && new Date(h.registration_deadline) < new Date();
-      const isClosed = (h?.status === 'completed') || isDeadlinePassed;
+      const isClosed = isConcluded || isJudging || isDeadlinePassed;
       if (isClosed) {
         Swal.fire({
           icon: 'info',
-          title: 'Registration Closed',
-          text: 'The registration deadline for this event has passed. Team details can no longer be modified.'
+          title: isJudging ? 'Judging in Progress' : 'Registration Closed',
+          text: isJudging
+            ? 'Team rosters cannot be modified while projects are under review and judging.'
+            : 'The registration deadline for this event has passed. Team details can no longer be modified.'
         });
         return;
       }
@@ -1453,15 +1511,20 @@
         return;
       }
 
-      // Validate deadline before proceeding
+      // Validate status & deadline before proceeding
       const targetH = currentHackathons.find(x => x.id === hackathonId);
-      if (targetH && targetH.registration_deadline) {
-        const deadlineDate = new Date(targetH.registration_deadline);
-        if (deadlineDate < new Date()) {
+      if (targetH) {
+        const st = (targetH.status || 'upcoming').toLowerCase();
+        const isJudging = st === 'voting' || st === 'judging';
+        const isConcluded = st === 'completed' || st === 'past';
+        const isDeadlinePassed = targetH.registration_deadline && new Date(targetH.registration_deadline) < new Date();
+        if (isConcluded || isJudging || isDeadlinePassed) {
           Swal.fire({
             icon: 'error',
-            title: 'Deadline Passed',
-            text: 'Registration for this event has closed because the deadline has passed.'
+            title: 'Registration Closed',
+            text: isJudging
+              ? 'Registration is closed because this competition is currently in the judging phase.'
+              : 'Registration for this event has closed.'
           });
           return;
         }
