@@ -143,7 +143,8 @@
       margin-bottom: 5px;
     }
     
-    .nav-link {
+    .sidebar .nav-link,
+    .nav-menu .nav-link {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -154,14 +155,53 @@
       transition: all 0.3s;
     }
     
-    .nav-link:hover, .nav-link.active {
+    .sidebar .nav-link:hover, .sidebar .nav-link.active,
+    .nav-menu .nav-link:hover, .nav-menu .nav-link.active {
       background: rgba(255,255,255,0.15);
       color: white;
     }
     
-    .nav-link.active {
+    .sidebar .nav-link.active,
+    .nav-menu .nav-link.active {
       background: rgba(255,255,255,0.2);
       font-weight: 600;
+    }
+
+    /* Modal Navigation Tabs - High Contrast & Clearly Visible */
+    .modal .nav-tabs {
+      border-bottom: 2px solid #e2e8f0;
+      gap: 6px;
+    }
+
+    .modal .nav-tabs .nav-link {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      color: #334155 !important;
+      background: #f1f5f9 !important;
+      border: 1px solid #cbd5e1 !important;
+      border-bottom: none !important;
+      border-radius: 8px 8px 0 0 !important;
+      padding: 9px 18px !important;
+      font-size: 13.5px !important;
+      font-weight: 600 !important;
+      text-decoration: none !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .modal .nav-tabs .nav-link:hover {
+      color: #1b8c0c !important;
+      background: #e8f5e9 !important;
+      border-color: #a7f3d0 !important;
+    }
+
+    .modal .nav-tabs .nav-link.active {
+      color: #1b8c0c !important;
+      background: #ffffff !important;
+      border-color: #cbd5e1 #cbd5e1 #ffffff !important;
+      border-bottom: 3px solid #1b8c0c !important;
+      font-weight: 700 !important;
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.03) !important;
     }
     
     .card {
@@ -1132,10 +1172,11 @@
                       <th>Members</th>
                       <th>Matchmaking</th>
                       <th>Submission Status</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody id="hk-teams-table-body">
-                    <tr><td colspan="6" class="text-center text-muted py-3">Loading teams...</td></tr>
+                    <tr><td colspan="7" class="text-center text-muted py-3">Loading teams...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -3309,17 +3350,17 @@ window.deleteEvent = async function(id) {
       }
     };
 
-    window.openManualAddSubmissionModal = async function() {
+    window.openManualAddSubmissionModal = async function(defaultTeamName = '', defaultRegId = '') {
       if (!currentManagingHackathonId) return;
       const { value: form } = await Swal.fire({
-        title: 'Add Winner / Project Submission',
+        title: defaultTeamName ? `Award / Add Pitch: ${escapeHtml(defaultTeamName)}` : 'Add Winner / Project Submission',
         width: '650px',
         html: `
           <div class="text-start">
             <div class="row g-2 mb-2">
               <div class="col-6">
                 <label class="form-label small fw-bold">Team Name *</label>
-                <input type="text" id="manual-team-name" class="form-control form-control-sm" placeholder="e.g. Innovators" required>
+                <input type="text" id="manual-team-name" class="form-control form-control-sm" placeholder="e.g. Innovators" value="${escapeHtml(defaultTeamName)}" required>
               </div>
               <div class="col-6">
                 <label class="form-label small fw-bold">Project Title *</label>
@@ -3421,7 +3462,7 @@ window.deleteEvent = async function(id) {
           </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Add to Records',
+        confirmButtonText: 'Save Award & Details',
         confirmButtonColor: '#1b8c0c',
         preConfirm: () => {
           const teamName = document.getElementById('manual-team-name').value.trim();
@@ -3453,28 +3494,44 @@ window.deleteEvent = async function(id) {
         const session = await checkAuth();
         const adminId = session?.user?.id;
 
-        // 1. Insert Registration
-        const { data: reg, error: regErr } = await supabase
-          .from('hackathon_registrations')
-          .insert([{
-            hackathon_id: currentManagingHackathonId,
-            team_name: form.teamName,
-            leader_id: adminId,
-            track_selected: 'General',
-            status: 'submitted',
-            team_members: [{ name: form.teamName + ' Leader', role: 'Leader' }]
-          }])
-          .select()
-          .single();
+        let regId = defaultRegId;
+        if (!regId) {
+          const matchExisting = (currentHackathonRegistrations || []).find(r => 
+            String(r.team_name || '').toLowerCase() === form.teamName.toLowerCase()
+          );
+          if (matchExisting) regId = matchExisting.id;
+        }
 
-        if (regErr) throw regErr;
+        if (regId) {
+          await supabase
+            .from('hackathon_registrations')
+            .update({ status: 'submitted' })
+            .eq('id', regId);
+        } else {
+          // 1. Insert Registration
+          const { data: newReg, error: regErr } = await supabase
+            .from('hackathon_registrations')
+            .insert([{
+              hackathon_id: currentManagingHackathonId,
+              team_name: form.teamName,
+              leader_id: adminId,
+              track_selected: 'General',
+              status: 'submitted',
+              team_members: [{ name: form.teamName + ' Leader', role: 'Leader' }]
+            }])
+            .select()
+            .single();
 
-        // 2. Insert Submission
+          if (regErr) throw regErr;
+          regId = newReg.id;
+        }
+
+        // 2. Insert or update submission
         const { error: subErr } = await supabase
           .from('hackathon_submissions')
-          .insert([{
+          .upsert([{
             hackathon_id: currentManagingHackathonId,
-            registration_id: reg.id,
+            registration_id: regId,
             project_title: form.projectTitle,
             tagline: form.tagline || null,
             description: form.description || null,
@@ -3486,16 +3543,15 @@ window.deleteEvent = async function(id) {
             is_winner: form.isWinner,
             award_title: form.awardTitle || null,
             ranking: form.ranking
-          }]);
+          }], { onConflict: 'registration_id' });
 
         if (subErr) throw subErr;
 
-        Swal.fire('Success', 'Project submission and award added successfully!', 'success');
+        Swal.fire('Success', 'Project submission and award saved successfully!', 'success');
         reloadHackathonParticipants();
       } catch (err) {
-        console.error('Error manually adding submission:', err);
-        Swal.fire('Error', err.message || 'Failed to add submission', 'error');
-      }
+        console.error('Error saving submission / award:', err);
+        Swal.fire('Error', err.message || 'Failed to save submission', 'error');
     };
 
     async function reloadHackathonParticipants() {
@@ -3661,7 +3717,7 @@ window.deleteEvent = async function(id) {
 
         // Render teams
         if (registrations.length === 0) {
-          teamsTbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No registered teams yet</td></tr>';
+          teamsTbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No registered teams yet</td></tr>';
         } else {
           teamsTbody.innerHTML = registrations.map(r => {
             const rawMembers = Array.isArray(r.team_members) ? r.team_members : [];
@@ -3713,7 +3769,29 @@ window.deleteEvent = async function(id) {
                   ` : '<span class="badge bg-light text-muted border">Complete</span>'}
                 </td>
                 <td>
-                  ${sub ? '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Submitted</span>' : '<span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pending</span>'}
+                  ${sub ? `
+                    <div class="d-flex flex-column gap-1">
+                      <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Submitted</span>
+                      ${sub.is_winner ? `
+                        <div>
+                          <span class="badge bg-warning text-dark border border-warning shadow-sm" style="font-size: 11px;">
+                            <i class="bi bi-trophy-fill me-1 text-dark"></i>${escapeHtml(sub.award_title || (sub.ranking ? `Rank #${sub.ranking}` : 'Winner'))}
+                          </span>
+                        </div>
+                      ` : ''}
+                    </div>
+                  ` : '<span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pending</span>'}
+                </td>
+                <td>
+                  ${sub ? `
+                    <button class="btn btn-sm ${sub.is_winner ? 'btn-warning text-dark' : 'btn-outline-warning text-dark'} fw-semibold py-1 px-2.5 rounded-pill shadow-sm" onclick="promptAssignWinner('${sub.id}', '${escapeHtml(sub.project_title || r.team_name)}', ${!!sub.is_winner}, '${escapeHtml(sub.award_title || '')}', '${sub.ranking || ''}', '${escapeHtml(sub.feedback || '')}')" title="Assign winner position / prize">
+                      <i class="bi bi-trophy-fill ${sub.is_winner ? 'text-dark' : 'text-warning'} me-1"></i> ${sub.is_winner ? 'Edit Award' : 'Select Winner'}
+                    </button>
+                  ` : `
+                    <button class="btn btn-sm btn-outline-secondary py-1 px-2.5 rounded-pill" onclick="openManualAddSubmissionModal('${escapeHtml(r.team_name)}', '${r.id}')" title="Record submission and assign winner">
+                      <i class="bi bi-plus-circle me-1"></i> Award Team
+                    </button>
+                  `}
                 </td>
               </tr>
             `;
@@ -3873,7 +3951,14 @@ window.deleteEvent = async function(id) {
             </tr>
           `).join('');
 
-      let submissionHtml = '<div class="alert alert-warning py-2 mb-0 small"><i class="bi bi-clock me-1"></i> No project submitted yet for this team.</div>';
+      let submissionHtml = `
+        <div class="alert alert-warning py-2 mb-0 small d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div><i class="bi bi-clock me-1"></i> No project submitted online yet for this team.</div>
+          <button class="btn btn-sm btn-outline-dark px-2.5 py-1" onclick="Swal.close(); openManualAddSubmissionModal('${escapeHtml(r.team_name)}', '${r.id}')">
+            <i class="bi bi-plus-circle me-1"></i> Add Submission & Award
+          </button>
+        </div>
+      `;
       if (sub) {
         const techStackList = Array.isArray(sub.tech_stack)
           ? sub.tech_stack
@@ -3911,11 +3996,16 @@ window.deleteEvent = async function(id) {
               </div>
             ` : ''}
 
-            <div class="d-flex flex-wrap gap-2 mt-2 pt-2 border-top">
-              ${sub.demo_url ? `<a href="${escapeHtml(sub.demo_url)}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-globe me-1"></i>Live Demo</a>` : ''}
-              ${sub.github_url ? `<a href="${escapeHtml(sub.github_url)}" target="_blank" class="btn btn-sm btn-outline-dark"><i class="bi bi-github me-1"></i>Code Repository</a>` : ''}
-              ${sub.video_url ? `<a href="${escapeHtml(sub.video_url)}" target="_blank" class="btn btn-sm btn-outline-danger"><i class="bi bi-play-circle me-1"></i>Video Pitch</a>` : ''}
-              ${sub.pitch_deck_url ? `<a href="${escapeHtml(sub.pitch_deck_url)}" target="_blank" class="btn btn-sm btn-outline-warning text-dark"><i class="bi bi-file-earmark-slides me-1"></i>Slide Deck</a>` : ''}
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 pt-2 border-top">
+              <div class="d-flex flex-wrap gap-2">
+                ${sub.demo_url ? `<a href="${escapeHtml(sub.demo_url)}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-globe me-1"></i>Live Demo</a>` : ''}
+                ${sub.github_url ? `<a href="${escapeHtml(sub.github_url)}" target="_blank" class="btn btn-sm btn-outline-dark"><i class="bi bi-github me-1"></i>Code Repository</a>` : ''}
+                ${sub.video_url ? `<a href="${escapeHtml(sub.video_url)}" target="_blank" class="btn btn-sm btn-outline-danger"><i class="bi bi-play-circle me-1"></i>Video Pitch</a>` : ''}
+                ${sub.pitch_deck_url ? `<a href="${escapeHtml(sub.pitch_deck_url)}" target="_blank" class="btn btn-sm btn-outline-warning text-dark"><i class="bi bi-file-earmark-slides me-1"></i>Slide Deck</a>` : ''}
+              </div>
+              <button class="btn btn-sm btn-warning text-dark fw-bold px-3 py-1 shadow-sm" onclick="Swal.close(); promptAssignWinner('${sub.id}', '${escapeHtml(sub.project_title || r.team_name)}', ${!!sub.is_winner}, '${escapeHtml(sub.award_title || '')}', '${sub.ranking || ''}', '${escapeHtml(sub.feedback || '')}')">
+                <i class="bi bi-trophy-fill text-dark me-1"></i> ${sub.is_winner ? 'Edit Award' : 'Award Winner'}
+              </button>
             </div>
           </div>
         `;
