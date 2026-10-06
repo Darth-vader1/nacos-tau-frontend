@@ -3552,6 +3552,7 @@ window.deleteEvent = async function(id) {
       } catch (err) {
         console.error('Error saving submission / award:', err);
         Swal.fire('Error', err.message || 'Failed to save submission', 'error');
+      }
     };
 
     async function reloadHackathonParticipants() {
@@ -3559,7 +3560,7 @@ window.deleteEvent = async function(id) {
 
       const teamsTbody = document.getElementById('hk-teams-table-body');
       const subsTbody = document.getElementById('hk-subs-table-body');
-      teamsTbody.innerHTML = '<tr><td colspan="6" class="text-center py-3">Loading teams...</td></tr>';
+      teamsTbody.innerHTML = '<tr><td colspan="7" class="text-center py-3">Loading teams...</td></tr>';
       subsTbody.innerHTML = '<tr><td colspan="6" class="text-center py-3">Loading submissions...</td></tr>';
 
       try {
@@ -4233,8 +4234,9 @@ window.deleteEvent = async function(id) {
     // ============================================
     
     function showSection(section) {
+      if (!section) section = 'dashboard';
       document.querySelectorAll('.content-section').forEach(s => s.style.display = 'none');
-      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      document.querySelectorAll('.sidebar .nav-link, .nav-menu .nav-link').forEach(l => l.classList.remove('active'));
       
       const sectionEl = document.getElementById(`${section}-section`);
       if (sectionEl) sectionEl.style.display = 'block';
@@ -4253,13 +4255,35 @@ window.deleteEvent = async function(id) {
         payments: 'Payments',
         students: 'Student Verification'
       };
-      document.getElementById('page-title').textContent = titles[section] || section;
+      const titleEl = document.getElementById('page-title');
+      if (titleEl) titleEl.textContent = titles[section] || section;
+
+      // Auto-close sidebar on mobile after clicking
+      if (window.innerWidth <= 992) {
+        document.getElementById('sidebar')?.classList.remove('show');
+      }
     }
+    window.showSection = showSection;
+
+    function handleHashNavigation() {
+      const hash = window.location.hash.replace('#', '').trim();
+      if (hash && document.getElementById(`${hash}-section`)) {
+        showSection(hash);
+      }
+    }
+
+    window.addEventListener('hashchange', handleHashNavigation);
     
     document.querySelectorAll('.nav-link[data-section]').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
-        showSection(link.dataset.section);
+        const section = link.dataset.section;
+        showSection(section);
+        if (history.pushState) {
+          history.pushState(null, null, '#' + section);
+        } else {
+          window.location.hash = section;
+        }
       });
     });
     
@@ -4320,6 +4344,7 @@ window.deleteEvent = async function(id) {
       if (!isAdmin) return;
       
       resetSessionTimeout();
+      handleHashNavigation();
       
       await Promise.all([
         ensureStorageBuckets(),
