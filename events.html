@@ -427,6 +427,18 @@
       div.textContent = text;
       return div.innerHTML;
     }
+
+    function escapeJsString(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+    }
+    window.escapeJsString = escapeJsString;
+    window.escapeHtml = escapeHtml;
   </script>
 </body>
 </html>

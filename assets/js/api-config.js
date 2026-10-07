@@ -380,6 +380,74 @@ export const api = {
             });
             return response.json();
         }
+    },
+
+    pastExecutives: {
+        async list(session = '') {
+            const qs = session ? `?session=${encodeURIComponent(session)}` : '';
+            const response = await fetch(`${API_URL}/past-executives${qs}`);
+            return response.json();
+        },
+        async sessions() {
+            const response = await fetch(`${API_URL}/past-executives/sessions`);
+            return response.json();
+        },
+        async adminCreate(data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/past-executives`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+        async adminUpdate(id, data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('PUT', `${API_URL}/past-executives/${id}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+        async adminDelete(id) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('DELETE', `${API_URL}/past-executives/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            return response.json();
+        }
+    },
+
+    emails: {
+        async previewRecipients(filter = {}) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/emails/preview-recipients`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(filter)
+            });
+            return response.json();
+        },
+        async broadcast(data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/emails/broadcast`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        }
     }
 };
 

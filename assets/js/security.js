@@ -718,6 +718,18 @@ if (typeof module !== 'undefined' && module.exports) {
   window.XSSProtection = XSSProtection;
   window.InputValidation = InputValidation;
   window.rateLimiter = rateLimiter;
+  
+  // Global sanitizers
+  window.escapeJsString = window.escapeJsString || function(str) {
+    if (!str) return '';
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+  };
+  window.escapeHtml = window.escapeHtml || function(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  };
 }
 
 console.log('🔒 Security module loaded');
