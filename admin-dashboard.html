@@ -4994,11 +4994,14 @@ window.deleteEvent = async function(id) {
           administration_name: adminName,
           rank_order: rankOrder,
           department,
-          level_or_set: levelOrSet,
           photo_url: photoUrl,
           linkedin_url: linkedinUrl,
           bio
         };
+
+        if (levelOrSet) {
+          payload.level_or_set = levelOrSet;
+        }
 
         if (peId) {
           payload.updated_at = new Date().toISOString();
