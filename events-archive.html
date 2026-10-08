@@ -538,6 +538,13 @@
       }
     }
 
+    function formatCurrency(amount) {
+      if (amount === null || amount === undefined || amount === '') return '₦0';
+      const num = Number(String(amount).replace(/[^0-9.-]+/g, ''));
+      if (isNaN(num)) return `₦${amount}`;
+      return '₦' + num.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
     function formatDate(dateString) {
       if (!dateString) return 'Date TBA';
       try {
@@ -785,7 +792,7 @@
           ${event.requires_payment ? `
             <div class="alert alert-info">
               <i class="bi bi-cash"></i> <strong>Payment Required:</strong> 
-              ₦${Number(event.payment_amount || 0).toLocaleString()}
+              ${formatCurrency(event.payment_amount)}
             </div>
           ` : `
             <div class="alert alert-success">

@@ -1907,6 +1907,13 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       `;
     }
     
+    function formatCurrency(amount) {
+      if (amount === null || amount === undefined || amount === '') return '₦0';
+      const num = Number(String(amount).replace(/[^0-9.-]+/g, ''));
+      if (isNaN(num)) return `₦${amount}`;
+      return '₦' + num.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
     // ============================================
     // SESSION TIMEOUT
     // ============================================
@@ -2171,7 +2178,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
             <strong>${escapeHtml(ev.title)}</strong>
           </td>
           <td>${ev.date}</td>
-          <td>${ev.requires_payment ? '₦' + Number(ev.payment_amount).toLocaleString() : 'Free'}</td>
+          <td>${ev.requires_payment ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning">${formatCurrency(ev.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}</td>
           <td>${ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</td>
           <td>${ev.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
           <td>
@@ -3190,7 +3197,7 @@ window.deleteEvent = async function(id) {
         <tr>
           <td>${escapeHtml(p.students?.name || 'N/A')}<br><small>${escapeHtml(p.students?.matric_no || '')}</small></td>
           <td>${escapeHtml(p.events?.title || 'N/A')}</td>
-          <td>₦${Number(p.amount).toLocaleString()}</td>
+          <td><strong class="text-success">${formatCurrency(p.amount)}</strong></td>
           <td><code>${escapeHtml(p.payment_reference)}</code></td>
           <td><span class="badge ${p.status === 'verified' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : 'bg-warning'}">${p.status}</span></td>
           <td>${p.status === 'pending' ? `<button class="btn btn-sm btn-success" onclick="verifyPayment('${p.id}', true)">Approve</button>` : ''}</td>

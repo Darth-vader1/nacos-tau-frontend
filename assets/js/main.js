@@ -292,3 +292,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   } catch (e) { /* ignore */ }
 });
+
+/**
+ * Universal Currency & Money Formatter for NACOS TAU Portal
+ * Formats numbers, strings, or decimal amounts with Nigerian Naira (₦) symbol
+ * and proper thousands commas:
+ * e.g. 5000 -> "₦5,000", 250000.5 -> "₦250,000.50", 0 -> "₦0"
+ */
+window.formatCurrency = function(amount, symbol = '₦') {
+  if (amount === null || amount === undefined || amount === '') return `${symbol}0`;
+  const cleanStr = String(amount).replace(/[^0-9.-]+/g, '');
+  const num = Number(cleanStr);
+  if (isNaN(num)) return `${symbol}${amount}`;
+  return `${symbol}` + num.toLocaleString('en-NG', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+};
+window.formatMoney = window.formatCurrency;
