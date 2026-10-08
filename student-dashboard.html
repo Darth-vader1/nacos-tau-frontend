@@ -1147,6 +1147,13 @@
       return div.innerHTML;
     }
 
+    function formatCurrency(amount) {
+      if (amount === null || amount === undefined || amount === '') return '₦0';
+      const num = Number(String(amount).replace(/[^0-9.-]+/g, ''));
+      if (isNaN(num)) return `₦${amount}`;
+      return '₦' + num.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
     // Safe text node creation - prevents double encoding
     function createTextSpan(text, className = '') {
       const span = document.createElement('span');
@@ -1434,7 +1441,7 @@
             const desc = event.description ? `<p class="small mt-1 mb-1">${escapeHtml(event.description)}</p>` : '';
             const loc = event.location ? `<p class="mb-1"><i class="bi bi-geo-alt" aria-hidden="true"></i> ${escapeHtml(event.location)}</p>` : '';
             const badge = event.requires_payment
-              ? `<span class="badge bg-warning">₦${escapeHtml(String(event.payment_amount || '0'))}</span>`
+              ? `<span class="badge bg-warning"><i class="bi bi-tag me-1"></i>${formatCurrency(event.payment_amount)}</span>`
               : `<span class="badge bg-success">Free</span>`;
             return `
               <div class="col-lg-6">
@@ -1499,8 +1506,8 @@
         const description = event.description ? escapeHtml(event.description) : 'No description available.';
         
         const paymentBadge = event.requires_payment
-          ? `<span class="badge bg-warning fs-6"><i class="bi bi-cash"></i> ₦${escapeHtml(String(event.payment_amount || '0'))}</span>`
-          : `<span class="badge bg-success fs-6"><i class="bi bi-gift"></i> Free Event</span>`;
+          ? `<span class="badge bg-warning fs-6"><i class="bi bi-cash me-1"></i>${formatCurrency(event.payment_amount)}</span>`
+          : `<span class="badge bg-success fs-6"><i class="bi bi-gift me-1"></i>Free Event</span>`;
 
         // Payment details section - shows bank info, account number, etc.
         const paymentDetailsSection = event.requires_payment && event.payment_details
