@@ -1800,6 +1800,11 @@
         const evModal = bootstrap.Modal.getInstance(evModalEl);
         if (evModal) evModal.hide();
 
+        // Close loading spinner overlay
+        if (window.Swal) {
+          Swal.close();
+        }
+
         showDashboardTicketModal({
           event: event,
           ticketNumber: ticketNo,
