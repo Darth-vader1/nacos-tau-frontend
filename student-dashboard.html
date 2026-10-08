@@ -43,6 +43,30 @@
       border: 0;
     }
 
+    /* Ticket Card Styles */
+    .ticket-container {
+      background: #ffffff;
+      border: 2px dashed #1b8c0c;
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+    }
+    .ticket-code-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      margin: 15px 0;
+    }
+    .ticket-number {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: #1b8c0c;
+      letter-spacing: 2px;
+    }
+
     /* Header Styles */
     .header {
       background: white;
@@ -1093,17 +1117,42 @@
     </div>
   </div>
 
+  <!-- Ticket Confirmation Modal -->
+  <div class="modal fade" id="ticketModal" tabindex="-1" aria-labelledby="ticketModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+        <div class="modal-header text-white" style="background: linear-gradient(135deg, #1b8c0c 0%, #136308 100%);">
+          <h5 class="modal-title d-flex align-items-center" id="ticketModalLabel">
+            <i class="bi bi-ticket-perforated-fill me-2 fs-4"></i> Event Ticket Confirmed
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4" id="ticketModalBody">
+          <!-- Dynamically populated ticket -->
+        </div>
+        <div class="modal-footer bg-light border-0 justify-content-between p-3">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-success" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> Print / Save Ticket
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js" defer></script>
   <script src="assets/js/env.js" defer></script>
   <script src="assets/js/security.js"></script> 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer crossorigin="anonymous"></script>
+  <script src="https://js.paystack.co/v1/inline.js"></script>
   <script type="module" src="assets/js/supabase-config.js"></script>
   <script type="module" src="assets/js/api-config.js"></script>
   <script src="assets/js/main.js" defer></script>
   <script src="assets/js/profile-management.js" defer></script>
   <script type="module">
     import { supabase, checkAuth, signOut, uploadFileToStorage } from './assets/js/supabase-config.js';
+    import { api } from './assets/js/api-config.js';
 
     // ================================================================
     // DOM elements & state
@@ -1571,19 +1620,35 @@
           modalContent.innerHTML = detailsHtml;
         }
 
+        // Check if current student is already registered
+        let isRegistered = false;
+        if (currentUser) {
+          const { data: reg } = await supabase
+            .from('event_registrations')
+            .select('*')
+            .eq('event_id', event.id)
+            .eq('user_id', currentUser.id)
+            .maybeSingle();
+          if (reg) isRegistered = true;
+        }
+
         // Show register button
         if (registerBtn) {
           registerBtn.style.display = 'inline-block';
-          registerBtn.innerHTML = event.requires_payment 
-            ? `<i class="bi bi-credit-card me-1"></i> Register & Pay (${formatCurrency(event.payment_amount)})`
-            : `<i class="bi bi-check2-circle me-1"></i> Register for Event`;
-          registerBtn.onclick = () => {
-            if (event.requires_payment && event.payment_link && isSafeWebUrl(event.payment_link)) {
-              window.open(event.payment_link, '_blank', 'noopener,noreferrer');
-            } else {
-              window.location.href = 'events.html';
-            }
-          };
+          if (isRegistered) {
+            registerBtn.disabled = true;
+            registerBtn.className = 'btn btn-success';
+            registerBtn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Registered';
+            registerBtn.onclick = null;
+          } else {
+            registerBtn.disabled = false;
+            registerBtn.className = 'btn btn-success';
+            const isPaid = event.requires_payment && Number(event.payment_amount) > 0;
+            registerBtn.innerHTML = isPaid 
+              ? `<i class="bi bi-credit-card me-1"></i> Register & Pay (${formatCurrency(event.payment_amount)})`
+              : `<i class="bi bi-check2-circle me-1"></i> Register for Event`;
+            registerBtn.onclick = () => handleEventCheckout(event);
+          }
         }
 
         // Show modal
@@ -1594,6 +1659,227 @@
         console.error('Error loading event details:', error);
         showError('Failed to load event details');
       }
+    }
+
+    async function handleEventCheckout(event) {
+      const isPaid = event.requires_payment && Number(event.payment_amount) > 0;
+
+      if (isPaid) {
+        let paystackKey = window.PAYSTACK_PUBLIC_KEY;
+        if (!paystackKey || paystackKey.includes('placeholder')) {
+          try {
+            const cfg = await api.payments.getPaystackConfig();
+            if (cfg && cfg.data && cfg.data.publicKey) {
+              paystackKey = cfg.data.publicKey;
+            }
+          } catch (e) {
+            console.warn('Could not fetch Paystack public key:', e);
+          }
+        }
+
+        if (!paystackKey || paystackKey.includes('placeholder') || typeof PaystackPop === 'undefined') {
+          const isDevMode = !paystackKey || paystackKey.includes('placeholder');
+          if (isDevMode) {
+            const devPrompt = await Swal.fire({
+              title: 'Paystack Payment Simulation',
+              html: `
+                <p>The Paystack Public Key is not yet configured in <code>.env</code>.</p>
+                <p>Fee to simulate: <strong>${formatCurrency(event.payment_amount)}</strong></p>
+                <p class="small text-muted">You can test the automated payment, server verification, database sync, and ticket confirmation flow right now.</p>
+              `,
+              icon: 'info',
+              showCancelButton: true,
+              confirmButtonText: 'Simulate Successful Payment',
+              confirmButtonColor: '#1b8c0c',
+              cancelButtonText: 'Cancel'
+            });
+
+            if (!devPrompt.isConfirmed) return;
+
+            const testRef = 'NACOS-EVT-' + event.id.substring(0, 4).toUpperCase() + '-' + Date.now();
+            await verifyDashboardPayment(event.id, testRef, event);
+            return;
+          } else {
+            Swal.fire('Paystack Unavailable', 'Paystack payment system could not be loaded. Please check your internet connection.', 'error');
+            return;
+          }
+        }
+
+        const amountKobo = Math.round(Number(event.payment_amount) * 100);
+        const ref = 'NACOS-EVT-' + event.id.substring(0, 4).toUpperCase() + '-' + Date.now();
+        const sName = displayName(studentData);
+        const sEmail = (studentData && studentData.email) || (currentUser && currentUser.email) || '';
+
+        const handler = PaystackPop.setup({
+          key: paystackKey,
+          email: sEmail,
+          amount: amountKobo,
+          currency: 'NGN',
+          ref: ref,
+          metadata: {
+            custom_fields: [
+              { display_name: "Event Title", variable_name: "event_title", value: event.title },
+              { display_name: "Attendee Name", variable_name: "attendee_name", value: sName },
+              { display_name: "Matric No", variable_name: "matric_no", value: studentData?.matric_no || 'N/A' },
+              { display_name: "Event ID", variable_name: "event_id", value: event.id }
+            ]
+          },
+          callback: function(response) {
+            verifyDashboardPayment(event.id, response.reference, event);
+          },
+          onClose: function() {
+            Swal.fire({
+              title: 'Payment Cancelled',
+              text: 'You closed the payment window without completing registration.',
+              icon: 'info',
+              timer: 3000,
+              showConfirmButton: false
+            });
+          }
+        });
+
+        handler.openIframe();
+
+      } else {
+        // Free Event Registration
+        Swal.fire({
+          title: 'Registering...',
+          text: 'Please wait while we secure your seat.',
+          allowOutsideClick: false,
+          didOpen: () => { Swal.showLoading(); }
+        });
+
+        try {
+          const regRes = await api.events.register(event.id);
+          if (regRes.success || regRes.data) {
+            const ticketNo = 'NACOS-' + event.id.substring(0, 4).toUpperCase() + '-' + Date.now().toString(36).toUpperCase();
+            
+            const evModalEl = document.getElementById('eventDetailsModal');
+            const evModal = bootstrap.Modal.getInstance(evModalEl);
+            if (evModal) evModal.hide();
+
+            showDashboardTicketModal({
+              event: event,
+              ticketNumber: ticketNo,
+              reference: 'FREE-REGISTRATION',
+              amount: 0,
+              paymentType: 'Free Admission'
+            });
+
+            await loadEvents();
+          } else {
+            throw new Error(regRes.error || 'Failed to complete registration');
+          }
+        } catch (err) {
+          Swal.fire('Registration Error', err.message || 'Failed to register', 'error');
+        }
+      }
+    }
+
+    async function verifyDashboardPayment(eventId, reference, event) {
+      Swal.fire({
+        title: 'Verifying Payment...',
+        html: '<p>Please wait while we confirm your payment and issue your ticket...</p>',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      try {
+        const verifyRes = await api.payments.verifyPaystack({
+          reference: reference,
+          event_id: eventId
+        });
+
+        if (!verifyRes.success) {
+          throw new Error(verifyRes.error || verifyRes.message || 'Payment verification failed');
+        }
+
+        const ticketNo = verifyRes.data?.ticket_number || ('NACOS-' + eventId.substring(0, 4).toUpperCase() + '-' + Date.now().toString(36).toUpperCase());
+
+        const evModalEl = document.getElementById('eventDetailsModal');
+        const evModal = bootstrap.Modal.getInstance(evModalEl);
+        if (evModal) evModal.hide();
+
+        showDashboardTicketModal({
+          event: event,
+          ticketNumber: ticketNo,
+          reference: reference,
+          amount: event.payment_amount,
+          paymentType: 'Paystack Verified'
+        });
+
+        await loadEvents();
+      } catch (err) {
+        console.error('Verification error:', err);
+        Swal.fire('Verification Error', err.message || 'Could not verify payment on server', 'error');
+      }
+    }
+
+    function showDashboardTicketModal({ event, ticketNumber, reference, amount, paymentType }) {
+      const sName = displayName(studentData);
+      const dateStr = formatDate(event.date);
+      const timeStr = event.time ? escapeHtml(event.time) : 'Time TBA';
+      const locationStr = event.location ? escapeHtml(event.location) : 'TAU Campus';
+      const feeFormatted = amount > 0 ? formatCurrency(amount) : 'Free';
+      const sEmail = (studentData && studentData.email) || (currentUser && currentUser.email) || '';
+
+      const bodyHtml = `
+        <div class="ticket-container" id="printableTicket">
+          <div class="text-center mb-3">
+            <span class="badge bg-success px-3 py-2 fs-6">
+              <i class="bi bi-patch-check-fill me-1"></i> ${paymentType || 'Confirmed'}
+            </span>
+            <h4 class="mt-2 text-dark font-weight-bold">${escapeHtml(event.title)}</h4>
+            <p class="text-muted small mb-0"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${escapeHtml(locationStr)}</p>
+          </div>
+
+          <div class="ticket-code-box">
+            <span class="text-muted small d-block mb-1">OFFICIAL TICKET NUMBER</span>
+            <span class="ticket-number">${escapeHtml(ticketNumber)}</span>
+            <div class="mt-2">
+              <button class="btn btn-sm btn-outline-success" onclick="navigator.clipboard.writeText('${escapeHtml(ticketNumber)}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'Ticket code copied!', showConfirmButton:false, timer:2000});">
+                <i class="bi bi-clipboard me-1"></i> Copy Code
+              </button>
+            </div>
+          </div>
+
+          <div class="table-responsive mt-3">
+            <table class="table table-sm table-borderless small mb-0">
+              <tbody>
+                <tr>
+                  <td class="text-muted" style="width: 38%;">Attendee:</td>
+                  <td><strong>${escapeHtml(sName)}</strong></td>
+                </tr>
+                ${studentData && studentData.matric_no ? `
+                <tr>
+                  <td class="text-muted">Matric No:</td>
+                  <td><strong>${escapeHtml(studentData.matric_no)}</strong></td>
+                </tr>` : ''}
+                <tr>
+                  <td class="text-muted">Date & Time:</td>
+                  <td>${escapeHtml(dateStr)} • ${escapeHtml(timeStr)}</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Fee Paid:</td>
+                  <td><strong class="text-success">${feeFormatted}</strong></td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Reference:</td>
+                  <td><code>${escapeHtml(reference)}</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="alert alert-light border mt-3 mb-0 text-center small text-muted">
+            <i class="bi bi-envelope-check text-success me-1"></i> A confirmation receipt and ticket details have been sent to <strong>${escapeHtml(sEmail)}</strong>. Present this pass at venue entrance.
+          </div>
+        </div>
+      `;
+
+      document.getElementById('ticketModalBody').innerHTML = bodyHtml;
+      const modal = new bootstrap.Modal(document.getElementById('ticketModal'));
+      modal.show();
     }
 
     // ================================================================

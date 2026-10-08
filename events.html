@@ -255,6 +255,11 @@
       const { data: { session } } = await supabase.auth.getSession();
       userSession = session;
       await loadEvents();
+      const params = new URLSearchParams(window.location.search);
+      const urlEventId = params.get('event_id');
+      if (urlEventId) {
+        showEventDetails(urlEventId);
+      }
     });
 
     async function getStudentId() {
@@ -296,11 +301,22 @@
         return;
       }
 
+      // Fetch actual registrations count
+      const { data: regList } = await supabase
+        .from('event_registrations')
+        .select('event_id');
+      
+      const countsMap = {};
+      (regList || []).forEach(r => {
+        countsMap[r.event_id] = (countsMap[r.event_id] || 0) + 1;
+      });
+
       container.innerHTML = data.map(event => {
         const eventDate = new Date(event.date);
         const day = eventDate.getDate();
         const month = monthNames[eventDate.getMonth()];
-        const spotsLeft = event.max_attendees ? event.max_attendees - event.current_attendees : 'Unlimited';
+        const registeredCount = countsMap[event.id] || 0;
+        const spotsLeft = event.max_attendees ? Math.max(0, Number(event.max_attendees) - registeredCount) : null;
 
         return `
           <div class="col-lg-6">
@@ -350,7 +366,15 @@
       currentEvent = event;
       const eventDate = new Date(event.date);
       const formattedDate = eventDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      const spotsLeft = event.max_attendees ? event.max_attendees - event.current_attendees : null;
+
+      // Count actual registrations for this event
+      const { count: regCount } = await supabase
+        .from('event_registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId);
+
+      const registeredCount = regCount || 0;
+      const spotsLeft = event.max_attendees ? Math.max(0, Number(event.max_attendees) - registeredCount) : null;
 
       document.getElementById('eventModalTitle').textContent = event.title;
 
