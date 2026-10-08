@@ -3141,39 +3141,90 @@ window.deleteEvent = async function(id) {
     
     async function loadPayments() {
       const tbody = document.getElementById('payments-table-body');
+      if (!tbody) return;
       const colSpan = 6;
 
-      const paymentsQuery = supabase.from('payment_verification').select('*').order('created_at', { ascending: false });
-      const { data: payments, error: pError } = await paymentsQuery;
+      let records = [];
 
-      if (isMissingTableError(pError, 'payment_verification')) {
-        console.error('[loadPayments] table missing:', pError);
-        tbody.innerHTML = missingTableRowHtml('payment_verification', colSpan);
-        return;
+      // 1. Fetch from payment_verification
+      const { data: pvData, error: pvError } = await supabase
+        .from('payment_verification')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (pvData && pvData.length > 0) {
+        records.push(...pvData.map(p => ({
+          ...p,
+          _source: 'payment_verification',
+          reference: p.payment_reference || p.id
+        })));
       }
-      if (pError || !payments || payments.length === 0) {
-        if (pError) {
-          const extra = Array.isArray(pError.details)
-            ? ` — details (copy these for support): ${JSON.stringify(pError.details)}`
-            : pError.details ? ` — details: ${JSON.stringify(pError.details)}` : '';
-          console.warn(`[loadPayments] query error code=${pError.code || ''}: ${pError.message || pError}${extra}`, pError);
+
+      // 2. Fetch from payments table
+      const { data: payData, error: payError } = await supabase
+        .from('payments')
+        .select('*')
+        .order('submitted_at', { ascending: false });
+
+      if (payData && payData.length > 0) {
+        for (const p of payData) {
+          const ref = p.transaction_id || p.id;
+          if (!records.some(r => r.reference === ref || r.payment_reference === ref)) {
+            records.push({
+              id: p.id,
+              student_id: p.student_id || null,
+              user_id: p.user_id || null,
+              event_id: p.event_id || null,
+              amount: p.amount,
+              payment_reference: p.transaction_id || 'N/A',
+              reference: ref,
+              status: p.status || 'verified',
+              created_at: p.submitted_at || p.created_at || new Date().toISOString(),
+              _source: 'payments',
+              receipt_url: p.payment_proof_url
+            });
+          }
         }
-        const errMsg = pError ? `Error loading payments: ${escapeHtml(pError.message || String(pError))}` : 'No payments';
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${errMsg}</td></tr>`;
+      }
+
+      if (records.length === 0) {
+        if (pvError && payError) {
+          tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">No payment records found</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">No payments recorded yet</td></tr>`;
         return;
       }
 
-      const studentIds = [...new Set(payments.map(p => p.student_id).filter(Boolean))];
-      const eventIds = [...new Set(payments.map(p => p.event_id).filter(Boolean))];
+      records.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+      const studentIds = [...new Set(records.map(p => p.student_id).filter(Boolean))];
+      const userIds = [...new Set(records.map(p => p.user_id).filter(Boolean))];
+      const eventIds = [...new Set(records.map(p => p.event_id).filter(Boolean))];
 
       const studentMap = new Map();
+      const userStudentMap = new Map();
       const eventMap = new Map();
       const parallelCalls = [];
+
       if (studentIds.length) {
         parallelCalls.push(
-          supabase.from('students').select('id, name, matric_no').in('id', studentIds).then(({ data, error }) => {
+          supabase.from('students').select('id, name, matric_no, user_id').in('id', studentIds).then(({ data, error }) => {
             if (error) { console.warn('[loadPayments] students join error:', error); return; }
-            for (const s of data || []) studentMap.set(s.id, { name: s.name, matric_no: s.matric_no });
+            for (const s of data || []) {
+              studentMap.set(s.id, { name: s.name, matric_no: s.matric_no });
+              if (s.user_id) userStudentMap.set(s.user_id, { name: s.name, matric_no: s.matric_no });
+            }
+          })
+        );
+      }
+      if (userIds.length) {
+        parallelCalls.push(
+          supabase.from('students').select('id, name, matric_no, user_id').in('user_id', userIds).then(({ data, error }) => {
+            if (error) { console.warn('[loadPayments] users join error:', error); return; }
+            for (const s of data || []) {
+              userStudentMap.set(s.user_id, { name: s.name, matric_no: s.matric_no });
+            }
           })
         );
       }
@@ -3187,28 +3238,47 @@ window.deleteEvent = async function(id) {
       }
       await Promise.all(parallelCalls);
 
-      const merged = payments.map(p => ({
-        ...p,
-        students: p.student_id ? (studentMap.get(p.student_id) || null) : null,
-        events: p.event_id ? (eventMap.get(p.event_id) || null) : null
-      }));
+      const merged = records.map(p => {
+        let student = null;
+        if (p.student_id && studentMap.has(p.student_id)) {
+          student = studentMap.get(p.student_id);
+        } else if (p.user_id && userStudentMap.has(p.user_id)) {
+          student = userStudentMap.get(p.user_id);
+        }
+        return {
+          ...p,
+          students: student,
+          events: p.event_id ? (eventMap.get(p.event_id) || null) : null
+        };
+      });
 
-      tbody.innerHTML = merged.map(p => `
-        <tr>
-          <td>${escapeHtml(p.students?.name || 'N/A')}<br><small>${escapeHtml(p.students?.matric_no || '')}</small></td>
-          <td>${escapeHtml(p.events?.title || 'N/A')}</td>
-          <td><strong class="text-success">${formatCurrency(p.amount)}</strong></td>
-          <td><code>${escapeHtml(p.payment_reference)}</code></td>
-          <td><span class="badge ${p.status === 'verified' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : 'bg-warning'}">${p.status}</span></td>
-          <td>${p.status === 'pending' ? `<button class="btn btn-sm btn-success" onclick="verifyPayment('${p.id}', true)">Approve</button>` : ''}</td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = merged.map(p => {
+        const studentText = p.students 
+          ? `${escapeHtml(p.students.name)}<br><small class="text-muted">${escapeHtml(p.students.matric_no || '')}</small>`
+          : '<span class="text-muted">Student</span>';
+        const eventTitle = p.events?.title ? escapeHtml(p.events.title) : '<span class="text-muted">General Payment</span>';
+        const badgeClass = p.status === 'verified' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark';
+
+        return `
+          <tr>
+            <td>${studentText}</td>
+            <td>${eventTitle}</td>
+            <td><strong class="text-success">${formatCurrency(p.amount)}</strong></td>
+            <td><code>${escapeHtml(p.payment_reference || p.reference || '')}</code></td>
+            <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
+            <td>
+              ${p.status === 'pending' ? `<button class="btn btn-sm btn-success me-1" onclick="verifyPayment('${p.id}', true, '${p._source}')">Approve</button>` : ''}
+              ${p.receipt_url ? `<a href="${escapeHtml(p.receipt_url)}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Paystack Receipt"><i class="bi bi-box-arrow-up-right me-1"></i>Receipt</a>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
     
-    window.verifyPayment = async function(id, approved) {
+    window.verifyPayment = async function(id, approved, source = 'payment_verification') {
       const status = approved ? 'verified' : 'rejected';
       try {
-        await apiAdmin.update('payment_verification', id, { status });
+        await apiAdmin.update(source, id, { status });
         Swal.fire('Success', `Payment ${status}`, 'success');
         loadPayments(); loadDashboardStats();
       } catch (error) {
