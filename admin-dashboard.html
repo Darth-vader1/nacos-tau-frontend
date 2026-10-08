@@ -3067,14 +3067,21 @@ window.deleteEvent = async function(id) {
         tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading resources: ${escapeHtml(error.message || String(error))}` : 'No resources'}</td></tr>`;
         return;
       }
-      tbody.innerHTML = data.map(r => `
+      tbody.innerHTML = data.map(r => {
+        const typeLabel = {
+          'reference_material': 'Documentation',
+          'tutorial': 'Tutorial',
+          'lecture_note': 'Course',
+          'past_question': 'Past Question'
+        }[r.resource_type] || r.resource_type;
+        return `
         <tr>
           <td>${escapeHtml(r.title)}</td>
-          <td><span class="badge-category">${escapeHtml(r.resource_type)}</span></td>
+          <td><span class="badge-category">${escapeHtml(typeLabel)}</span></td>
           <td><a href="${escapeHtml(r.file_url)}" target="_blank" class="text-truncate" style="max-width:200px;">${escapeHtml(r.file_url)}</a></td>
           <td><button class="btn btn-sm btn-outline-danger" onclick="deleteResource('${r.id}')"><i class="bi bi-trash"></i></button></td>
         </tr>
-      `).join('');
+      `;}).join('');
     }
     
     window.deleteResource = async function(id) {
