@@ -1571,16 +1571,19 @@
           modalContent.innerHTML = detailsHtml;
         }
 
-        // Show/hide register button based on payment requirement
+        // Show register button
         if (registerBtn) {
-          if (event.requires_payment && event.payment_link && isSafeWebUrl(event.payment_link)) {
-            registerBtn.style.display = 'inline-block';
-            registerBtn.onclick = () => {
+          registerBtn.style.display = 'inline-block';
+          registerBtn.innerHTML = event.requires_payment 
+            ? `<i class="bi bi-credit-card me-1"></i> Register & Pay (${formatCurrency(event.payment_amount)})`
+            : `<i class="bi bi-check2-circle me-1"></i> Register for Event`;
+          registerBtn.onclick = () => {
+            if (event.requires_payment && event.payment_link && isSafeWebUrl(event.payment_link)) {
               window.open(event.payment_link, '_blank', 'noopener,noreferrer');
-            };
-          } else {
-            registerBtn.style.display = 'none';
-          }
+            } else {
+              window.location.href = 'events.html';
+            }
+          };
         }
 
         // Show modal

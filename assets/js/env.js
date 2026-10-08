@@ -6,7 +6,10 @@
 // DO NOT put sensitive keys here if this file is public.
 // For static sites, the Anon Key is safe to expose as long as RLS is properly configured.
 window.SUPABASE_URL = "https://pnusmlckowqagnlzjqbv.supabase.co";
-window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBudXNtbGNrb3dxYWdubHpqcWJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMDc4OTcsImV4cCI6MjEwMDU4Mzg5N30.W2AqKT-MZSWl-uF1guqJYrMfYL3MNxPb-58zdKa5kdM"
+window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBudXNtbGNrb3dxYWdubHpqcWJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwMDc4OTcsImV4cCI6MjEwMDU4Mzg5N30.W2AqKT-MZSWl-uF1guqJYrMfYL3MNxPb-58zdKa5kdM";
+
+// Paystack Public Key for secure inline checkout
+window.PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || "pk_test_placeholder_key_here";
 
 console.log('🌍 Loading environment variables...');
 
@@ -55,6 +58,7 @@ window.SUPABASE_DEDICATED_BUCKETS = Object.freeze({
 window.__CONFIG = {
     supabaseUrl: window.SUPABASE_URL,
     supabaseAnonKey: window.SUPABASE_ANON_KEY,
+    paystackPublicKey: window.PAYSTACK_PUBLIC_KEY,
     apiUrl: window.API_URL,
     storageBucket: window.SUPABASE_STORAGE_BUCKET,
     dedicatedBuckets: window.SUPABASE_DEDICATED_BUCKETS,
