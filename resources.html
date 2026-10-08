@@ -310,13 +310,30 @@
     // ============================================
     // TYPE ICONS AND COLORS
     // ============================================
+    const typeDisplayNames = {
+      'reference_material': 'Documentation',
+      'tutorial': 'Tutorial',
+      'lecture_note': 'Course',
+      'past_question': 'Past Question',
+      'Documentation': 'Documentation',
+      'Tutorial': 'Tutorial',
+      'Course': 'Course',
+      'Book': 'Book',
+      'Tool': 'Tool',
+      'Other': 'Other'
+    };
+
     const typeIcons = {
       'Tutorial': 'bi-play-circle',
       'Documentation': 'bi-book',
       'Course': 'bi-mortarboard',
       'Book': 'bi-bookshelf',
       'Tool': 'bi-tools',
-      'Other': 'bi-link-45deg'
+      'Other': 'bi-link-45deg',
+      'reference_material': 'bi-book',
+      'tutorial': 'bi-play-circle',
+      'lecture_note': 'bi-mortarboard',
+      'past_question': 'bi-file-earmark-pdf'
     };
 
     const typeColors = {
@@ -325,7 +342,11 @@
       'Course': { bg: '#e8f5e9', color: '#388e3c' },
       'Book': { bg: '#fff3e0', color: '#f57c00' },
       'Tool': { bg: '#fce4ec', color: '#c2185b' },
-      'Other': { bg: '#eceff1', color: '#546e7a' }
+      'Other': { bg: '#eceff1', color: '#546e7a' },
+      'reference_material': { bg: '#f3e5f5', color: '#7b1fa2' },
+      'tutorial': { bg: '#e3f2fd', color: '#1976d2' },
+      'lecture_note': { bg: '#e8f5e9', color: '#388e3c' },
+      'past_question': { bg: '#fff3e0', color: '#f57c00' }
     };
 
     // ============================================
@@ -505,25 +526,27 @@
       }
 
       container.innerHTML = resources.map(r => {
-        const iconClass = typeIcons[r.resource_type] || 'bi-link-45deg';
-        const colors = typeColors[r.resource_type] || { bg: '#eceff1', color: '#546e7a' };
+        const linkUrl = r.url || r.file_url || '#';
+        const typeName = typeDisplayNames[r.resource_type] || r.resource_type || 'Resource';
+        const iconClass = typeIcons[r.resource_type] || typeIcons[typeName] || 'bi-link-45deg';
+        const colors = typeColors[r.resource_type] || typeColors[typeName] || { bg: '#eceff1', color: '#546e7a' };
         
         return `
           <div class="col-lg-4 col-md-6">
-            <div class="card resource-card" onclick="window.open('${escapeHtml(r.url)}', '_blank')">
+            <div class="card resource-card" onclick="window.open('${escapeHtml(linkUrl)}', '_blank')">
               <div class="card-body p-4">
                 <div class="d-flex align-items-start mb-3">
                   <div class="resource-icon me-3" style="background: ${colors.bg}; color: ${colors.color};">
                     <i class="bi ${iconClass}"></i>
                   </div>
                   <div>
-                    <span class="type-badge">${escapeHtml(r.resource_type)}</span>
+                    <span class="type-badge">${escapeHtml(typeName)}</span>
                     ${r.category ? `<span class="category-badge ms-2">${escapeHtml(r.category)}</span>` : ''}
                   </div>
                 </div>
                 <h5 class="card-title mb-2">${escapeHtml(r.title)}</h5>
                 ${r.description ? `<p class="card-text text-muted small mb-3">${escapeHtml(r.description.substring(0, 100))}${r.description.length > 100 ? '...' : ''}</p>` : ''}
-                <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary mt-2" onclick="event.stopPropagation(); trackResourceClick('${escapeHtml(r.id)}', '${escapeHtml(r.title)}')">
+                <a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary mt-2" onclick="event.stopPropagation(); trackResourceClick('${escapeHtml(r.id)}', '${escapeHtml(r.title)}')">
                   <i class="bi bi-box-arrow-up-right me-1"></i> Open Link
                 </a>
               </div>
@@ -543,13 +566,16 @@
         <div class="col-12">
           <div class="card">
             <div class="list-group list-group-flush">
-              ${resources.map(r => `
-                <div class="list-group-item list-group-item-action" onclick="window.open('${escapeHtml(r.url)}', '_blank')" style="cursor: pointer;">
+              ${resources.map(r => {
+                const linkUrl = r.url || r.file_url || '#';
+                const typeName = typeDisplayNames[r.resource_type] || r.resource_type || 'Resource';
+                return `
+                <div class="list-group-item list-group-item-action" onclick="window.open('${escapeHtml(linkUrl)}', '_blank')" style="cursor: pointer;">
                   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div class="flex-grow-1">
                       <h6 class="mb-1">${escapeHtml(r.title)}</h6>
                       <small class="text-muted">
-                        <span class="type-badge me-2">${escapeHtml(r.resource_type)}</span>
+                        <span class="type-badge me-2">${escapeHtml(typeName)}</span>
                         ${r.category ? `<span class="category-badge">${escapeHtml(r.category)}</span>` : ''}
                       </small>
                       ${r.description ? `<p class="small text-muted mb-0 mt-2">${escapeHtml(r.description.substring(0, 100))}${r.description.length > 100 ? '...' : ''}</p>` : ''}
@@ -557,7 +583,7 @@
                     <i class="bi bi-box-arrow-up-right text-muted"></i>
                   </div>
                 </div>
-              `).join('')}
+              `;}).join('')}
             </div>
           </div>
         </div>
