@@ -1727,7 +1727,7 @@
             const devPrompt = await Swal.fire({
               title: 'Bachs Payment Simulation',
               html: `
-                <p>The Bachs Secret Key is not yet configured on the backend.</p>
+                <p>The system has entered Simulation Mode (either because the API is in Sandbox or the endpoint threw an error).</p>
                 <p>Fee to simulate: <strong>${formatCurrency(event.payment_amount)}</strong></p>
                 <p class="small text-muted">Click below to simulate a successful server verification and ticket generation.</p>
               `,
