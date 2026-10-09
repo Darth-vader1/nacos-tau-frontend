@@ -1181,7 +1181,7 @@
   <script src="assets/js/security.js"></script> 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <script src="https://checkout.bachs.io/bachs.js"></script>
   <script type="module" src="assets/js/supabase-config.js"></script>
   <script type="module" src="assets/js/api-config.js"></script>
   <script src="assets/js/main.js" defer></script>
@@ -1700,32 +1700,32 @@
       const isPaid = event.requires_payment && Number(event.payment_amount) > 0;
 
       if (isPaid) {
-        let paystackKey = window.PAYSTACK_PUBLIC_KEY;
-        if (!paystackKey || paystackKey.includes('placeholder')) {
+        let bachsKey = window.BACHS_PUBLIC_KEY;
+        if (!bachsKey || bachsKey.includes('placeholder')) {
           try {
-            const cfg = await api.payments.getPaystackConfig();
+            const cfg = await api.payments.getBachsConfig();
             if (cfg && cfg.data && cfg.data.publicKey) {
-              paystackKey = cfg.data.publicKey;
+              bachsKey = cfg.data.publicKey;
             }
           } catch (e) {
-            console.warn('Could not fetch Paystack public key:', e);
+            console.warn('Could not fetch Bachs public key:', e);
           }
         }
 
-        if (!paystackKey || paystackKey.includes('placeholder') || typeof PaystackPop === 'undefined') {
-          const isDevMode = !paystackKey || paystackKey.includes('placeholder');
+        if (!bachsKey || bachsKey.includes('placeholder') || typeof BachsCheckout === 'undefined') {
+          const isDevMode = !bachsKey || bachsKey.includes('placeholder');
           if (isDevMode) {
             const devPrompt = await Swal.fire({
-              title: 'Paystack Payment Simulation',
+              title: 'Bachs Payment Simulation',
               html: `
-                <p>The Paystack Public Key is not yet configured in <code>.env</code>.</p>
+                <p>The Bachs Public Key is not yet configured in <code>.env</code>.</p>
                 <p>Fee to simulate: <strong>${formatCurrency(event.payment_amount)}</strong></p>
                 <p class="small text-muted">You can test the automated payment, server verification, database sync, and ticket confirmation flow right now.</p>
               `,
               icon: 'info',
               showCancelButton: true,
               confirmButtonText: 'Simulate Successful Payment',
-              confirmButtonColor: '#1b8c0c',
+              confirmButtonColor: '#111111',
               cancelButtonText: 'Cancel'
             });
 
@@ -1735,7 +1735,7 @@
             await verifyDashboardPayment(event.id, testRef, event);
             return;
           } else {
-            Swal.fire('Paystack Unavailable', 'Paystack payment system could not be loaded. Please check your internet connection.', 'error');
+            Swal.fire('Bachs Unavailable', 'Bachs payment system could not be loaded. Please check your internet connection.', 'error');
             return;
           }
         }
@@ -1745,12 +1745,12 @@
         const sName = displayName(studentData);
         const sEmail = (studentData && studentData.email) || (currentUser && currentUser.email) || '';
 
-        const handler = PaystackPop.setup({
-          key: paystackKey,
+        const handler = BachsCheckout.setup({
+          key: bachsKey,
           email: sEmail,
           amount: amountKobo,
           currency: 'NGN',
-          ref: ref,
+          reference: ref,
           metadata: {
             custom_fields: [
               { display_name: "Event Title", variable_name: "event_title", value: event.title },
@@ -1760,7 +1760,7 @@
               { display_name: "User ID", variable_name: "user_id", value: currentUser?.id || '' }
             ]
           },
-          callback: function(response) {
+          onSuccess: function(response) {
             verifyDashboardPayment(event.id, response.reference, event);
           },
           onClose: function() {
@@ -1774,7 +1774,7 @@
           }
         });
 
-        handler.openIframe();
+        handler.open();
 
       } else {
         // Free Event Registration
@@ -1846,7 +1846,7 @@
           ticketNumber: ticketNo,
           reference: reference,
           amount: event.payment_amount,
-          paymentType: 'Paystack Verified'
+          paymentType: 'Bachs Verified'
         });
 
         await loadEvents();
