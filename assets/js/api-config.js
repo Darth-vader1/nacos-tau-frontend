@@ -230,6 +230,29 @@ export const api = {
                 }
             });
             return response.json();
+        },
+
+        async getAll(params = {}) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const queryString = new URLSearchParams(params).toString();
+            const response = await secureRequest('GET', `${API_URL}/payments?${queryString}`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            return response.json();
+        },
+
+        async verifyAdmin(id, data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('PUT', `${API_URL}/payments/${id}/verify`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
         }
     },
 
