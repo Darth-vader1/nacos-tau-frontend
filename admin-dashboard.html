@@ -1809,6 +1809,19 @@ ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;`,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.payment_verification ENABLE ROW LEVEL SECURITY;`,
+      payments: `CREATE TABLE IF NOT EXISTS public.payments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  amount numeric(10,2) NOT NULL,
+  payment_type text DEFAULT 'event_registration',
+  transaction_id text UNIQUE NOT NULL,
+  payment_proof_url text,
+  description text,
+  event_id uuid REFERENCES public.events(id) ON DELETE SET NULL,
+  status text DEFAULT 'pending',
+  submitted_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;`,
       hackathons: `CREATE TABLE IF NOT EXISTS public.hackathons (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   title text NOT NULL,
@@ -3147,11 +3160,17 @@ window.deleteEvent = async function(id) {
       try {
         const response = await api.payments.getAll({ limit: 100 });
         if (!response.success) {
+          const errObj = response.details || { message: response.error };
+          if (isMissingTableError(errObj, 'payments')) {
+            console.error('[loadPayments] table missing:', errObj);
+            tbody.innerHTML = missingTableRowHtml('payments', colSpan);
+            return;
+          }
           tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-danger py-4">Failed to load payments: ${escapeHtml(response.error || 'Unknown error')}</td></tr>`;
           return;
         }
 
-        const records = response.data.payments || [];
+        const records = response.data?.payments || [];
 
         if (records.length === 0) {
           tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">No payments recorded yet</td></tr>`;
