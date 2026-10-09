@@ -1700,27 +1700,36 @@
       const isPaid = event.requires_payment && Number(event.payment_amount) > 0;
 
       if (isPaid) {
-        let bachsKey = window.BACHS_PUBLIC_KEY;
-        if (!bachsKey || bachsKey.includes('placeholder')) {
-          try {
-            const cfg = await api.payments.getBachsConfig();
-            if (cfg && cfg.data && cfg.data.publicKey) {
-              bachsKey = cfg.data.publicKey;
-            }
-          } catch (e) {
-            console.warn('Could not fetch Bachs public key:', e);
-          }
-        }
+        Swal.fire({
+          title: 'Preparing Secure Checkout...',
+          text: 'Please wait while we set up your secure Bachs session.',
+          allowOutsideClick: false,
+          didOpen: () => { Swal.showLoading(); }
+        });
 
-        if (!bachsKey || bachsKey.includes('placeholder') || typeof BachsCheckout === 'undefined') {
-          const isDevMode = !bachsKey || bachsKey.includes('placeholder');
-          if (isDevMode) {
+        try {
+          const sessionRes = await api.payments.createBachsSession({
+            amount: event.payment_amount,
+            event_id: event.id,
+            title: event.title
+          });
+
+          if (!sessionRes.success) {
+            throw new Error(sessionRes.error || sessionRes.message || 'Failed to create payment session');
+          }
+
+          Swal.close();
+
+          const data = sessionRes.data;
+          
+          if (data && data.checkout_url && data.checkout_url.includes('simulation-checkout')) {
+            // Simulation Mode handling
             const devPrompt = await Swal.fire({
               title: 'Bachs Payment Simulation',
               html: `
-                <p>The Bachs Public Key is not yet configured in <code>.env</code>.</p>
+                <p>The Bachs Secret Key is not yet configured on the backend.</p>
                 <p>Fee to simulate: <strong>${formatCurrency(event.payment_amount)}</strong></p>
-                <p class="small text-muted">You can test the automated payment, server verification, database sync, and ticket confirmation flow right now.</p>
+                <p class="small text-muted">Click below to simulate a successful server verification and ticket generation.</p>
               `,
               icon: 'info',
               showCancelButton: true,
@@ -1730,51 +1739,42 @@
             });
 
             if (!devPrompt.isConfirmed) return;
-
             const testRef = 'NACOS-EVT-' + event.id.substring(0, 4).toUpperCase() + '-' + Date.now();
             await verifyDashboardPayment(event.id, testRef, event);
             return;
-          } else {
-            Swal.fire('Bachs Unavailable', 'Bachs payment system could not be loaded. Please check your internet connection.', 'error');
+          }
+
+          if (data && data.checkout_url) {
+            // Redirect to Bachs Hosted Checkout
+            window.location.href = data.checkout_url;
             return;
-          }
-        }
-
-        const amountKobo = Math.round(Number(event.payment_amount) * 100);
-        const ref = 'NACOS-EVT-' + event.id.substring(0, 4).toUpperCase() + '-' + Date.now();
-        const sName = displayName(studentData);
-        const sEmail = (studentData && studentData.email) || (currentUser && currentUser.email) || '';
-
-        const handler = BachsCheckout.setup({
-          key: bachsKey,
-          email: sEmail,
-          amount: amountKobo,
-          currency: 'NGN',
-          reference: ref,
-          metadata: {
-            custom_fields: [
-              { display_name: "Event Title", variable_name: "event_title", value: event.title },
-              { display_name: "Attendee Name", variable_name: "attendee_name", value: sName },
-              { display_name: "Matric No", variable_name: "matric_no", value: studentData?.matric_no || 'N/A' },
-              { display_name: "Event ID", variable_name: "event_id", value: event.id },
-              { display_name: "User ID", variable_name: "user_id", value: currentUser?.id || '' }
-            ]
-          },
-          onSuccess: function(response) {
-            verifyDashboardPayment(event.id, response.reference, event);
-          },
-          onClose: function() {
-            Swal.fire({
-              title: 'Payment Cancelled',
-              text: 'You closed the payment window without completing registration.',
-              icon: 'info',
-              timer: 3000,
-              showConfirmButton: false
+          } else if (data && data.checkout_id && typeof BachsCheckout !== 'undefined') {
+            // Use JS Modal if available
+            const handler = BachsCheckout.setup({
+              sessionId: data.checkout_id,
+              onSuccess: function(response) {
+                verifyDashboardPayment(event.id, response.reference || data.checkout_id, event);
+              },
+              onClose: function() {
+                Swal.fire({
+                  title: 'Payment Cancelled',
+                  text: 'You closed the payment window.',
+                  icon: 'info',
+                  timer: 3000,
+                  showConfirmButton: false
+                });
+              }
             });
+            handler.open();
+          } else {
+            throw new Error('Invalid checkout session received from server.');
           }
-        });
 
-        handler.open();
+        } catch (e) {
+          console.error('Checkout error:', e);
+          Swal.fire('Payment Setup Failed', e.message || 'Could not connect to payment gateway.', 'error');
+          return;
+        }
 
       } else {
         // Free Event Registration
