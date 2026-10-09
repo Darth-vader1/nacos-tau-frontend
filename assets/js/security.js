@@ -68,7 +68,7 @@ class SecurityManager {
       const health = await healthResponse.json();
 
       if (health.security?.csrf) {
-        console.log('🔒 CSRF protection enabled, fetching token...');
+        // console.log('🔒 CSRF protection enabled, fetching token...');
         await this.refreshCsrfToken();
       } else {
         console.log('ℹ️  CSRF protection not enabled on backend');
@@ -78,7 +78,7 @@ class SecurityManager {
       await this.initializeSessionMonitoring();
 
       this.isInitialized = true;
-      console.log('✅ Security Manager initialized with session monitoring');
+      // console.log('✅ Security Manager initialized with session monitoring');
     } catch (error) {
       console.warn('⚠️  Could not initialize security manager:', error.message);
       this.isInitialized = true; // Continue anyway
@@ -98,7 +98,7 @@ class SecurityManager {
     }
 
     this.session = session;
-    console.log('✅ Active session detected, enabling auto-refresh');
+    // console.log('✅ Active session detected, enabling auto-refresh');
 
     // Check session status immediately
     await this.checkSessionStatus();
@@ -107,7 +107,7 @@ class SecurityManager {
     this.sessionCheckInterval = setInterval(() => {
       // Only check if tab is visible
       if (document.hidden) {
-        console.log('⏸️  Skipping session check (tab hidden)');
+        // console.log('⏸️  Skipping session check (tab hidden)');
         return;
       }
       
@@ -335,7 +335,7 @@ class SecurityManager {
       this.csrfExpiry = new Date(data.expires);
       this.retryCount = 0;
 
-      console.log('✅ CSRF token refreshed, expires:', this.csrfExpiry.toLocaleTimeString());
+      // console.log('✅ CSRF token refreshed, expires:', this.csrfExpiry.toLocaleTimeString());
       return this.csrfToken;
     } catch (error) {
       console.error('❌ Failed to refresh CSRF token:', error);
@@ -692,9 +692,9 @@ window.addEventListener('beforeunload', () => {
 // Pause/resume session checks based on tab visibility (saves resources)
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    console.log('⏸️  Tab hidden, session checks will be skipped');
+    // console.log('⏸️  Tab hidden, session checks will be skipped');
   } else {
-    console.log('▶️  Tab visible, resuming session checks');
+    // console.log('▶️  Tab visible, resuming session checks');
     // Check immediately when tab becomes visible (if session exists)
     if (securityManager && securityManager.session && !document.hidden) {
       setTimeout(() => {
@@ -732,4 +732,4 @@ if (typeof module !== 'undefined' && module.exports) {
   };
 }
 
-console.log('🔒 Security module loaded');
+// console.log('🔒 Security module loaded');

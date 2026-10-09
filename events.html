@@ -491,33 +491,33 @@
 
       // Handle PAID Event with Paystack Inline
       if (isPaid) {
-        let paystackKey = window.PAYSTACK_PUBLIC_KEY;
-        if (!paystackKey || paystackKey.includes('placeholder')) {
+        let bachsKey = window.BACHS_PUBLIC_KEY;
+        if (!bachsKey || bachsKey.includes('placeholder')) {
           try {
-            const cfg = await api.payments.getPaystackConfig();
+            const cfg = await api.payments.getBachsConfig();
             if (cfg && cfg.data && cfg.data.publicKey) {
-              paystackKey = cfg.data.publicKey;
+              bachsKey = cfg.data.publicKey;
             }
           } catch (e) {
-            console.warn('Could not fetch Paystack public key from backend:', e);
+            console.warn('Could not fetch Bachs public key from backend:', e);
           }
         }
 
         // If no valid key configured, inform developer / student or offer simulation
-        if (!paystackKey || paystackKey.includes('placeholder') || typeof PaystackPop === 'undefined') {
-          const isDevMode = !paystackKey || paystackKey.includes('placeholder');
+        if (!bachsKey || bachsKey.includes('placeholder') || typeof BachsCheckout === 'undefined') {
+          const isDevMode = !bachsKey || bachsKey.includes('placeholder');
           if (isDevMode) {
             const devPrompt = await Swal.fire({
-              title: 'Paystack Payment Simulation',
+              title: 'Bachs Payment Simulation',
               html: `
-                <p>The Paystack Public Key is not yet configured in <code>.env</code>.</p>
+                <p>The Bachs Public Key is not yet configured in <code>.env</code>.</p>
                 <p>Fee to simulate: <strong>${formatCurrency(currentEvent.payment_amount)}</strong></p>
                 <p class="small text-muted">You can test the automated payment, server verification, database sync, and ticket confirmation flow right now.</p>
               `,
               icon: 'info',
               showCancelButton: true,
               confirmButtonText: 'Simulate Successful Payment',
-              confirmButtonColor: '#1b8c0c',
+              confirmButtonColor: '#111111',
               cancelButtonText: 'Cancel'
             });
 
@@ -527,7 +527,7 @@
             await processPaymentVerification(eventId, testRef, student);
             return;
           } else {
-            Swal.fire('Paystack Unavailable', 'Paystack payment system could not be loaded. Please check your internet connection.', 'error');
+            Swal.fire('Bachs Unavailable', 'Bachs payment system could not be loaded. Please check your internet connection.', 'error');
             return;
           }
         }
@@ -537,12 +537,12 @@
         const studentEmail = student.email || userSession.user.email;
         const studentName = student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student';
 
-        const handler = PaystackPop.setup({
-          key: paystackKey,
+        const handler = BachsCheckout.setup({
+          key: bachsKey,
           email: studentEmail,
           amount: amountKobo,
           currency: 'NGN',
-          ref: ref,
+          reference: ref,
           metadata: {
             custom_fields: [
               { display_name: "Event Title", variable_name: "event_title", value: currentEvent.title },
@@ -552,7 +552,7 @@
               { display_name: "User ID", variable_name: "user_id", value: userSession.user.id }
             ]
           },
-          callback: function(response) {
+          onSuccess: function(response) {
             processPaymentVerification(eventId, response.reference, student);
           },
           onClose: function() {
@@ -566,7 +566,7 @@
           }
         });
 
-        handler.openIframe();
+        handler.open();
 
       } else {
         // FREE Event Registration
