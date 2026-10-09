@@ -2100,7 +2100,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
           });
           if (activeStudentsRes?.success) {
             activeCount = activeStudentsRes.data?.pagination?.total ?? 0;
-            console.log(`[loadDashboardStats] active-students count (backend): ${activeCount}`);
+            // console.log(`[loadDashboardStats] active-students count (backend): ${activeCount}`);
           } else {
             console.warn('[loadDashboardStats] backend student count failed — falling back to anon supabase count:', activeStudentsRes?.error || activeStudentsRes);
             const fallback = await supabase
@@ -2812,7 +2812,7 @@ window.deleteEvent = async function(id) {
           });
           if (res?.success && Array.isArray(res?.data?.students)) {
             studentsArr = res.data.students;
-            console.log(`[loadStudents] (${filter}) backend returned ${studentsArr.length} row(s)`);
+            // console.log(`[loadStudents] (${filter}) backend returned ${studentsArr.length} row(s)`);
           } else {
             apiError = res?.error || `API returned non-success (${JSON.stringify(res)})`;
           }
@@ -4588,7 +4588,7 @@ window.deleteEvent = async function(id) {
         const json = await resp.json();
         if (json && Array.isArray(json.verifiedBuckets) && typeof window.writeVerifiedBuckets === 'function') {
           window.writeVerifiedBuckets(json.verifiedBuckets);
-          console.log(`[storage] verified buckets cached (${json.verifiedBuckets.length}): ${json.verifiedBuckets.join(', ')}`);
+          // console.log(`[storage] verified buckets cached (${json.verifiedBuckets.length}): ${json.verifiedBuckets.join(', ')}`);
         }
         if (json && Array.isArray(json.perBucket)) {
           const created = json.perBucket.filter(r => r.status === 'created');
