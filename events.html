@@ -548,7 +548,8 @@
               { display_name: "Event Title", variable_name: "event_title", value: currentEvent.title },
               { display_name: "Attendee Name", variable_name: "attendee_name", value: studentName },
               { display_name: "Matric No", variable_name: "matric_no", value: student.matric_no || 'N/A' },
-              { display_name: "Event ID", variable_name: "event_id", value: eventId }
+              { display_name: "Event ID", variable_name: "event_id", value: eventId },
+              { display_name: "User ID", variable_name: "user_id", value: userSession.user.id }
             ]
           },
           callback: function(response) {

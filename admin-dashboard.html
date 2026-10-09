@@ -3144,153 +3144,69 @@ window.deleteEvent = async function(id) {
       if (!tbody) return;
       const colSpan = 6;
 
-      let records = [];
+      try {
+        const response = await api.payments.getAll({ limit: 100 });
+        if (!response.success) {
+          tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-danger py-4">Failed to load payments: ${escapeHtml(response.error || 'Unknown error')}</td></tr>`;
+          return;
+        }
 
-      // 1. Fetch from payment_verification
-      const { data: pvData, error: pvError } = await supabase
-        .from('payment_verification')
-        .select('*')
-        .order('created_at', { ascending: false });
+        const records = response.data.payments || [];
 
-      if (pvData && pvData.length > 0) {
-        records.push(...pvData.map(p => ({
-          ...p,
-          _source: 'payment_verification',
-          reference: p.payment_reference || p.id
-        })));
-      }
+        if (records.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">No payments recorded yet</td></tr>`;
+          return;
+        }
 
-      // 2. Fetch from payments table
-      const { data: payData, error: payError } = await supabase
-        .from('payments')
-        .select('*')
-        .order('submitted_at', { ascending: false });
+        const eventIds = [...new Set(records.map(p => p.event_id).filter(Boolean))];
+        const eventMap = new Map();
+        if (eventIds.length) {
+          const { data, error } = await supabase.from('events').select('id, title').in('id', eventIds);
+          if (!error && data) {
+            for (const e of data) eventMap.set(e.id, { title: e.title });
+          }
+        }
 
-      if (payData && payData.length > 0) {
-        for (const p of payData) {
-          const ref = p.transaction_id || p.id;
-          const existingIdx = records.findIndex(r => r.reference === ref || r.payment_reference === ref);
+        tbody.innerHTML = records.map(p => {
+          const studentText = p.students 
+            ? `${escapeHtml(p.students.name)}<br><small class="text-muted">${escapeHtml(p.students.matric_no || '')}</small>`
+            : '<span class="text-muted">Student</span>';
           
+          const eventInfo = p.event_id ? eventMap.get(p.event_id) : null;
+          const eventTitle = eventInfo?.title ? escapeHtml(eventInfo.title) : (p.payment_type === 'event_registration' ? '<span class="text-muted">Event Registration</span>' : '<span class="text-muted">General Payment</span>');
+
+          const badgeClass = p.status === 'verified' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark';
+          const ref = escapeHtml(p.transaction_id || p.id || '');
           let validReceiptUrl = p.payment_proof_url;
           if (validReceiptUrl && validReceiptUrl.includes('paystack.com/receipt/')) {
             validReceiptUrl = `https://dashboard.paystack.com/#/search?q=${encodeURIComponent(ref)}`;
           }
 
-          if (existingIdx >= 0) {
-            // Merge missing data
-            if (!records[existingIdx].user_id) records[existingIdx].user_id = p.user_id || null;
-            if (!records[existingIdx].student_id) records[existingIdx].student_id = p.student_id || null;
-            records[existingIdx].receipt_url = validReceiptUrl;
-          } else {
-            records.push({
-              id: p.id,
-              student_id: p.student_id || null,
-              user_id: p.user_id || null,
-              event_id: p.event_id || null,
-              amount: p.amount,
-              payment_reference: p.transaction_id || 'N/A',
-              reference: ref,
-              status: p.status || 'verified',
-              created_at: p.submitted_at || p.created_at || new Date().toISOString(),
-              _source: 'payments',
-              receipt_url: validReceiptUrl
-            });
-          }
-        }
+          return `
+            <tr>
+              <td>${studentText}</td>
+              <td>${eventTitle}</td>
+              <td><strong class="text-success">${formatCurrency(p.amount)}</strong></td>
+              <td><code>${ref}</code></td>
+              <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
+              <td>
+                ${p.status === 'pending' ? `<button class="btn btn-sm btn-success me-1" onclick="verifyPayment('${p.id}', true)">Approve</button>` : ''}
+                ${validReceiptUrl ? `<a href="${escapeHtml(validReceiptUrl)}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Paystack Receipt"><i class="bi bi-box-arrow-up-right me-1"></i>Receipt</a>` : ''}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Error loading payments:', error);
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-danger py-4">Error loading payments</td></tr>`;
       }
-
-      if (records.length === 0) {
-        if (pvError && payError) {
-          tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">No payment records found</td></tr>`;
-          return;
-        }
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">No payments recorded yet</td></tr>`;
-        return;
-      }
-
-      records.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-
-      const studentIds = [...new Set(records.map(p => p.student_id).filter(Boolean))];
-      const userIds = [...new Set(records.map(p => p.user_id).filter(Boolean))];
-      const eventIds = [...new Set(records.map(p => p.event_id).filter(Boolean))];
-
-      const studentMap = new Map();
-      const userStudentMap = new Map();
-      const eventMap = new Map();
-      const parallelCalls = [];
-
-      if (studentIds.length) {
-        parallelCalls.push(
-          supabase.from('students').select('id, name, matric_no, user_id').in('id', studentIds).then(({ data, error }) => {
-            if (error) { console.warn('[loadPayments] students join error:', error); return; }
-            for (const s of data || []) {
-              studentMap.set(s.id, { name: s.name, matric_no: s.matric_no });
-              if (s.user_id) userStudentMap.set(s.user_id, { name: s.name, matric_no: s.matric_no });
-            }
-          })
-        );
-      }
-      if (userIds.length) {
-        parallelCalls.push(
-          supabase.from('students').select('id, name, matric_no, user_id').in('user_id', userIds).then(({ data, error }) => {
-            if (error) { console.warn('[loadPayments] users join error:', error); return; }
-            for (const s of data || []) {
-              userStudentMap.set(s.user_id, { name: s.name, matric_no: s.matric_no });
-            }
-          })
-        );
-      }
-      if (eventIds.length) {
-        parallelCalls.push(
-          supabase.from('events').select('id, title').in('id', eventIds).then(({ data, error }) => {
-            if (error) { console.warn('[loadPayments] events join error:', error); return; }
-            for (const e of data || []) eventMap.set(e.id, { title: e.title });
-          })
-        );
-      }
-      await Promise.all(parallelCalls);
-
-      const merged = records.map(p => {
-        let student = null;
-        if (p.student_id && studentMap.has(p.student_id)) {
-          student = studentMap.get(p.student_id);
-        } else if (p.user_id && userStudentMap.has(p.user_id)) {
-          student = userStudentMap.get(p.user_id);
-        }
-        return {
-          ...p,
-          students: student,
-          events: p.event_id ? (eventMap.get(p.event_id) || null) : null
-        };
-      });
-
-      tbody.innerHTML = merged.map(p => {
-        const studentText = p.students 
-          ? `${escapeHtml(p.students.name)}<br><small class="text-muted">${escapeHtml(p.students.matric_no || '')}</small>`
-          : '<span class="text-muted">Student</span>';
-        const eventTitle = p.events?.title ? escapeHtml(p.events.title) : '<span class="text-muted">General Payment</span>';
-        const badgeClass = p.status === 'verified' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark';
-
-        return `
-          <tr>
-            <td>${studentText}</td>
-            <td>${eventTitle}</td>
-            <td><strong class="text-success">${formatCurrency(p.amount)}</strong></td>
-            <td><code>${escapeHtml(p.payment_reference || p.reference || '')}</code></td>
-            <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
-            <td>
-              ${p.status === 'pending' ? `<button class="btn btn-sm btn-success me-1" onclick="verifyPayment('${p.id}', true, '${p._source}')">Approve</button>` : ''}
-              ${p.receipt_url ? `<a href="${escapeHtml(p.receipt_url)}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Paystack Receipt"><i class="bi bi-box-arrow-up-right me-1"></i>Receipt</a>` : ''}
-            </td>
-          </tr>
-        `;
-      }).join('');
     }
     
-    window.verifyPayment = async function(id, approved, source = 'payment_verification') {
+    window.verifyPayment = async function(id, approved) {
       const status = approved ? 'verified' : 'rejected';
       try {
-        await apiAdmin.update(source, id, { status });
+        const response = await api.payments.verifyAdmin(id, { status });
+        if (!response.success) throw new Error(response.error || 'Verification failed');
         Swal.fire('Success', `Payment ${status}`, 'success');
         loadPayments(); loadDashboardStats();
       } catch (error) {
