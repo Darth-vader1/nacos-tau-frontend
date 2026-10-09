@@ -3169,7 +3169,19 @@ window.deleteEvent = async function(id) {
       if (payData && payData.length > 0) {
         for (const p of payData) {
           const ref = p.transaction_id || p.id;
-          if (!records.some(r => r.reference === ref || r.payment_reference === ref)) {
+          const existingIdx = records.findIndex(r => r.reference === ref || r.payment_reference === ref);
+          
+          let validReceiptUrl = p.payment_proof_url;
+          if (validReceiptUrl && validReceiptUrl.includes('paystack.com/receipt/')) {
+            validReceiptUrl = `https://dashboard.paystack.com/#/search?q=${encodeURIComponent(ref)}`;
+          }
+
+          if (existingIdx >= 0) {
+            // Merge missing data
+            if (!records[existingIdx].user_id) records[existingIdx].user_id = p.user_id || null;
+            if (!records[existingIdx].student_id) records[existingIdx].student_id = p.student_id || null;
+            records[existingIdx].receipt_url = validReceiptUrl;
+          } else {
             records.push({
               id: p.id,
               student_id: p.student_id || null,
@@ -3181,7 +3193,7 @@ window.deleteEvent = async function(id) {
               status: p.status || 'verified',
               created_at: p.submitted_at || p.created_at || new Date().toISOString(),
               _source: 'payments',
-              receipt_url: p.payment_proof_url
+              receipt_url: validReceiptUrl
             });
           }
         }

@@ -236,6 +236,7 @@
 
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="assets/vendor/aos/aos.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script> 
   <script type="module" src="assets/js/supabase-config.js"></script>
@@ -717,7 +718,19 @@
     };
 
     window.printTicket = function() {
-      window.print();
+      const ticketElement = document.getElementById('printableTicket');
+      if (typeof html2pdf !== 'undefined' && ticketElement) {
+        const opt = {
+          margin: 10,
+          filename: 'NACOS_Ticket.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(ticketElement).save();
+      } else {
+        window.print();
+      }
     };
 
     function escapeHtml(text) {
