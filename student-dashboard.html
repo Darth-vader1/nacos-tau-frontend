@@ -805,18 +805,28 @@
 
         <!-- Events Section -->
         <section id="eventsSection" class="dashboard-events-section" aria-labelledby="eventsSectionTitle">
-          <h3 id="eventsSectionTitle" class="section-title-custom"><i class="bi bi-calendar-event"></i> Recent Events</h3>
-          <p class="mb-3 text-muted">Events from the past week and upcoming this week</p>
-          <div id="eventsContainer" class="row g-4 mb-3" aria-live="polite">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <h3 id="eventsSectionTitle" class="section-title-custom mb-1"><i class="bi bi-calendar-event"></i> Upcoming Events</h3>
+              <p class="mb-0 text-muted">Register and get tickets for departmental events and workshops</p>
+            </div>
+            <a href="events.html" class="btn btn-sm btn-outline-success d-none d-sm-inline-flex align-items-center">
+              <span>View All</span> <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+          </div>
+          <div id="eventsContainer" class="row g-4 my-2" aria-live="polite">
             <div class="col-12 text-center">
               <div class="spinner-border text-success" role="status">
                 <span class="visually-hidden">Loading events...</span>
               </div>
             </div>
           </div>
-          <div class="text-center mt-3">
-            <a href="events-archive.html" class="btn btn-outline-custom" aria-label="Browse all past events">
-              <i class="bi bi-archive"></i> View All Past Events
+          <div class="text-center mt-3 d-flex justify-content-center gap-2">
+            <a href="events.html" class="btn btn-success btn-sm">
+              <i class="bi bi-calendar-check me-1"></i> Events Portal
+            </a>
+            <a href="events-archive.html" class="btn btn-outline-custom btn-sm" aria-label="Browse all past events">
+              <i class="bi bi-archive me-1"></i> Past Archive
             </a>
           </div>
         </section>
@@ -1488,12 +1498,7 @@
     async function loadEvents() {
       if (!eventsContainer) return;
       try {
-        // Calculate date range: last 7 days to today
         const today = new Date();
-        const lastWeek = new Date(today);
-        lastWeek.setDate(today.getDate() - 7);
-
-        // Format dates as YYYY-MM-DD
         const formatDateStr = (date) => {
           const yyyy = date.getFullYear();
           const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -1501,20 +1506,34 @@
           return `${yyyy}-${mm}-${dd}`;
         };
 
-        const lastWeekStr = formatDateStr(lastWeek);
         const todayStr = formatDateStr(today);
 
-        // Fetch events from last 7 days (past week) up to today
-        const { data: events, error } = await supabase
+        // 1. Primary: Fetch upcoming events (scheduled for today or in the future)
+        let { data: events, error } = await supabase
           .from('events')
           .select('*')
           .eq('is_active', true)
-          .gte('date', lastWeekStr)
-          .lte('date', todayStr)
+          .gte('date', todayStr)
           .order('date', { ascending: true })
-          .limit(5);
+          .limit(6);
         
         if (error) throw error;
+
+        // 2. Fallback: If no upcoming events scheduled yet, show the latest active events
+        let isFallback = false;
+        if (!events || events.length === 0) {
+          const { data: latestEvents } = await supabase
+            .from('events')
+            .select('*')
+            .eq('is_active', true)
+            .order('date', { ascending: false })
+            .limit(4);
+
+          if (latestEvents && latestEvents.length > 0) {
+            events = latestEvents;
+            isFallback = true;
+          }
+        }
 
         if (events && events.length > 0) {
           eventsContainer.innerHTML = events.map(event => {
@@ -1522,11 +1541,16 @@
             const title = escapeHtml(event.title || 'Untitled event');
             const imgAlt = safeImage ? `Banner for ${title}` : '';
             const dateStr = escapeHtml(formatDate(event.date));
-            const desc = event.description ? `<p class="small mt-1 mb-1">${escapeHtml(event.description)}</p>` : '';
-            const loc = event.location ? `<p class="mb-1"><i class="bi bi-geo-alt" aria-hidden="true"></i> ${escapeHtml(event.location)}</p>` : '';
+            const desc = event.description ? `<p class="small mt-1 mb-1 text-muted text-truncate">${escapeHtml(event.description)}</p>` : '';
+            const loc = event.location ? `<p class="mb-1 text-muted small"><i class="bi bi-geo-alt text-danger me-1" aria-hidden="true"></i> ${escapeHtml(event.location)}</p>` : '';
             const badge = event.requires_payment
-              ? `<span class="badge bg-warning"><i class="bi bi-tag me-1"></i>${formatCurrency(event.payment_amount)}</span>`
+              ? `<span class="badge bg-warning text-dark"><i class="bi bi-tag me-1"></i>${formatCurrency(event.payment_amount)}</span>`
               : `<span class="badge bg-success">Free</span>`;
+            const isUpcoming = event.date >= todayStr;
+            const statusBadge = isUpcoming
+              ? `<span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1"><i class="bi bi-calendar-event me-1"></i>Upcoming</span>`
+              : `<span class="badge bg-secondary-subtle text-secondary ms-1">Past</span>`;
+
             return `
               <div class="col-lg-6">
                 <article class="dashboard-event-card h-100" style="cursor: pointer;" data-event-id="${escapeHtml(event.id)}" tabindex="0" role="button" aria-label="View details for ${title}">
@@ -1536,19 +1560,27 @@
                          <i class="bi bi-calendar4-event" style="font-size: 2.5rem; color: #1b8c0c;"></i>
                        </div>`}
                   <div class="event-body">
-                    <h3>${title}</h3>
-                    <p class="mb-1"><em><i class="bi bi-calendar-check" aria-hidden="true"></i> ${dateStr}</em></p>
+                    <h3 class="h6 fw-bold mb-1">${title}</h3>
+                    <p class="mb-1 small"><em><i class="bi bi-calendar-check text-success me-1" aria-hidden="true"></i> ${dateStr}</em></p>
                     ${desc}${loc}
-                    <p>${badge}</p>
+                    <div class="mt-2 d-flex align-items-center">
+                      ${badge}
+                      ${statusBadge}
+                    </div>
                   </div>
                   <div class="text-end mt-2">
-                    <span class="text-primary small"><i class="bi bi-arrow-right-circle"></i> Click for details</span>
+                    <span class="text-success small fw-medium"><i class="bi bi-arrow-right-circle"></i> Details & Tickets</span>
                   </div>
                 </article>
               </div>`;
           }).join('');
         } else {
-          eventsContainer.innerHTML = '<div class="col-12"><p class="text-muted text-center">No events from the past week. Check the archive for older events!</p></div>';
+          eventsContainer.innerHTML = `
+            <div class="col-12 text-center py-4">
+              <i class="bi bi-calendar2-check text-muted" style="font-size: 2.5rem;"></i>
+              <p class="text-muted mt-2 mb-3">No upcoming events scheduled at the moment.</p>
+              <a href="events.html" class="btn btn-sm btn-outline-success">Browse All Events</a>
+            </div>`;
         }
       } catch (error) {
         console.error('Error loading events:', error);
@@ -1724,11 +1756,15 @@
           
           if (data && data.checkout_url && data.checkout_url.includes('simulation-checkout')) {
             // Simulation Mode handling
+            const reasonHtml = data.simulation_reason
+              ? `<div class="alert alert-warning py-2 px-3 small text-start my-2"><strong>Notice:</strong> ${escapeHtml(data.simulation_reason)}</div>`
+              : `<p class="small text-muted">The system is operating in simulation mode.</p>`;
+
             const devPrompt = await Swal.fire({
               title: 'Bachs Payment Simulation',
               html: `
-                <p>The system has entered Simulation Mode (either because the API is in Sandbox or the endpoint threw an error).</p>
-                <p>Fee to simulate: <strong>${formatCurrency(event.payment_amount)}</strong></p>
+                ${reasonHtml}
+                <p class="mt-2">Fee to simulate: <strong>${formatCurrency(event.payment_amount)}</strong></p>
                 <p class="small text-muted">Click below to simulate a successful server verification and ticket generation.</p>
               `,
               icon: 'info',
