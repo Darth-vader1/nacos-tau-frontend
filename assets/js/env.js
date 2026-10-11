@@ -27,7 +27,7 @@ const isLocal = window.location.hostname === 'localhost' ||
 
 window.API_URL = isLocal
     ? 'http://localhost:5000/api'
-    : 'https://nacos-tau-frontend.onrender.com/api';
+    : `${window.location.origin}/api`;
 
 // Supabase Storage bucket used for past questions, timetables, event images,
 // and other uploaded assets. Must match the bucket name in the Supabase project
