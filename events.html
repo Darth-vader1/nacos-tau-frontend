@@ -256,8 +256,55 @@
       const { data: { session } } = await supabase.auth.getSession();
       userSession = session;
       await loadEvents();
+
       const params = new URLSearchParams(window.location.search);
+      const isPaymentSuccess = params.get('payment') === 'success';
+      const isPaymentCancelled = params.get('payment') === 'cancelled';
       const urlEventId = params.get('event_id');
+
+      // Check if user is returning from a completed payment
+      if (isPaymentSuccess && urlEventId) {
+        // Clean URL to prevent re-triggering on page refresh
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        // Retrieve saved checkout session id from sessionStorage or URL query params
+        const savedRaw = sessionStorage.getItem('pending_bachs_checkout');
+        const saved = savedRaw ? JSON.parse(savedRaw) : {};
+        const reference = params.get('reference') || 
+                          params.get('checkout_id') || 
+                          params.get('session_id') || 
+                          params.get('id') || 
+                          saved.checkoutId || 
+                          ('BACHS-' + urlEventId.substring(0, 4).toUpperCase() + '-' + Date.now());
+
+        sessionStorage.removeItem('pending_bachs_checkout');
+
+        // Fetch student profile
+        const student = await getStudentId();
+
+        // Ensure currentEvent is loaded for ticket display
+        if (!currentEvent) {
+          const { data: ev } = await supabase.from('events').select('*').eq('id', urlEventId).single();
+          if (ev) currentEvent = ev;
+        }
+
+        // Run payment verification and generate ticket!
+        await processPaymentVerification(urlEventId, reference, student);
+        return;
+      }
+
+      if (isPaymentCancelled) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        Swal.fire({
+          title: 'Payment Cancelled',
+          text: 'The payment process was cancelled.',
+          icon: 'info',
+          timer: 3000,
+          showConfirmButton: false
+        });
+        return;
+      }
+
       if (urlEventId) {
         showEventDetails(urlEventId);
       }
@@ -547,6 +594,13 @@
           }
 
           if (data && data.checkout_url) {
+            // Save pending checkout session details before redirecting
+            sessionStorage.setItem('pending_bachs_checkout', JSON.stringify({
+              eventId: eventId,
+              checkoutId: data.checkout_id || data.id,
+              timestamp: Date.now()
+            }));
+
             // Redirect to Bachs Hosted Checkout
             window.location.href = data.checkout_url;
             return;
