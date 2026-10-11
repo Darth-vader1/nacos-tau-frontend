@@ -311,16 +311,25 @@
     });
 
     async function getStudentId() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { name: 'Student', email: '' };
 
-      const { data } = await supabase
-        .from('students')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+        const { data } = await supabase
+          .from('students')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      return data;
+        return data || {
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Student',
+          email: user.email,
+          matric_no: ''
+        };
+      } catch (err) {
+        console.warn('Could not fetch student record:', err);
+        return { name: 'Student', email: '' };
+      }
     }
 
     function formatCurrency(amount) {
@@ -700,12 +709,14 @@
           Swal.close();
         }
 
+        const evToDisplay = verifyRes.data?.event || currentEvent || {};
+
         showTicketModal({
-          event: currentEvent,
+          event: evToDisplay,
           student: student,
           ticketNumber: ticketNo,
           reference: reference,
-          amount: currentEvent.payment_amount,
+          amount: evToDisplay.payment_amount ?? (currentEvent?.payment_amount ?? 0),
           paymentType: 'Bachs Verified'
         });
 
@@ -717,11 +728,16 @@
     }
 
     window.showTicketModal = function({ event, student, ticketNumber, reference, amount, paymentType }) {
-      const studentName = student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student';
-      const dateStr = event.date ? new Date(event.date).toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBA';
-      const timeStr = event.time || 'TBA';
-      const locationStr = event.location || 'TAU Campus';
-      const feeFormatted = amount > 0 ? formatCurrency(amount) : 'Free';
+      const s = student || {};
+      const ev = event || currentEvent || {};
+      const studentName = s.name || `${s.first_name || ''} ${s.last_name || ''}`.trim() || userSession?.user?.email?.split('@')[0] || 'Student';
+      const studentEmail = s.email || userSession?.user?.email || 'your email';
+      const matricNo = s.matric_no || s.matric_number || '';
+      const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBA';
+      const timeStr = ev.time || 'TBA';
+      const locationStr = ev.location || 'TAU Campus';
+      const eventTitle = ev.title || 'Departmental Event';
+      const feeFormatted = (amount !== undefined && amount !== null && amount > 0) ? formatCurrency(amount) : 'Free';
 
       const bodyHtml = `
         <div class="ticket-container" id="printableTicket">
@@ -729,15 +745,15 @@
             <span class="badge bg-success px-3 py-2 fs-6">
               <i class="bi bi-patch-check-fill me-1"></i> ${paymentType || 'Confirmed'}
             </span>
-            <h4 class="mt-2 text-dark font-weight-bold">${escapeHtml(event.title)}</h4>
+            <h4 class="mt-2 text-dark font-weight-bold">${escapeHtml(eventTitle)}</h4>
             <p class="text-muted small mb-0"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${escapeHtml(locationStr)}</p>
           </div>
 
           <div class="ticket-code-box">
             <span class="text-muted small d-block mb-1">OFFICIAL TICKET NUMBER</span>
-            <span class="ticket-number">${escapeHtml(ticketNumber)}</span>
+            <span class="ticket-number">${escapeHtml(ticketNumber || 'NACOS-EVENT-TICKET')}</span>
             <div class="mt-2">
-              <button class="btn btn-sm btn-outline-success" onclick="navigator.clipboard.writeText('${escapeJsString(ticketNumber)}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'Ticket code copied!', showConfirmButton:false, timer:2000});">
+              <button class="btn btn-sm btn-outline-success" onclick="navigator.clipboard.writeText('${escapeJsString(ticketNumber || '')}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'Ticket code copied!', showConfirmButton:false, timer:2000});">
                 <i class="bi bi-clipboard me-1"></i> Copy Code
               </button>
             </div>
@@ -750,10 +766,10 @@
                   <td class="text-muted" style="width: 38%;">Attendee:</td>
                   <td><strong>${escapeHtml(studentName)}</strong></td>
                 </tr>
-                ${student.matric_no ? `
+                ${matricNo ? `
                 <tr>
                   <td class="text-muted">Matric No:</td>
-                  <td><strong>${escapeHtml(student.matric_no)}</strong></td>
+                  <td><strong>${escapeHtml(matricNo)}</strong></td>
                 </tr>` : ''}
                 <tr>
                   <td class="text-muted">Date & Time:</td>
@@ -765,14 +781,14 @@
                 </tr>
                 <tr>
                   <td class="text-muted">Reference:</td>
-                  <td><code>${escapeHtml(reference)}</code></td>
+                  <td><code>${escapeHtml(reference || 'N/A')}</code></td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <div class="alert alert-light border mt-3 mb-0 text-center small text-muted">
-            <i class="bi bi-envelope-check text-success me-1"></i> A confirmation receipt and ticket details have been sent to <strong>${escapeHtml(student.email || userSession.user.email)}</strong>. Present this pass at venue entrance.
+            <i class="bi bi-envelope-check text-success me-1"></i> A confirmation receipt and ticket details have been sent to <strong>${escapeHtml(studentEmail)}</strong>. Present this pass at venue entrance.
           </div>
         </div>
       `;
