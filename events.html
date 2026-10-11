@@ -687,51 +687,92 @@
     };
 
     async function processPaymentVerification(eventId, reference, student) {
+      let attempts = 0;
+      const maxAttempts = 6; // Check up to 6 times (18 seconds total)
+
       Swal.fire({
-        title: 'Verifying Payment...',
-        html: '<p>Please wait while we confirm your payment and issue your ticket...</p>',
+        title: 'Detecting Payment...',
+        html: `
+          <div class="my-3">
+            <div class="spinner-border text-success" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
+          </div>
+          <p class="mb-1 fw-bold text-dark" id="verifyStatusText">Awaiting settlement from Bachs...</p>
+          <p class="text-muted small">Please hold on while we confirm credit and issue your official ticket.</p>
+        `,
         allowOutsideClick: false,
+        showConfirmButton: false,
         didOpen: () => { Swal.showLoading(); }
       });
 
-      try {
-        const verifyRes = await api.payments.verifyPaystack({
-          reference: reference,
-          event_id: eventId
-        });
+      async function attemptVerify() {
+        attempts++;
+        try {
+          const verifyRes = await api.payments.verifyPaystack({
+            reference: reference,
+            event_id: eventId
+          });
 
-        if (!verifyRes.success) {
-          throw new Error(verifyRes.error || verifyRes.message || 'Payment verification failed');
+          if (verifyRes.success) {
+            const ticketNo = verifyRes.data?.ticket_number || ('NACOS-' + eventId.substring(0, 4).toUpperCase() + '-' + Date.now().toString(36).toUpperCase());
+
+            const evModalEl = document.getElementById('eventModal');
+            const evModal = bootstrap.Modal.getInstance(evModalEl);
+            if (evModal) evModal.hide();
+
+            if (window.Swal) Swal.close();
+
+            const evToDisplay = verifyRes.data?.event || currentEvent || {};
+
+            showTicketModal({
+              event: evToDisplay,
+              student: student,
+              ticketNumber: ticketNo,
+              reference: reference,
+              amount: evToDisplay.payment_amount ?? (currentEvent?.payment_amount ?? 0),
+              paymentType: 'Bachs Verified'
+            });
+
+            await loadEvents();
+            return;
+          }
+
+          // If provider is still processing transfer, retry
+          if (attempts < maxAttempts) {
+            const statusEl = document.getElementById('verifyStatusText');
+            if (statusEl) statusEl.textContent = `Awaiting bank credit confirmation (attempt ${attempts}/${maxAttempts})...`;
+            setTimeout(attemptVerify, 3000);
+          } else {
+            throw new Error(verifyRes.error || verifyRes.message || 'Payment is still processing with the bank.');
+          }
+
+        } catch (err) {
+          if (attempts < maxAttempts && !err.message.includes('403') && !err.message.includes('404')) {
+            setTimeout(attemptVerify, 3000);
+          } else {
+            console.error('Verification error:', err);
+            Swal.fire({
+              title: 'Verification In Progress',
+              html: `
+                <p>${escapeHtml(err.message || 'Your bank transfer is being confirmed by the payment gateway.')}</p>
+                <p class="small text-muted">If you were already debited, your admission pass will be automatically credited once Bachs completes interbank settlement.</p>
+              `,
+              icon: 'info',
+              showCancelButton: true,
+              confirmButtonText: 'Retry Verification',
+              confirmButtonColor: '#1b8c0c',
+              cancelButtonText: 'Check Receipt Page'
+            }).then((result) => {
+              if (result.isConfirmed) {
+                processPaymentVerification(eventId, reference, student);
+              } else if (result.dismiss === Swal.DismissReason.cancel) {
+                window.location.href = `receipt.html?reference=${encodeURIComponent(reference)}`;
+              }
+            });
+          }
         }
-
-        const ticketNo = verifyRes.data?.ticket_number || ('NACOS-' + eventId.substring(0, 4).toUpperCase() + '-' + Date.now().toString(36).toUpperCase());
-
-        // Close event modal if open
-        const evModalEl = document.getElementById('eventModal');
-        const evModal = bootstrap.Modal.getInstance(evModalEl);
-        if (evModal) evModal.hide();
-
-        // Close loading spinner overlay
-        if (window.Swal) {
-          Swal.close();
-        }
-
-        const evToDisplay = verifyRes.data?.event || currentEvent || {};
-
-        showTicketModal({
-          event: evToDisplay,
-          student: student,
-          ticketNumber: ticketNo,
-          reference: reference,
-          amount: evToDisplay.payment_amount ?? (currentEvent?.payment_amount ?? 0),
-          paymentType: 'Bachs Verified'
-        });
-
-        await loadEvents();
-      } catch (err) {
-        console.error('Verification error:', err);
-        Swal.fire('Verification Error', err.message || 'Could not verify payment on server', 'error');
       }
+
+      attemptVerify();
     }
 
     window.showTicketModal = function({ event, student, ticketNumber, reference, amount, paymentType }) {
