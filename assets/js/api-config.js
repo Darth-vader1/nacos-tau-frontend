@@ -7,9 +7,8 @@ const isLocal = window.location.hostname === 'localhost' ||
 
 const API_URL = (window.__CONFIG && window.__CONFIG.apiUrl) ||
     window.API_URL ||
-    (isLocal ? 'http://localhost:5000/api' : `${window.location.origin}/api`);
+    (isLocal ? 'http://localhost:5000/api' : 'https://naco-tau-backend.vercel.app/api');
 
-// Make API_URL available globally
 window.API_URL = API_URL;
 
 /**
@@ -17,7 +16,6 @@ window.API_URL = API_URL;
  * Falls back to regular fetch if SecurityManager not available
  */
 async function secureRequest(method, url, options = {}) {
-    // Use SecurityManager if available
     if (window.securityManager && window.securityManager.isInitialized) {
         return window.securityManager.secureFetch(url, {
             method,
