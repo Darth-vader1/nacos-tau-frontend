@@ -7,7 +7,7 @@ const isLocal = window.location.hostname === 'localhost' ||
 
 const API_URL = (window.__CONFIG && window.__CONFIG.apiUrl) ||
     window.API_URL ||
-    (isLocal ? 'http://localhost:5000/api' : 'https://nacos-tau-frontend.onrender.com/api');
+    (isLocal ? 'http://localhost:5000/api' : `${window.location.origin}/api`);
 
 // Make API_URL available globally
 window.API_URL = API_URL;
