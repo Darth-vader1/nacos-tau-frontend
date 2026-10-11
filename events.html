@@ -752,10 +752,13 @@
           <div class="ticket-code-box">
             <span class="text-muted small d-block mb-1">OFFICIAL TICKET NUMBER</span>
             <span class="ticket-number">${escapeHtml(ticketNumber || 'NACOS-EVENT-TICKET')}</span>
-            <div class="mt-2">
+            <div class="mt-2 d-flex justify-content-center gap-2 flex-wrap">
               <button class="btn btn-sm btn-outline-success" onclick="navigator.clipboard.writeText('${escapeJsString(ticketNumber || '')}'); Swal.fire({toast:true, position:'top-end', icon:'success', title:'Ticket code copied!', showConfirmButton:false, timer:2000});">
                 <i class="bi bi-clipboard me-1"></i> Copy Code
               </button>
+              <a class="btn btn-sm btn-success text-white" href="receipt.html?reference=${encodeURIComponent(reference || '')}" target="_blank">
+                <i class="bi bi-receipt me-1"></i> View Official Receipt
+              </a>
             </div>
           </div>
 
