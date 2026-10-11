@@ -489,8 +489,15 @@
 
       const isPaid = currentEvent.requires_payment && Number(currentEvent.payment_amount) > 0;
 
-      // Handle PAID Event with Paystack Inline
+      // Handle PAID Event with Paystack/Bachs
       if (isPaid) {
+        // Close event modal cleanly to prevent aria-hidden focus blocking
+        const eventModalEl = document.getElementById('eventModal');
+        if (eventModalEl) {
+          const modalInstance = bootstrap.Modal.getInstance(eventModalEl);
+          if (modalInstance) modalInstance.hide();
+        }
+
         Swal.fire({
           title: 'Preparing Secure Checkout...',
           text: 'Please wait while we set up your secure Bachs session.',
@@ -515,12 +522,16 @@
           
           if (data && data.checkout_url && data.checkout_url.includes('simulation-checkout')) {
             // Simulation Mode handling
+            const reasonHtml = data.simulation_reason
+              ? `<div class="alert alert-warning py-2 px-3 small text-start my-2"><strong>Notice:</strong> ${escapeHtml(data.simulation_reason)}</div>`
+              : `<p class="small text-muted">The system is operating in simulation mode.</p>`;
+
             const devPrompt = await Swal.fire({
               title: 'Bachs Payment Simulation',
               html: `
-                <p>The system has entered Simulation Mode (either because the API is in Sandbox or the endpoint threw an error).</p>
-                <p>Fee to simulate: <strong>${formatCurrency(currentEvent.payment_amount)}</strong></p>
-                <p class="small text-muted">Click below to simulate a successful server verification and ticket generation.</p>
+                ${reasonHtml}
+                <p class="mt-2">Fee to simulate: <strong>${formatCurrency(currentEvent.payment_amount)}</strong></p>
+                <p class="small text-muted">Click below to simulate server verification and ticket issuance.</p>
               `,
               icon: 'info',
               showCancelButton: true,

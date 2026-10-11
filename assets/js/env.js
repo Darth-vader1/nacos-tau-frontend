@@ -21,6 +21,10 @@ console.log('🌍 Loading environment variables...');
 // ============================================
 
 // Determine API URL based on environment
+const isLocal = window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '';
+
 window.API_URL = isLocal
     ? 'http://localhost:5000/api'
     : 'https://naco-tau-backend.vercel.app/api';
