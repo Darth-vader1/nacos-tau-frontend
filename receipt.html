@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Receipt & Admission Ticket - NACOS TAU</title>
+  <link rel="icon" href="assets/img/tau_logo-removebg-preview.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/img/tau_logo-removebg-preview.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1b8c0c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NACOS TAU">
+  <script src="assets/js/pwa-install.js" defer></script>
+
+  <!-- Google Fonts & Bootstrap -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #1b8c0c;
+      --primary-dark: #146c0a;
+      --primary-light: #e8f5e9;
+      --accent: #2d9b0f;
+      --bg: #0d1117;
+      --card-bg: #ffffff;
+      --text-dark: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at 50% 0%, #1e3a1e 0%, #0d1117 70%);
+      min-height: 100vh;
+      color: #334155;
+      padding: 30px 15px;
+    }
+
+    .receipt-wrapper {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .receipt-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .receipt-header {
+      background: linear-gradient(135deg, #0b4506 0%, #1b8c0c 50%, #2d9b0f 100%);
+      color: white;
+      padding: 32px 36px 28px;
+      position: relative;
+    }
+
+    .receipt-header::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      right: 0;
+      height: 20px;
+      background: radial-gradient(circle, transparent 70%, var(--card-bg) 75%);
+      background-size: 20px 20px;
+    }
+
+    .header-logo {
+      height: 52px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+
+    .verified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      backdrop-filter: blur(8px);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .receipt-body {
+      padding: 36px;
+    }
+
+    .ticket-highlight-box {
+      background: #f8fafc;
+      border: 2px dashed #86efac;
+      border-radius: 14px;
+      padding: 20px 24px;
+      text-align: center;
+      margin-bottom: 28px;
+      position: relative;
+    }
+
+    .ticket-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--primary-dark);
+      display: block;
+      margin-top: 4px;
+    }
+
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 6px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px 24px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 576px) {
+      .info-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .receipt-header, .receipt-body {
+        padding: 24px 20px;
+      }
+      .ticket-code {
+        font-size: 1.25rem;
+      }
+    }
+
+    .info-label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .info-value {
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      word-break: break-word;
+    }
+
+    .barcode-container {
+      background: #ffffff;
+      border-top: 1px dashed var(--border-color);
+      padding-top: 24px;
+      text-align: center;
+    }
+
+    .fake-barcode {
+      display: inline-block;
+      letter-spacing: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 26px;
+      font-weight: 900;
+      color: #1e293b;
+      opacity: 0.85;
+      user-select: none;
+    }
+
+    .action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 24px;
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.92rem;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary-action {
+      background: #1b8c0c;
+      color: white;
+      border: none;
+    }
+    .btn-primary-action:hover {
+      background: #146c0a;
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary-action {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+    .btn-secondary-action:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    .pulse-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 0 rgba(34, 197, 94, 0.6);
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: white !important;
+        padding: 0 !important;
+        color: black !important;
+      }
+      .receipt-card {
+        box-shadow: none !important;
+        border: 1px solid #ccc !important;
+      }
+      .action-bar, .non-printable {
+        display: none !important;
+      }
+      .receipt-header {
+        background: #1b8c0c !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="receipt-wrapper">
+    <!-- Main Card -->
+    <div class="receipt-card" id="receiptCard">
+      <!-- Loading State -->
+      <div id="receiptLoading" class="p-5 text-center">
+        <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h5 class="mt-3 text-dark fw-bold">Retrieving Official Receipt...</h5>
+        <p class="text-muted small">Connecting to secure university records...</p>
+      </div>
+
+      <!-- Error State -->
+      <div id="receiptError" class="p-5 text-center" style="display: none;">
+        <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 3.5rem;"></i>
+        <h4 class="mt-3 text-dark fw-bold">Receipt Not Found</h4>
+        <p class="text-muted" id="errorMessage">We could not locate this payment record. Please check the transaction reference and try again.</p>
+        <div class="mt-4">
+          <a href="events.html" class="btn btn-outline-success btn-sm me-2">Browse Events</a>
+          <a href="student-dashboard.html" class="btn btn-success btn-sm">Student Dashboard</a>
+        </div>
+      </div>
+
+      <!-- Receipt Content -->
+      <div id="receiptContent" style="display: none;">
+        <!-- Header -->
+        <div class="receipt-header">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <img src="assets/img/tau_logo-removebg-preview.png" alt="TAU Logo" class="header-logo">
+              <div>
+                <h6 class="mb-0 text-white-50 text-uppercase fw-bold small">Nigeria Association of Computing Students</h6>
+                <h4 class="mb-0 fw-bold text-white">TAU Chapter • Official Receipt</h4>
+              </div>
+            </div>
+            <div>
+              <span class="verified-badge" id="badgeVerified">
+                <span class="pulse-dot"></span> Payment Verified
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="receipt-body">
+          <!-- Ticket Code Box -->
+          <div class="ticket-highlight-box">
+            <div class="text-muted small fw-bold text-uppercase">Official Admission Ticket Number</div>
+            <span class="ticket-code" id="rcTicketNumber">NACOS-TICKET</span>
+            <div class="mt-2 non-printable">
+              <button class="btn btn-sm btn-outline-success" onclick="copyTicketNumber()">
+                <i class="bi bi-clipboard me-1"></i> Copy Ticket Code
+              </button>
+            </div>
+          </div>
+
+          <!-- Attendee Information -->
+          <div class="section-title">Attendee Details</div>
+          <div class="info-grid">
+            <div>
+              <div class="info-label">Full Name</div>
+              <div class="info-value" id="rcAttendeeName">—</div>
+            </div>
+            <div>
+              <div class="info-label">Matriculation Number</div>
+              <div class="info-value" id="rcMatricNo">—</div>
+            </div>
+            <div>
+              <div class="info-label">Department / Faculty</div>
+              <div class="info-value" id="rcDepartment">Computer Science</div>
+            </div>
+            <div>
+              <div class="info-label">Email Address</div>
+              <div class="info-value" id="rcEmail">—</div>
+            </div>
+          </div>
+
+          <!-- Event / Purpose Information -->
+          <div class="section-title">Event & Schedule</div>
+          <div class="info-grid">
+            <div style="grid-column: span 2;">
+              <div class="info-label">Event / Activity</div>
+              <div class="info-value fw-bold fs-5 text-success" id="rcEventTitle">—</div>
+            </div>
+            <div>
+              <div class="info-label">Date & Time</div>
+              <div class="info-value" id="rcEventDateTime">—</div>
+            </div>
+            <div>
+              <div class="info-label">Location / Venue</div>
+              <div class="info-value" id="rcEventLocation">TAU Campus</div>
+            </div>
+          </div>
+
+          <!-- Transaction Information -->
+          <div class="section-title">Payment Summary</div>
+          <div class="info-grid">
+            <div>
+              <div class="info-label">Amount Paid</div>
+              <div class="info-value text-success fs-5 fw-bold" id="rcAmount">₦0.00</div>
+            </div>
+            <div>
+              <div class="info-label">Payment Channel</div>
+              <div class="info-value" id="rcChannel">Bachs Gateway (Online)</div>
+            </div>
+            <div>
+              <div class="info-label">Transaction Reference</div>
+              <div class="info-value"><code id="rcReference">—</code></div>
+            </div>
+            <div>
+              <div class="info-label">Payment Timestamp</div>
+              <div class="info-value" id="rcTimestamp">—</div>
+            </div>
+          </div>
+
+          <!-- Barcode Verification Footprint -->
+          <div class="barcode-container">
+            <div class="fake-barcode" id="rcBarcode">||||| | |||| || ||||| ||| | |||||</div>
+            <p class="text-muted small mt-2 mb-0">
+              <i class="bi bi-shield-check text-success me-1"></i>
+              Cryptographically registered in the NACOS TAU Database. Present this digital or printed pass for venue validation.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar non-printable" id="actionBar" style="display: none;">
+      <button class="btn btn-action btn-primary-action" onclick="printReceipt()">
+        <i class="bi bi-printer-fill"></i> Print / Save as PDF
+      </button>
+      <a href="events.html" class="btn btn-action btn-secondary-action">
+        <i class="bi bi-calendar-event"></i> Return to Events
+      </a>
+      <a href="student-dashboard.html" class="btn btn-action btn-secondary-action">
+        <i class="bi bi-speedometer2"></i> Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/env.js"></script>
+  <script src="assets/js/api-config.js"></script>
+
+  <script>
+    let receiptData = null;
+    let realtimeChannel = null;
+
+    // Helper functions
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatCurrency(amount) {
+      if (amount === null || amount === undefined || amount === '') return '₦0';
+      const num = Number(String(amount).replace(/[^0-9.-]+/g, ''));
+      if (isNaN(num)) return `₦${amount}`;
+      return '₦' + num.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function extractReference() {
+      // 1. From URL Query Params
+      const params = new URLSearchParams(window.location.search);
+      let ref = params.get('reference') || params.get('ref') || params.get('checkout_id') || params.get('id');
+      if (ref) return ref.trim();
+
+      // 2. From pathname: /receipt/chk_123 or /receipt/NACOS-123
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      const receiptIdx = pathParts.indexOf('receipt');
+      if (receiptIdx !== -1 && pathParts[receiptIdx + 1]) {
+        return pathParts[receiptIdx + 1].trim();
+      }
+
+      return null;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const reference = extractReference();
+
+      if (!reference) {
+        showError('No payment reference provided in URL.');
+        return;
+      }
+
+      await loadReceipt(reference);
+      setupRealtimeListener(reference);
+    });
+
+    async function loadReceipt(reference) {
+      try {
+        const API_BASE = (window.API_URL || 'https://naco-tau-backend.vercel.app/api').replace(/\/$/, '');
+        const res = await fetch(`${API_BASE}/payments/receipt/${encodeURIComponent(reference)}`);
+
+        if (!res.ok) {
+          // If backend returned 404, fallback directly to Supabase client query
+          const { data: payRow } = await supabase
+            .from('payments')
+            .select('*')
+            .eq('transaction_id', reference)
+            .maybeSingle();
+
+          if (!payRow) {
+            throw new Error(`Receipt with reference "${reference}" not found.`);
+          }
+
+          // Fetch student
+          let student = null;
+          if (payRow.user_id) {
+            const { data: s } = await supabase.from('students').select('*').eq('user_id', payRow.user_id).maybeSingle();
+            student = s;
+          }
+
+          // Fetch event
+          let event = null;
+          if (payRow.event_id) {
+            const { data: ev } = await supabase.from('events').select('*').eq('id', payRow.event_id).maybeSingle();
+            event = ev;
+          }
+
+          renderReceiptUI({
+            payment: payRow,
+            student: student,
+            event: event,
+            ticket_number: 'NACOS-' + (payRow.event_id ? payRow.event_id.substring(0, 4).toUpperCase() : 'PAY') + '-' + Date.now().toString(36).toUpperCase()
+          });
+          return;
+        }
+
+        const json = await res.json();
+        if (!json.success || !json.data) {
+          throw new Error(json.message || 'Unable to load receipt details.');
+        }
+
+        renderReceiptUI(json.data);
+      } catch (err) {
+        console.error('Failed to load receipt:', err);
+        showError(err.message || 'Unable to retrieve receipt record.');
+      }
+    }
+
+    function renderReceiptUI(data) {
+      receiptData = data;
+      const payment = data.payment || {};
+      const student = data.student || {};
+      const event = data.event || {};
+      const ticketNumber = data.ticket_number || ('NACOS-TICKET-' + (payment.transaction_id || 'CONFIRMED').substring(0, 6).toUpperCase());
+
+      // Student info
+      const studentName = student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student Attendee';
+      document.getElementById('rcAttendeeName').textContent = studentName;
+      document.getElementById('rcMatricNo').textContent = student.matric_no || 'N/A';
+      document.getElementById('rcDepartment').textContent = student.department || 'Computing / Computer Science';
+      document.getElementById('rcEmail').textContent = student.email || 'Registered Student';
+
+      // Event info
+      document.getElementById('rcTicketNumber').textContent = ticketNumber;
+      document.getElementById('rcEventTitle').textContent = event.title || payment.description || 'Departmental Event';
+      
+      const dateStr = event.date ? new Date(event.date).toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Official Schedule';
+      const timeStr = event.time || 'TBA';
+      document.getElementById('rcEventDateTime').textContent = `${dateStr} • ${timeStr}`;
+      document.getElementById('rcEventLocation').textContent = event.location || 'TAU Campus, Department of Computer Science';
+
+      // Payment info
+      document.getElementById('rcAmount').textContent = formatCurrency(payment.amount);
+      document.getElementById('rcReference').textContent = payment.transaction_id || 'N/A';
+      document.getElementById('rcChannel').textContent = payment.notes || 'Bachs Verified Checkout';
+
+      const timeVal = payment.verified_at || payment.submitted_at || new Date().toISOString();
+      document.getElementById('rcTimestamp').textContent = new Date(timeVal).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
+
+      // Barcode representation
+      const cleanRef = (payment.transaction_id || 'NACOS').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      document.getElementById('rcBarcode').textContent = `* ${ticketNumber} *`;
+
+      // Show UI
+      document.getElementById('receiptLoading').style.display = 'none';
+      document.getElementById('receiptError').style.display = 'none';
+      document.getElementById('receiptContent').style.display = 'block';
+      document.getElementById('actionBar').style.display = 'flex';
+    }
+
+    // ============================================
+    // LIVE AUTO-DETECTION VIA SUPABASE REALTIME
+    // ============================================
+    function setupRealtimeListener(reference) {
+      if (typeof supabase === 'undefined' || !reference) return;
+
+      try {
+        realtimeChannel = supabase
+          .channel(`receipt-live-${reference}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'payments',
+              filter: `transaction_id=eq.${reference}`
+            },
+            (payload) => {
+              if (payload.new && payload.new.status === 'verified') {
+                Swal.fire({
+                  toast: true,
+                  position: 'top-end',
+                  icon: 'success',
+                  title: 'Payment Confirmed Live! 🎉',
+                  showConfirmButton: false,
+                  timer: 3000
+                });
+                loadReceipt(reference);
+              }
+            }
+          )
+          .subscribe();
+      } catch (e) {
+        console.warn('Realtime subscription notice:', e);
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('receiptLoading').style.display = 'none';
+      document.getElementById('receiptContent').style.display = 'none';
+      document.getElementById('actionBar').style.display = 'none';
+      document.getElementById('errorMessage').textContent = msg;
+      document.getElementById('receiptError').style.display = 'block';
+    }
+
+    function copyTicketNumber() {
+      const code = document.getElementById('rcTicketNumber').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Ticket code copied to clipboard!',
+          showConfirmButton: false,
+          timer: 2000
+        });
+      });
+    }
+
+    function printReceipt() {
+      window.print();
+    }
+  </script>
+</body>
+</html>
