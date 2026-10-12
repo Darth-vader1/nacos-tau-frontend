@@ -66,3 +66,10 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// Listen for message from client to activate updated service worker immediately
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
