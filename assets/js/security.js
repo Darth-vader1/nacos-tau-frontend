@@ -64,14 +64,15 @@ class SecurityManager {
         : baseUrl; // Use as-is for production (HTTPS)
       
       // Check if CSRF is enabled by calling health endpoint
-      const healthResponse = await fetch(`${apiUrl}/health`);
-      const health = await healthResponse.json();
-
-      if (health.security?.csrf) {
-        // console.log('🔒 CSRF protection enabled, fetching token...');
-        await this.refreshCsrfToken();
-      } else {
-        console.log('ℹ️  CSRF protection not enabled on backend');
+      const healthResponse = await fetch(`${apiUrl}/health`).catch(() => null);
+      if (healthResponse && healthResponse.ok) {
+        const health = await healthResponse.json().catch(() => ({}));
+        if (health.security?.csrf) {
+          // console.log('🔒 CSRF protection enabled, fetching token...');
+          await this.refreshCsrfToken();
+        } else {
+          console.log('ℹ️  CSRF protection not enabled on backend');
+        }
       }
 
       // Initialize session monitoring if user is logged in
