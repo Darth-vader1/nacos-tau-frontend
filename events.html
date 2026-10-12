@@ -644,7 +644,23 @@
 
         } catch (e) {
           console.error('Checkout error:', e);
-          Swal.fire('Payment Setup Failed', e.message || 'Could not connect to payment gateway.', 'error');
+          const isNetworkError = e.message && (e.message.includes('fetch') || e.message.includes('Network') || e.message.includes('Failed to fetch'));
+          Swal.fire({
+            title: 'Payment Gateway Connection',
+            html: `
+              <p>${isNetworkError ? 'Could not reach backend API server. The serverless function may have timed out or experienced network latency.' : escapeHtml(e.message)}</p>
+              <p class="small text-muted">Please check your connection and tap retry below.</p>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Retry Checkout',
+            confirmButtonColor: '#1b8c0c',
+            cancelButtonText: 'Cancel'
+          }).then((res) => {
+            if (res.isConfirmed) {
+              registerForEvent(eventId);
+            }
+          });
           return;
         }
 
