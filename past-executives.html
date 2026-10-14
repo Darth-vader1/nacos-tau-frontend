@@ -55,112 +55,6 @@
       border-radius: 8px;
     }
 
-    .navmenu ul {
-      margin: 0;
-      padding: 0;
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      list-style: none;
-    }
-
-    .navmenu a {
-      padding: 8px 14px;
-      font-size: 14px;
-      font-weight: 500;
-      color: #334155;
-      text-decoration: none;
-      border-radius: 8px;
-      transition: all 0.2s ease;
-    }
-
-    .navmenu a:hover,
-    .navmenu a.active {
-      color: #1b8c0c;
-      background: #e8f5e9;
-    }
-
-    .navmenu .dropdown {
-      position: relative;
-    }
-
-    .navmenu .dropdown ul {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      background: #ffffff;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-      border-radius: 10px;
-      padding: 8px 0;
-      min-width: 220px;
-      display: none;
-      flex-direction: column;
-      gap: 2px;
-      z-index: 1000;
-    }
-
-    .navmenu .dropdown:hover ul,
-    .navmenu .dropdown.dropdown-open ul {
-      display: flex;
-    }
-
-    .navmenu .dropdown ul a {
-      padding: 8px 16px;
-      display: block;
-      color: #334155;
-    }
-
-    .navmenu .dropdown ul a:hover {
-      background: #f1f8e9;
-      color: #1b8c0c;
-    }
-
-    .mobile-nav-toggle {
-      font-size: 28px;
-      cursor: pointer;
-      color: #1b8c0c;
-      display: none;
-    }
-
-    @media (max-width: 1199px) {
-      .mobile-nav-toggle { display: block !important; }
-      .navmenu ul { display: none; }
-      .navmenu.mobile-nav-active > ul {
-        display: flex;
-        flex-direction: column;
-        position: absolute;
-        top: 65px;
-        right: 15px;
-        background: white;
-        padding: 12px 0;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-        z-index: 999;
-        min-width: 220px;
-      }
-      /* On mobile the dropdown sub-menu sits inline, not absolute */
-      .navmenu.mobile-nav-active .dropdown ul {
-        position: static;
-        box-shadow: none;
-        border-radius: 0;
-        padding: 0 0 0 16px;
-        background: transparent;
-        min-width: unset;
-      }
-      .navmenu.mobile-nav-active .dropdown.dropdown-open ul {
-        display: flex;
-      }
-      .navmenu a {
-        display: block;
-        padding: 10px 20px;
-      }
-      .navmenu .dropdown > a {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-    }
-
     /* Main Container */
     .main-container {
       max-width: 1240px;
@@ -509,14 +403,14 @@
         </div>
       </a>
 
-      <nav class="navmenu">
+      <nav id="navmenu" class="navmenu">
         <ul>
           <li><a href="index.html">Home</a></li>
           <li><a href="index.html#about">About</a></li>
           <li><a href="events-archive.html">Events</a></li>
           <li><a href="hackathons.html">Hackathons</a></li>
           <li class="dropdown">
-            <a href="index.html#execs" class="active">Execs <i class="bi bi-chevron-down"></i></a>
+            <a href="index.html#execs" class="active">Execs <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
               <li><a href="index.html#execs">Current Execs (2026/2027)</a></li>
               <li><a href="past-executives.html" class="fw-bold text-success">Past Execs (Roll of Honour)</a></li>
@@ -525,8 +419,8 @@
           <li><a href="index.html#pays">Payments</a></li>
           <li><a href="student-login.html" class="btn btn-sm btn-outline-success px-3 py-1 rounded-pill ms-2">Sign In</a></li>
         </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
-      <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
     </div>
   </header>
 
@@ -599,6 +493,7 @@
   <!-- Scripts (Ensures env.js loads before supabase-config.js to prevent configuration errors) -->
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/env.js"></script>
+  <script src="assets/js/main.js"></script>
   <script src="assets/js/security.js"></script>
   <script type="module" src="assets/js/supabase-config.js"></script>
   <script type="module" src="assets/js/api-config.js"></script>
@@ -815,34 +710,6 @@
         `;
       }).join('');
     }
-
-    document.querySelector('.mobile-nav-toggle')?.addEventListener('click', function() {
-      document.querySelector('.navmenu')?.classList.toggle('mobile-nav-active');
-      this.classList.toggle('bi-list');
-      this.classList.toggle('bi-x');
-    });
-
-    // Make dropdowns tappable on mobile
-    document.querySelectorAll('.navmenu .dropdown > a').forEach(function(link) {
-      link.addEventListener('click', function(e) {
-        const isMobile = window.innerWidth <= 1199;
-        if (isMobile) {
-          e.preventDefault();
-          const dropdown = this.closest('.dropdown');
-          dropdown.classList.toggle('dropdown-open');
-        }
-      });
-    });
-
-    // Close mobile menu when a non-dropdown link is clicked
-    document.querySelectorAll('.navmenu a:not(.dropdown > a)').forEach(function(link) {
-      link.addEventListener('click', function() {
-        const navmenu = document.querySelector('.navmenu');
-        const toggle = document.querySelector('.mobile-nav-toggle');
-        if (navmenu) navmenu.classList.remove('mobile-nav-active');
-        if (toggle) { toggle.classList.add('bi-list'); toggle.classList.remove('bi-x'); }
-      });
-    });
 
     loadData();
   </script>
