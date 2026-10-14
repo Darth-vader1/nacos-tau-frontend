@@ -44,6 +44,7 @@
       box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
       padding: 10px 0;
       min-height: 65px;
+      position: relative;
     }
 
     .logo, .logo img, img.logo {
@@ -98,7 +99,8 @@
       z-index: 1000;
     }
 
-    .navmenu .dropdown:hover ul {
+    .navmenu .dropdown:hover ul,
+    .navmenu .dropdown.dropdown-open ul {
       display: flex;
     }
 
@@ -123,18 +125,39 @@
     @media (max-width: 1199px) {
       .mobile-nav-toggle { display: block !important; }
       .navmenu ul { display: none; }
-      .navmenu.mobile-nav-active ul {
+      .navmenu.mobile-nav-active > ul {
         display: flex;
         flex-direction: column;
         position: absolute;
         top: 65px;
         right: 15px;
         background: white;
-        padding: 20px;
+        padding: 12px 0;
         border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
         z-index: 999;
-        min-width: 200px;
+        min-width: 220px;
+      }
+      /* On mobile the dropdown sub-menu sits inline, not absolute */
+      .navmenu.mobile-nav-active .dropdown ul {
+        position: static;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 0 0 0 16px;
+        background: transparent;
+        min-width: unset;
+      }
+      .navmenu.mobile-nav-active .dropdown.dropdown-open ul {
+        display: flex;
+      }
+      .navmenu a {
+        display: block;
+        padding: 10px 20px;
+      }
+      .navmenu .dropdown > a {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
     }
 
@@ -797,6 +820,28 @@
       document.querySelector('.navmenu')?.classList.toggle('mobile-nav-active');
       this.classList.toggle('bi-list');
       this.classList.toggle('bi-x');
+    });
+
+    // Make dropdowns tappable on mobile
+    document.querySelectorAll('.navmenu .dropdown > a').forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        const isMobile = window.innerWidth <= 1199;
+        if (isMobile) {
+          e.preventDefault();
+          const dropdown = this.closest('.dropdown');
+          dropdown.classList.toggle('dropdown-open');
+        }
+      });
+    });
+
+    // Close mobile menu when a non-dropdown link is clicked
+    document.querySelectorAll('.navmenu a:not(.dropdown > a)').forEach(function(link) {
+      link.addEventListener('click', function() {
+        const navmenu = document.querySelector('.navmenu');
+        const toggle = document.querySelector('.mobile-nav-toggle');
+        if (navmenu) navmenu.classList.remove('mobile-nav-active');
+        if (toggle) { toggle.classList.add('bi-list'); toggle.classList.remove('bi-x'); }
+      });
     });
 
     loadData();
