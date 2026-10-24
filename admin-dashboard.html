@@ -2092,30 +2092,29 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       try {
         // Prefer backend student count (service_role bypasses RLS); fall back
         // to the anon supabase count query so the admin never sees a stale 0.
+        // Count ALL students regardless of status so the stat card matches
+        // the actual number of registered accounts in the database.
         let activeCount = 0;
         try {
           const activeStudentsRes = await api.students.list({
-            status: 'active',
+            status: 'all',
             page: 1,
             limit: 1
           });
           if (activeStudentsRes?.success) {
             activeCount = activeStudentsRes.data?.pagination?.total ?? 0;
-            // console.log(`[loadDashboardStats] active-students count (backend): ${activeCount}`);
           } else {
             console.warn('[loadDashboardStats] backend student count failed — falling back to anon supabase count:', activeStudentsRes?.error || activeStudentsRes);
             const fallback = await supabase
               .from('students')
-              .select('id', { count: 'exact', head: true })
-              .eq('status', 'active');
+              .select('id', { count: 'exact', head: true });
             activeCount = fallback.count || 0;
           }
         } catch (apiErr) {
           console.warn('[loadDashboardStats] backend student count threw — falling back to anon supabase count:', apiErr);
           const fallback = await supabase
             .from('students')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'active');
+            .select('id', { count: 'exact', head: true });
           activeCount = fallback.count || 0;
         }
 

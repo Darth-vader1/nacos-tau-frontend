@@ -459,13 +459,26 @@
     async function loadReceipt(reference) {
       try {
         const API_BASE = (window.API_URL || 'https://naco-tau-backend.vercel.app/api').replace(/\/$/, '');
-        const res = await fetch(`${API_BASE}/payments/receipt/${encodeURIComponent(reference)}`);
+
+        // Pass the session token so the backend can identify the owner and
+        // return their full receipt including student details.
+        const headers = {};
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            headers['Authorization'] = `Bearer ${session.access_token}`;
+          }
+        } catch (_) { /* non-fatal — proceed as unauthenticated */ }
+
+        const res = await fetch(`${API_BASE}/payments/receipt/${encodeURIComponent(reference)}`, { headers });
 
         if (!res.ok) {
-          // If backend returned 404, fallback directly to Supabase client query
+          // Fallback: query Supabase directly for public ticket info only (no PII).
+          // The anon key's RLS policies do not allow reading other users' student
+          // rows, so this path can only return data the current user owns anyway.
           const { data: payRow } = await supabase
             .from('payments')
-            .select('*')
+            .select('id, transaction_id, status, amount, payment_type, event_id, verified_at, submitted_at')
             .eq('transaction_id', reference)
             .maybeSingle();
 
@@ -473,23 +486,20 @@
             throw new Error(`Receipt with reference "${reference}" not found.`);
           }
 
-          // Fetch student
-          let student = null;
-          if (payRow.user_id) {
-            const { data: s } = await supabase.from('students').select('*').eq('user_id', payRow.user_id).maybeSingle();
-            student = s;
-          }
-
-          // Fetch event
+          // Fetch event (public info only — no student PII in fallback)
           let event = null;
           if (payRow.event_id) {
-            const { data: ev } = await supabase.from('events').select('*').eq('id', payRow.event_id).maybeSingle();
+            const { data: ev } = await supabase
+              .from('events')
+              .select('id, title, date, time, location, image_url')
+              .eq('id', payRow.event_id)
+              .maybeSingle();
             event = ev;
           }
 
           renderReceiptUI({
             payment: payRow,
-            student: student,
+            student: null,
             event: event,
             ticket_number: 'NACOS-' + (payRow.event_id ? payRow.event_id.substring(0, 4).toUpperCase() : 'PAY') + '-' + Date.now().toString(36).toUpperCase()
           });
