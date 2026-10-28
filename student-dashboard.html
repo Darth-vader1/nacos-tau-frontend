@@ -1080,19 +1080,22 @@
               <div class="card-body">
                 <div class="row">
                   <div class="col-md-6 mb-3">
-                    <label class="form-label" for="profileYearOfStudy">Year of Study</label>
-                    <select class="form-select" id="profileYearOfStudy">
-                      <option value="">Select Year</option>
+                    <label class="form-label" for="profileCurrentLevel">Current Level</label>
+                    <select class="form-select" id="profileCurrentLevel">
+                      <option value="">Select Level</option>
                       <option value="100">100 Level</option>
                       <option value="200">200 Level</option>
                       <option value="300">300 Level</option>
                       <option value="400">400 Level</option>
+                      <option value="500">500 Level</option>
                     </select>
+                    <small class="text-muted">Direct entry or repeated? Set your actual level</small>
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label" for="profileGraduationYear">Expected Graduation Year</label>
                     <input type="number" class="form-control" id="profileGraduationYear"
                            min="2024" max="2035" placeholder="e.g., 2027">
+                    <small class="text-muted">Estimated year of graduation</small>
                   </div>
                 </div>
               </div>
@@ -1203,7 +1206,7 @@
   <script type="module" src="assets/js/supabase-config.js"></script>
   <script type="module" src="assets/js/api-config.js"></script>
   <script src="assets/js/main.js" defer></script>
-  <script src="assets/js/profile-management.js" defer></script>
+  <script src="assets/js/profile-management.js?v=2.2" defer></script>
   <script type="module">
     import { supabase, checkAuth, signOut, uploadFileToStorage } from './assets/js/supabase-config.js';
     import { api } from './assets/js/api-config.js';
@@ -1390,8 +1393,19 @@
           studentMatricEl.textContent = data.matric_no || 'N/A';
           
           // Display current level with graduation badge if applicable
-          if (data.current_level) {
-            let levelText = `${data.current_level} Level`;
+          let lvl = data.current_level;
+          if (!lvl && data.matric_no) {
+            const m = String(data.matric_no).trim().match(/^(\d{2})\//);
+            if (m) {
+              const entryYear = 2000 + parseInt(m[1], 10);
+              const now = new Date();
+              const acadYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+              const calc = (acadYear - entryYear + 1) * 100;
+              if (calc >= 100 && calc <= 500) lvl = calc;
+            }
+          }
+          if (lvl) {
+            let levelText = `${lvl} Level`;
             if (data.is_graduated) {
               levelText += ' 🎓';
             }

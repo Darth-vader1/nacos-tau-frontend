@@ -184,10 +184,11 @@
         
         // Activate profile in students table
         try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const sessionToken = sessionData?.session?.access_token;
+          const sessionToken = data?.session?.access_token || (await supabase.auth.getSession())?.data?.session?.access_token;
+
           if (sessionToken) {
-            await fetch(`${window.__CONFIG?.apiUrl || window.API_URL || '/api'}/auth/activate-profile`, {
+            const apiBase = (window.__CONFIG?.apiUrl || window.API_URL || '/api').replace(/\/$/, '');
+            await fetch(`${apiBase}/auth/activate-profile`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
