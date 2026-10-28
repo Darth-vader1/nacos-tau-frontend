@@ -1705,17 +1705,35 @@
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script> 
   <script type="module" src="assets/js/supabase-config.js"></script>
-  <script type="module" src="assets/js/api-config.js"></script>
+  <script type="module" src="assets/js/api-config.js?v=2.2"></script>
   <script src="assets/js/main.js"></script>
 
   <script type="module">
     import { supabase, requireAdmin, checkAuth, signOut, DEFAULT_BUCKET_NAME, ensureBucket, uploadFileToStorage } from './assets/js/supabase-config.js';
-    import { api } from './assets/js/api-config.js';
+    import { api } from './assets/js/api-config.js?v=2.2';
 
     // Convenience: also expose on window for code paths that reference
     // window.api (delete event handlers registered via onclick="..." etc
     // run in the outer scope, not inside this ES module).
     window.api = api;
+
+    // Ensure api.students.verify is always defined even if an older api-config.js is cached
+    if (window.api && window.api.students && !window.api.students.verify) {
+      window.api.students.verify = async (studentId, action = 'approve') => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return { success: false, error: 'Not authenticated' };
+        const base = window.API_URL || (window.__CONFIG && window.__CONFIG.apiUrl) || 'https://naco-tau-backend.vercel.app/api';
+        const response = await fetch(`${base}/students/${encodeURIComponent(studentId)}/verify`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({ action })
+        });
+        return response.json();
+      };
+    }
 
     // ============================================
     // UTILITY FUNCTIONS
@@ -2972,7 +2990,21 @@ window.deleteEvent = async function(id) {
           return;
         }
 
-        const res = await api.students.verify(studentId, 'approve');
+        let res;
+        if (typeof api?.students?.verify === 'function') {
+          res = await api.students.verify(studentId, 'approve');
+        } else {
+          const base = window.API_URL || (window.__CONFIG && window.__CONFIG.apiUrl) || 'https://naco-tau-backend.vercel.app/api';
+          const response = await fetch(`${base}/students/${encodeURIComponent(studentId)}/verify`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ action: 'approve' })
+          });
+          res = await response.json();
+        }
         if (!res?.success) {
           Swal.fire('Error', res?.error || 'Failed to approve student', 'error');
           return;

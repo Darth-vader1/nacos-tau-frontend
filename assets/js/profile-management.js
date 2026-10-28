@@ -61,7 +61,7 @@ function calculateProfileCompletion(profile) {
 
   let completed = 0;
   for (const field of fields) {
-    const raw = profile[field];
+    const raw = (field === 'year_of_study') ? (profile.year_of_study || profile.current_level) : profile[field];
     if (Array.isArray(raw)) {
       if (raw.length > 0) completed += 1;
       continue;
@@ -120,7 +120,25 @@ function loadProfileIntoForm(studentData) {
   setVal('profileInstagram', studentData.instagram);
   setVal('profileSnapchat', studentData.snapchat);
   setVal('profilePortfolio', studentData.portfolio_url);
-  setVal('profileYearOfStudy', studentData.year_of_study);
+  // Populate current level
+  let currentLevel = studentData.current_level;
+  if (!currentLevel && studentData.matric_no) {
+    const m = String(studentData.matric_no).trim().match(/^(\d{2})\//);
+    if (m) {
+      const entryYear = 2000 + parseInt(m[1], 10);
+      const now = new Date();
+      const acadYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+      const calc = (acadYear - entryYear + 1) * 100;
+      if (calc >= 100 && calc <= 500) currentLevel = calc;
+    }
+  } else if (!currentLevel && studentData.year_of_study) {
+    const now = new Date();
+    const acadYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+    const calc = (acadYear - studentData.year_of_study + 1) * 100;
+    if (calc >= 100 && calc <= 500) currentLevel = calc;
+  }
+  setVal('profileCurrentLevel', currentLevel);
+  setVal('profileYearOfStudy', currentLevel);
   setVal('profileGraduationYear', studentData.graduation_year);
   setVal('profileVisibility', studentData.visibility || 'students-only');
 
@@ -317,8 +335,17 @@ function setupProfileForm(supabase, showSuccess, showError, loadStudentData) {
           instagram: normalizeUrl(get('profileInstagram')),
           snapchat: get('profileSnapchat').trim() || null,
           portfolio_url: normalizeUrl(get('profilePortfolio')),
-          // year_of_study is calculated from matric number, not user-editable
-          // graduation_year is also calculated, not user-editable
+          current_level: (() => {
+            const el = document.getElementById('profileCurrentLevel') || document.getElementById('profileYearOfStudy');
+            const v = el && el.value ? parseInt(el.value, 10) : null;
+            return (v && !isNaN(v)) ? v : null;
+          })(),
+          graduation_year: (() => {
+            const el = document.getElementById('profileGraduationYear');
+            const v = el && el.value ? parseInt(el.value, 10) : null;
+            return (v && !isNaN(v)) ? v : null;
+          })(),
+
           visibility: document.getElementById('profileVisibility')?.value || 'students-only',
           privacy_settings: {
             show_email: !!document.getElementById('showEmail')?.checked,
