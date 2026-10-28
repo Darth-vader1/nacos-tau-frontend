@@ -17,6 +17,8 @@
   <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- SweetAlert2 JS (CSS alone is not enough) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     :root {
@@ -407,8 +409,7 @@
   <script type="module" src="assets/js/api-config.js"></script>
 
   <script type="module">
-    import { supabase } from './assets/js/supabase-config.js';
-    import { checkAuth } from './assets/js/auth-check.js';
+    import { supabase, checkAuth } from './assets/js/supabase-config.js';
 
     let trendChartInstance = null;
     let categoryChartInstance = null;
@@ -418,7 +419,38 @@
 
     const API_BASE = window.__CONFIG?.apiUrl || window.API_URL || 'https://naco-tau-backend.vercel.app/api';
 
-    document.addEventListener('DOMContentLoaded', async () => {
+    // Expose handlers immediately so inline onclick/onchange attributes always work
+    window.applyFilters = (...a) => applyFilters(...a);
+    window.loadAnalytics = (...a) => loadAnalytics(...a);
+    window.exportData = (...a) => exportData(...a);
+    window.handleLogout = (...a) => handleLogout(...a);
+    window.changePage = (...a) => changePage(...a);
+
+    function showLoadError(message) {
+      const msg = escapeHtml(message || 'Unknown error');
+      document.getElementById('topResourcesTable').innerHTML = `<tr><td colspan="4" class="text-center py-3 text-danger small">${msg}</td></tr>`;
+      document.getElementById('topStudentsTable').innerHTML = `<tr><td colspan="4" class="text-center py-3 text-danger small">${msg}</td></tr>`;
+    }
+
+    function showLogsError(message) {
+      document.getElementById('logCountBadge').textContent = 'Error';
+      document.getElementById('logsTableBody').innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger small">${escapeHtml(message || 'Unknown error')}</td></tr>`;
+    }
+
+    async function fetchJson(url) {
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${authToken}` } });
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch (_) {
+        throw new Error(`Server returned ${res.status}: ${text.slice(0, 120)}`);
+      }
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || json.message || `Request failed (${res.status})`);
+      }
+      return json;
+    }
+
+    const startPage = async () => {
       const session = await checkAuth();
       if (!session) {
         window.location.href = 'admin-login.html';
@@ -438,29 +470,25 @@
 
       document.getElementById('adminUserBadge').innerHTML = `<i class="bi bi-shield-check text-success"></i> ${adminUser.name || 'Admin'}`;
 
-      await loadAnalytics();
-      await loadLogs();
+      // Load overview + logs in parallel so one slow call doesn't block the other
+      await Promise.all([loadAnalytics(), loadLogs()]);
 
       // Enter key on search
       document.getElementById('searchInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') applyFilters();
       });
+    };
 
-      window.applyFilters = applyFilters;
-      window.loadAnalytics = loadAnalytics;
-      window.exportData = exportData;
-      window.handleLogout = handleLogout;
-      window.changePage = changePage;
-    });
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startPage);
+    } else {
+      startPage();
+    }
 
     async function loadAnalytics() {
       const timeframe = document.getElementById('timeframeSelect').value;
       try {
-        const res = await fetch(`${API_BASE}/analytics/overview?timeframe=${encodeURIComponent(timeframe)}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        const json = await res.json();
-        if (!json.success) throw new Error(json.error || 'Failed to load overview');
+        const json = await fetchJson(`${API_BASE}/analytics/overview?timeframe=${encodeURIComponent(timeframe)}`);
 
         const d = json.data;
         document.getElementById('statDownloads').textContent = Number(d.summary.total_downloads || 0).toLocaleString();
@@ -476,6 +504,7 @@
 
       } catch (err) {
         console.error('Analytics load error:', err);
+        showLoadError(`Could not load analytics: ${err.message}`);
       }
     }
 
@@ -596,11 +625,7 @@
       if (department !== 'all') params.set('department', department);
 
       try {
-        const res = await fetch(`${API_BASE}/analytics/logs?${params.toString()}`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        const json = await res.json();
-        if (!json.success) throw new Error(json.error || 'Failed to fetch logs');
+        const json = await fetchJson(`${API_BASE}/analytics/logs?${params.toString()}`);
 
         const logs = json.data.logs || [];
         const total = json.data.pagination?.total || 0;
@@ -646,6 +671,7 @@
 
       } catch (err) {
         console.error('Logs load error:', err);
+        showLogsError(`Could not load activity logs: ${err.message}`);
       }
     }
 
@@ -678,11 +704,26 @@
       loadLogs();
     }
 
-    function exportData() {
+    async function exportData() {
       const type = document.getElementById('typeFilter').value;
       const action = document.getElementById('actionFilter').value;
       const url = `${API_BASE}/analytics/export?resource_type=${encodeURIComponent(type)}&action=${encodeURIComponent(action)}`;
-      window.open(url, '_blank');
+      try {
+        // window.open() can't send the Authorization header, so fetch the CSV as a blob
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${authToken}` } });
+        if (!res.ok) throw new Error(`Export failed (${res.status})`);
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `nacos-resource-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      } catch (err) {
+        if (window.Swal) Swal.fire('Export Error', err.message, 'error');
+        else alert(err.message);
+      }
     }
 
     async function handleLogout() {
