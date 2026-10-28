@@ -556,6 +556,7 @@
     // PREVIEW FUNCTIONALITY
     // ============================================
     window.previewTimetable = function(url, title, id) {
+      if (typeof trackPreview === 'function') trackPreview(id, title);
       const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
       const previewImage = document.getElementById('previewImage');
       const modalTitle = document.getElementById('previewModalTitle');
@@ -563,6 +564,7 @@
       
       modalTitle.textContent = title;
       downloadBtn.href = url;
+      downloadBtn.onclick = () => trackDownload(id, title);
       
       if (isImage) {
         previewImage.src = url;
@@ -592,6 +594,7 @@
     // ============================================
     // TRACKING FUNCTIONS
     // ============================================
+    window.trackPreview = trackPreview;
     window.trackDownload = function(id, title) {
       if (window.trackResourceActivity) {
         window.trackResourceActivity({
