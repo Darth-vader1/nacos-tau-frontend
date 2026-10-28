@@ -2103,7 +2103,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         let activeCount = 0;
         try {
           const activeStudentsRes = await api.students.list({
-            status: 'all',
+            status: 'active',
             page: 1,
             limit: 1
           });
@@ -2113,14 +2113,16 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
             console.warn('[loadDashboardStats] backend student count failed — falling back to anon supabase count:', activeStudentsRes?.error || activeStudentsRes);
             const fallback = await supabase
               .from('students')
-              .select('id', { count: 'exact', head: true });
+              .select('id', { count: 'exact', head: true })
+              .eq('status', 'active');
             activeCount = fallback.count || 0;
           }
         } catch (apiErr) {
           console.warn('[loadDashboardStats] backend student count threw — falling back to anon supabase count:', apiErr);
           const fallback = await supabase
             .from('students')
-            .select('id', { count: 'exact', head: true });
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'active');
           activeCount = fallback.count || 0;
         }
 
