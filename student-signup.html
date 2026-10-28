@@ -413,12 +413,6 @@
         }
 
         function validatePasswordStrength(password) {
-            // Mirror the backend authValidationChains.register rules AND validatePassword() in validators.js
-            //  - min 8 characters
-            //  - uppercase letter
-            //  - lowercase letter
-            //  - digit
-            //  - special character: ! @ # $ % ^ & * ( ) _ + - = [ ] { } ; : ' " , . < > / ? \ | ` ~
             const rules = [
                 { ok: password.length >= 8, text: 'at least 8 characters' },
                 { ok: /[A-Z]/.test(password), text: 'one uppercase letter (A-Z)' },
@@ -484,8 +478,6 @@
             }
 
             const passwordStrength = validatePasswordStrength(passwordInput.value);
-            // Reject anything that does not satisfy ALL 5 backend rules so the form
-            // can never produce "Validation failed" with no visible client-side reason.
             if (passwordInput.value.length > 0 && passwordStrength.failed?.length > 0) {
                 showError(passwordInput, passwordStrength.message);
                 isValid = false;
@@ -586,7 +578,7 @@
         });
 
         // ============================================
-        // FORM SUBMISSION - Backend /api/auth/register first (avoids Supabase RLS-insert issues)
+        // FORM SUBMISSION - Backend /api/auth/register
         // ============================================
 
         function getApiBaseUrl() {
@@ -594,7 +586,7 @@
             if (hostname === 'localhost' || hostname === '127.0.0.1') {
                 return 'http://localhost:5000/api';
             }
-            return 'https://nacos-tau-frontend.onrender.com/api';
+            return 'https://naco-tau-backend.vercel.app/api';
         }
 
         form.addEventListener('submit', async (e) => {
@@ -622,11 +614,10 @@
 
             // Show loading state
             signupButton.disabled = true;
-            signupButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating account...';
+            signupButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating account & sending code...';
 
             try {
                 // 1. Create user + profile via the backend service-role route
-                //    (no RLS needed because the backend uses the service_role Supabase client)
                 const registerResponse = await fetch(`${getApiBaseUrl()}/auth/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -637,15 +628,13 @@
                         lastName,
                         matricNo,
                         department,
-                        course: department // treat department as primary course for now
+                        course: department
                     })
                 });
 
                 const registerBody = await registerResponse.json().catch(() => ({}));
 
                 if (!registerResponse.ok) {
-                    // Backend error: prefer validator's per-field detail map (from express-validator validate())
-                    // otherwise fall back to generic error / status text.
                     console.log('🔍 Backend validation response:', JSON.stringify(registerBody, null, 2));
                     const serverError = registerBody?.error || `Registration failed (HTTP ${registerResponse.status})`;
                     const fieldErrors = registerBody?.fields && typeof registerBody.fields === 'object'
@@ -685,29 +674,20 @@
 
                 console.log('✅ Backend registration success:', registerBody);
 
-                // 2. Bootstrap the Supabase browser session after successful backend provisioning.
-                //    Preferred path: the backend already minted a session via the admin API
-                //    (setSession avoids a second password round-trip / any confirmation-race).
-                //    Fallback path: if the session mint was skipped (transient Supabase issue),
-                //    do a regular password sign-in — this now reliably succeeds because the
-                //    backend calls auth.admin.createUser(..., { email_confirm: true }).
-                let loginSession = null;
-                const prebuilt = registerBody?.data?.session;
-                if (prebuilt && prebuilt.access_token && prebuilt.refresh_token) {
-                    console.log('🔐 Using backend-minted session (setSession path)');
-                    const { data: setData, error: setError } = await supabase.auth.setSession({
-                        access_token: prebuilt.access_token,
-                        refresh_token: prebuilt.refresh_token
-                    });
-                    if (setError) {
-                        console.warn('⚠️ setSession failed, falling back to password login:', setError);
-                    } else {
-                        loginSession = setData?.session || prebuilt;
+                // 2. Ensure Supabase OTP is dispatched immediately if not already sent by the server
+                if (!registerBody?.data?.otpSent) {
+                    try {
+                        await supabase.auth.resend({
+                            type: 'signup',
+                            email: email
+                        });
+                        console.log('✅ Supabase signup OTP dispatched to:', email);
+                    } catch (otpErr) {
+                        console.warn('⚠️ Supabase OTP auto-resend notice:', otpErr);
                     }
                 }
 
-                // Since OTP verification is required, loginSession will always be null here.
-                // Redirect straight to verification page instead of trying to auto-login.
+                // 3. Show notification and redirect directly to verification page
                 await Swal.fire({
                     title: 'Registration Successful! 🎉',
                     text: `Welcome ${fullName}! We've sent a 6-digit verification code to ${email}. Please check your inbox.`,
