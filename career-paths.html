@@ -267,23 +267,21 @@
   <div class="back-to-top" id="backToTop">
     <i class="bi bi-arrow-up"></i>
   </div>
-<!--Vendor Js files-->
+
+  <!-- Vendor Js files -->
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="assets/vendor/aos/aos.js"></script>
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script> 
   <script src="assets/js/main.js"></script>
+  <script src="assets/js/tracker.js"></script>
   <script type="module" src="assets/js/supabase-config.js"></script>
   <script type="module" src="assets/js/api-config.js"></script>
 
-
-
   <script type="module">
     import { supabase } from './assets/js/supabase-config.js';
-  import { requireStudentAuth } from './assets/js/auth-check.js';
-  requireStudentAuth();
-
-
+    import { requireStudentAuth } from './assets/js/auth-check.js';
+    requireStudentAuth();
 
     // ============================================
     // CONFIGURATION
@@ -319,11 +317,9 @@
     // INITIALIZATION
     // ============================================
     document.addEventListener('DOMContentLoaded', function() {
-      // Check URL for career path parameter (deep linking)
       const urlParams = new URLSearchParams(window.location.search);
       const careerParam = urlParams.get('path');
       if (careerParam) {
-        // Will load after data is fetched
         loadCareerPaths(careerParam);
       } else {
         loadCareerPaths();
@@ -379,7 +375,6 @@
           showCareerDetail(highlightPath);
         }
         
-        // Track page view
         trackPageView();
         
       } catch (error) {
@@ -455,7 +450,6 @@
       }
 
       container.innerHTML = filteredCareers.map(career => {
-        // Determine metadata based on category
         const categoryColors = {
           'Development': { icon: 'bi-code-slash', color: '#1b8c0c', bgColor: '#e8f5e9' },
           'Data Science': { icon: 'bi-graph-up', color: '#1976d2', bgColor: '#e3f2fd' },
@@ -509,7 +503,6 @@
       const career = allCareers.find(c => c.id === careerId);
       if (!career) return;
 
-      // Determine metadata based on category
       const categoryColors = {
         'Development': { icon: 'bi-code-slash', color: '#1b8c0c', bgColor: '#e8f5e9', description: 'Build software applications and systems' },
         'Data Science': { icon: 'bi-graph-up', color: '#1976d2', bgColor: '#e3f2fd', description: 'Analyze data and extract insights' },
@@ -536,7 +529,6 @@
       const tools = career.tools || [];
       const resources = career.resources || [];
       
-      // Parse roadmap if it's a string or JSONB, otherwise use default
       let roadmap = defaultRoadmap;
       if (career.roadmap) {
         try {
@@ -551,10 +543,8 @@
         }
       }
 
-      // Update breadcrumb
       breadcrumbTitle.textContent = career.title;
 
-      // Render detail view
       careerContentDiv.innerHTML = `
         <div class="text-center mb-4">
           <div class="career-icon" style="background: ${meta.bgColor}; color: ${meta.color}; width: 100px; height: 100px; font-size: 48px; margin: 0 auto;">
@@ -621,9 +611,9 @@
                   <h4 class="mb-3"><i class="bi bi-link-45deg me-2"></i>External Resources</h4>
                   <div class="list-group list-group-flush">
                     ${resources.map(r => `
-                      <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="list-group-item list-group-item-action resource-link" onclick="event.stopPropagation(); trackResourceClick('${escapeHtml(career.id)}', '${escapeHtml(r.name)}')">
+                      <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener noreferrer" class="list-group-item list-group-item-action resource-link" onclick="event.stopPropagation(); trackResourceClick('${escapeHtml(career.id)}', '${escapeHtml(r.name || r.title || 'Resource')}')">
                         <i class="bi bi-box-arrow-up-right me-2" style="color: ${meta.color};"></i>
-                        ${escapeHtml(r.name)}
+                        ${escapeHtml(r.name || r.title || 'External Link')}
                       </a>
                     `).join('')}
                   </div>
@@ -634,35 +624,28 @@
         </div>
       `;
 
-      // Hide container, show detail
       container.style.display = 'none';
       careerDetailDiv.style.display = 'block';
       
-      // Update URL without reload
       const url = new URL(window.location);
       url.searchParams.set('path', careerId);
       window.history.pushState({}, '', url);
       
-      // Scroll to top
       window.scrollTo({ top: 300, behavior: 'smooth' });
       
-      // Track career view
       trackCareerView(careerId, career.title);
     };
 
-    // Make function global for onclick
     window.showCareerDetail = showCareerDetail;
 
     window.hideCareerDetail = function() {
       careerDetailDiv.style.display = 'none';
       container.style.display = 'block';
       
-      // Remove from URL
       const url = new URL(window.location);
       url.searchParams.delete('path');
       window.history.pushState({}, '', url);
       
-      // Refresh AOS for new elements
       AOS.refresh();
     };
 
@@ -671,6 +654,14 @@
     // ============================================
     function trackCareerView(pathKey, title) {
       try {
+        if (window.trackResourceActivity) {
+          window.trackResourceActivity({
+            resource_type: 'career_path',
+            resource_id: pathKey,
+            resource_title: title || 'Career Path',
+            action: 'view'
+          });
+        }
         const views = JSON.parse(localStorage.getItem('career_views') || '{}');
         views[pathKey] = views[pathKey] || { count: 0, title: title };
         views[pathKey].count++;
@@ -685,6 +676,14 @@
 
     window.trackResourceClick = function(pathKey, resourceName) {
       try {
+        if (window.trackResourceActivity) {
+          window.trackResourceActivity({
+            resource_type: 'career_path',
+            resource_id: pathKey,
+            resource_title: `${resourceName} (${pathKey})`,
+            action: 'view'
+          });
+        }
         const clicks = JSON.parse(localStorage.getItem('career_resource_clicks') || '{}');
         const key = `${pathKey}_${resourceName}`;
         clicks[key] = clicks[key] || { count: 0, path: pathKey, resource: resourceName };
@@ -712,7 +711,6 @@
       return div.innerHTML;
     }
 
-    // Handle browser back/forward buttons
     window.addEventListener('popstate', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const careerParam = urlParams.get('path');
@@ -725,7 +723,6 @@
       }
     });
 
-    // Refresh data every 15 minutes
     setInterval(() => {
       if (!isLoading && careerDetailDiv.style.display !== 'block') {
         loadCareerPaths();
