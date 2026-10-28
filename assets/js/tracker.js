@@ -42,6 +42,22 @@
         accessToken = session?.access_token || null;
       }
 
+      // Fallback: search localStorage if Supabase client not mounted yet
+      if (!accessToken) {
+        try {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              const item = JSON.parse(localStorage.getItem(key) || '{}');
+              if (item.access_token) {
+                accessToken = item.access_token;
+                break;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
       const headers = { 'Content-Type': 'application/json' };
       if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
