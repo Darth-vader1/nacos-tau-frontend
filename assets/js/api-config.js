@@ -150,6 +150,22 @@ export const api = {
                 headers: { 'Authorization': `Bearer ${session.access_token}` }
             });
             return response.json();
+        },
+
+        async verify(studentId, action = 'approve') {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                return { success: false, error: 'Not authenticated' };
+            }
+            const response = await fetch(`${API_URL}/students/${encodeURIComponent(studentId)}/verify`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ action })
+            });
+            return response.json();
         }
     },
 

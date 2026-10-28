@@ -783,7 +783,7 @@
             <span><i class="bi bi-people me-2"></i>Students Directory</span>
             <div class="btn-group btn-group-sm">
               <button class="btn btn-outline-secondary active" data-student-filter="active">Active</button>
-              <button class="btn btn-outline-secondary" data-student-filter="rejected">Rejected</button>
+              <button class="btn btn-outline-secondary" data-student-filter="pending">Pending</button>
               <button class="btn btn-outline-secondary" data-student-filter="all">All</button>
             </div>
           </div>
@@ -2854,6 +2854,22 @@ window.deleteEvent = async function(id) {
       }
     }
     
+    function getComputedStudentLevel(s) {
+      if (s.current_level) return s.current_level;
+      if (s.matric_no) {
+        const m = String(s.matric_no).trim().match(/^(\d{2})\//);
+        if (m) {
+          const entryYear = 2000 + parseInt(m[1], 10);
+          const now = new Date();
+          const currentAcadYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+          const diff = currentAcadYear - entryYear;
+          const calc = (diff + 1) * 100;
+          if (calc >= 100 && calc <= 500) return calc;
+        }
+      }
+      return null;
+    }
+
     function filterAndDisplayStudents() {
       const searchInput = document.getElementById('studentSearchInput');
       const deptFilter = document.getElementById('studentDeptFilter');
@@ -2877,7 +2893,8 @@ window.deleteEvent = async function(id) {
         const matchesDept = !selectedDept || (s.department === selectedDept);
         
         // Level filter
-        const matchesLevel = !selectedLevel || (String(s.current_level) === selectedLevel);
+        const studentLevel = getComputedStudentLevel(s);
+        const matchesLevel = !selectedLevel || (String(studentLevel) === selectedLevel);
         
         return matchesSearch && matchesDept && matchesLevel;
       });
@@ -2898,14 +2915,18 @@ window.deleteEvent = async function(id) {
       }
 
       tbody.innerHTML = filtered.map(s => {
-        let badgeClass = 'bg-warning';
-        if (s.status === 'active') badgeClass = 'bg-success';
-        if (s.status === 'rejected') badgeClass = 'bg-danger';
+        const st = String(s.status || 'pending').toLowerCase();
+        let badgeClass = 'bg-secondary';
+        if (st === 'active') badgeClass = 'bg-success';
+        else if (st === 'pending') badgeClass = 'bg-warning text-dark';
+        else if (st === 'rejected') badgeClass = 'bg-danger';
+        else if (st === 'banned') badgeClass = 'bg-dark';
         
         // Display current_level (dynamically calculated) or "Not Set"
         let levelDisplay = '<span class="text-muted">Not Set</span>';
-        if (s.current_level) {
-          levelDisplay = `${s.current_level} Level`;
+        const computedLvl = getComputedStudentLevel(s);
+        if (computedLvl) {
+          levelDisplay = `${computedLvl} Level`;
           // Add graduation badge if graduated
           if (s.is_graduated) {
             levelDisplay += ' <span class="badge bg-info text-dark ms-1" title="Graduated">🎓</span>';
@@ -2919,8 +2940,9 @@ window.deleteEvent = async function(id) {
             <td>${escapeHtml(s.matric_no)}</td>
             <td>${escapeHtml(s.department)}</td>
             <td>${levelDisplay}</td>
-            <td><span class="badge ${badgeClass}">${s.status || 'active'}</span></td>
+            <td><span class="badge ${badgeClass}">${escapeHtml(st)}</span></td>
             <td>
+              ${st === 'pending' ? `<button class="btn btn-sm btn-outline-success me-1" onclick="approveStudent('${s.id}')" title="Approve Student"><i class="bi bi-check-circle"></i> Approve</button>` : ''}
               <button class="btn btn-sm btn-outline-danger" onclick="deleteStudent('${s.id}')"><i class="bi bi-trash"></i> Delete</button>
             </td>
           </tr>
@@ -2932,6 +2954,39 @@ window.deleteEvent = async function(id) {
     // All registered students are auto-activated on signup and redirected to their dashboard.
     // Admins can still ban / un-ban via a future PUT /students/:id/ban endpoint if needed.
     
+    window.approveStudent = async function(studentId) {
+      try {
+        const result = await Swal.fire({
+          title: 'Approve Student?',
+          text: 'This will activate the student account.',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#1b8c0c',
+          confirmButtonText: 'Approve & Activate'
+        });
+        if (!result.isConfirmed) return;
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          Swal.fire('Error', 'You must be logged in to approve students', 'error');
+          return;
+        }
+
+        const res = await api.students.verify(studentId, 'approve');
+        if (!res?.success) {
+          Swal.fire('Error', res?.error || 'Failed to approve student', 'error');
+          return;
+        }
+        await logAdminAction('APPROVE_STUDENT', 'students', studentId);
+        Swal.fire('Approved', 'Student has been activated', 'success');
+        loadStudents(currentStudentFilter);
+        loadDashboardStats();
+      } catch (error) {
+        console.error('[approveStudent] fatal:', error);
+        Swal.fire('Error', error?.message || 'Failed to approve student', 'error');
+      }
+    };
+
     window.deleteStudent = async function(studentId) {
       try {
         const result = await Swal.fire({
