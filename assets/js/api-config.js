@@ -498,6 +498,48 @@ export const api = {
             });
             return response.json();
         }
+    },
+
+    analytics: {
+        async track(data) {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const headers = { 'Content-Type': 'application/json' };
+                if (session?.access_token) {
+                    headers['Authorization'] = `Bearer ${session.access_token}`;
+                }
+                const response = await fetch(`${API_URL}/analytics/track`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(data)
+                });
+                return response.json();
+            } catch (err) {
+                console.warn('Analytics tracking error:', err);
+                return { success: false };
+            }
+        },
+
+        async getOverview(timeframe = '30d') {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`${API_URL}/analytics/overview?timeframe=${encodeURIComponent(timeframe)}`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            return response.json();
+        },
+
+        async getLogs(params = {}) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const qs = new URLSearchParams(params).toString();
+            const response = await fetch(`${API_URL}/analytics/logs?${qs}`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            return response.json();
+        }
     }
 };
 

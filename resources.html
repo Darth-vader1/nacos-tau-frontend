@@ -286,6 +286,7 @@
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script> 
   <script src="assets/js/main.js"></script>
+  <script src="assets/js/tracker.js"></script>
   <script type="module" src="assets/js/supabase-config.js"></script>
 
 
@@ -713,6 +714,14 @@
     // TRACKING FUNCTIONS
     // ============================================
     window.trackResourceClick = function(id, title) {
+      if (window.trackResourceActivity) {
+        window.trackResourceActivity({
+          resource_type: 'academic_resource',
+          resource_id: id,
+          resource_title: title || 'Academic Resource',
+          action: 'view'
+        });
+      }
       try {
         // Track in localStorage for analytics
         const clicks = JSON.parse(localStorage.getItem('resource_clicks') || '{}');

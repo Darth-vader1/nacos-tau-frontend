@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Analytics - NACOS Admin</title>
+
+  <!-- Favicons -->
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- SweetAlert2 -->
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --primary-color: #1b8c0c;
+      --secondary-color: #0d5a07;
+      --danger-color: #dc3545;
+      --warning-color: #ffc107;
+      --info-color: #0dcaf0;
+    }
+
+    body {
+      background-color: #f8fbfc;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+    }
+
+    .navbar {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .navbar-brand {
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: white !important;
+    }
+
+    .main-container {
+      max-width: 1440px;
+      margin: 2rem auto;
+      padding: 0 1.25rem;
+    }
+
+    .stats-card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      border: 1px solid #edf2f7;
+      margin-bottom: 1rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stats-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.09);
+    }
+
+    .stat-icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .stat-value {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #1a202c;
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      color: #718096;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .chart-card, .table-card, .filters-card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      border: 1px solid #edf2f7;
+      margin-bottom: 1.5rem;
+    }
+
+    .table thead th {
+      background-color: #f8fafc;
+      border-bottom: 2px solid #e2e8f0;
+      color: #4a5568;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .action-badge {
+      font-size: 0.72rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-download { background-color: #dcfce7; color: #15803d; }
+    .badge-view { background-color: #e0f2fe; color: #0369a1; }
+    .badge-save { background-color: #f3e8ff; color: #7e22ce; }
+
+    .category-pill {
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .cat-pq { background: #fee2e2; color: #b91c1c; }
+    .cat-resource { background: #dbeafe; color: #1d4ed8; }
+    .cat-timetable { background: #fef3c7; color: #b45309; }
+    .cat-career { background: #f3e8ff; color: #6b21a8; }
+    .cat-other { background: #f1f5f9; color: #475569; }
+
+    .btn-export {
+      background: #1b8c0c;
+      color: white;
+      border: none;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 8px 16px;
+    }
+    .btn-export:hover {
+      background: #0d5c08;
+      color: white;
+    }
+
+    .loading-spinner {
+      text-align: center;
+      padding: 3rem 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="admin-dashboard.html">
+        <img src="assets/img/tau_logo-removebg-preview.png" alt="Logo" width="34" height="34">
+        <span>NACOS Admin</span>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-dismiss="collapse" data-bs-target="#navContent">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="admin-dashboard.html"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="admin-analytics.html"><i class="bi bi-bar-chart-fill me-1"></i> Resource Analytics</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-audit-logs.html"><i class="bi bi-clock-history me-1"></i> Audit Logs</a>
+          </li>
+        </ul>
+        <div class="d-flex align-items-center gap-2">
+          <span class="text-white small me-2" id="adminUserBadge"><i class="bi bi-person-circle"></i> Admin</span>
+          <button class="btn btn-sm btn-outline-light" onclick="handleLogout()"><i class="bi bi-box-arrow-right"></i> Logout</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-container">
+
+    <!-- Header & Timeframe Bar -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+      <div>
+        <h3 class="fw-bold mb-1"><i class="bi bi-graph-up-arrow text-success me-2"></i>Resource Activity & Download Analytics</h3>
+        <p class="text-muted mb-0 small">Real-time tracking of who views, downloads, and saves Past Questions, Academic Resources, Timetables & Career Paths.</p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <select class="form-select form-select-sm" id="timeframeSelect" style="width: 140px;" onchange="loadAnalytics()">
+          <option value="today">Today</option>
+          <option value="7d">Last 7 Days</option>
+          <option value="30d" selected>Last 30 Days</option>
+          <option value="all">All Time</option>
+        </select>
+        <button class="btn btn-sm btn-export" onclick="exportData()"><i class="bi bi-download me-1"></i> Export CSV</button>
+      </div>
+    </div>
+
+    <!-- 4 KPI Stat Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-lg-3 col-md-6">
+        <div class="stats-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="stat-label">Total Downloads</span>
+            <div class="stat-icon-wrap" style="background: #dcfce7; color: #16a34a;"><i class="bi bi-cloud-arrow-down-fill"></i></div>
+          </div>
+          <div class="stat-value" id="statDownloads">0</div>
+          <div class="text-muted small mt-1">PDFs & files grabbed</div>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-6">
+        <div class="stats-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="stat-label">Total Views</span>
+            <div class="stat-icon-wrap" style="background: #e0f2fe; color: #0284c7;"><i class="bi bi-eye-fill"></i></div>
+          </div>
+          <div class="stat-value" id="statViews">0</div>
+          <div class="text-muted small mt-1">Resource page previews</div>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-6">
+        <div class="stats-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="stat-label">Active Students</span>
+            <div class="stat-icon-wrap" style="background: #fef3c7; color: #d97706;"><i class="bi bi-people-fill"></i></div>
+          </div>
+          <div class="stat-value" id="statStudents">0</div>
+          <div class="text-muted small mt-1">Unique student attendees</div>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-6">
+        <div class="stats-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="stat-label">Career Paths Engaged</span>
+            <div class="stat-icon-wrap" style="background: #f3e8ff; color: #9333ea;"><i class="bi bi-compass-fill"></i></div>
+          </div>
+          <div class="stat-value" id="statCareer">0</div>
+          <div class="text-muted small mt-1">Roadmaps explored</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+      <div class="col-lg-8">
+        <div class="chart-card h-100">
+          <h5 class="fw-bold mb-3"><i class="bi bi-activity text-success me-2"></i>Activity Trend Over Time</h5>
+          <div style="height: 280px; position: relative;">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="chart-card h-100">
+          <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart text-primary me-2"></i>Engagement by Category</h5>
+          <div style="height: 280px; position: relative;">
+            <canvas id="categoryChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Leaders Row -->
+    <div class="row g-4 mb-4">
+      <div class="col-lg-6">
+        <div class="table-card h-100">
+          <h5 class="fw-bold mb-3"><i class="bi bi-trophy text-warning me-2"></i>Top 5 Most Downloaded Resources</h5>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+              <thead>
+                <tr>
+                  <th>Resource Title</th>
+                  <th>Category</th>
+                  <th class="text-center">Downloads</th>
+                  <th class="text-center">Views</th>
+                </tr>
+              </thead>
+              <tbody id="topResourcesTable">
+                <tr><td colspan="4" class="text-center py-3 text-muted">Loading top resources...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="table-card h-100">
+          <h5 class="fw-bold mb-3"><i class="bi bi-award text-success me-2"></i>Most Engaged Students</h5>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Matric No</th>
+                  <th>Department / Level</th>
+                  <th class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="topStudentsTable">
+                <tr><td colspan="4" class="text-center py-3 text-muted">Loading active students...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="filters-card">
+      <h6 class="fw-bold text-success mb-3"><i class="bi bi-funnel me-1"></i>Filter Resource Activity Stream</h6>
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">Search (Student, Matric, Title, Course)</label>
+          <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="e.g. CSC 201, Emmanuel...">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-bold">Category</label>
+          <select class="form-select form-select-sm" id="typeFilter">
+            <option value="all">All Categories</option>
+            <option value="past_question">Past Questions</option>
+            <option value="academic_resource">Academic Resources</option>
+            <option value="timetable">Timetables</option>
+            <option value="career_path">Career Paths</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-bold">Action</label>
+          <select class="form-select form-select-sm" id="actionFilter">
+            <option value="all">All Actions</option>
+            <option value="download">Downloads Only</option>
+            <option value="view">Views Only</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">Department</label>
+          <select class="form-select form-select-sm" id="departmentFilter">
+            <option value="all">All Departments</option>
+            <option value="Computer Science">Computer Science</option>
+            <option value="Software Engineering">Software Engineering</option>
+            <option value="Cyber Security">Cyber Security</option>
+            <option value="Information Technology">Information Technology</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-sm btn-success w-100 fw-bold" onclick="applyFilters()"><i class="bi bi-search me-1"></i> Filter</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Log Stream Table -->
+    <div class="table-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-list-columns-reverse text-success me-2"></i>Student Activity Logs</h5>
+        <span class="badge bg-light text-dark border px-3 py-2" id="logCountBadge">Loading records...</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Student Identity</th>
+              <th>Matric No</th>
+              <th>Dept & Level</th>
+              <th>Category</th>
+              <th>Resource Engaged</th>
+              <th>Action</th>
+              <th>Device / IP</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody">
+            <tr><td colspan="8" class="text-center py-4 text-muted">Loading activity stream...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Controls -->
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4">
+        <span class="small text-muted" id="pageInfoSpan">Page 1</span>
+        <ul class="pagination pagination-sm mb-0" id="paginationUl"></ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/env.js"></script>
+  <script src="assets/js/security.js"></script>
+  <script type="module" src="assets/js/supabase-config.js"></script>
+  <script type="module" src="assets/js/api-config.js"></script>
+
+  <script type="module">
+    import { supabase } from './assets/js/supabase-config.js';
+    import { checkAuth } from './assets/js/auth-check.js';
+
+    let trendChartInstance = null;
+    let categoryChartInstance = null;
+    let currentPage = 1;
+    let currentLimit = 25;
+    let authToken = null;
+
+    const API_BASE = window.__CONFIG?.apiUrl || window.API_URL || 'https://naco-tau-backend.vercel.app/api';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const session = await checkAuth();
+      if (!session) {
+        window.location.href = 'admin-login.html';
+        return;
+      }
+
+      authToken = session.access_token;
+      
+      // Verify Admin
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: adminUser } = await supabase.from('admin_users').select('*').eq('user_id', user.id).maybeSingle();
+      if (!adminUser) {
+        Swal.fire('Access Denied', 'You do not have administrative permissions.', 'error');
+        setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+        return;
+      }
+
+      document.getElementById('adminUserBadge').innerHTML = `<i class="bi bi-shield-check text-success"></i> ${adminUser.name || 'Admin'}`;
+
+      await loadAnalytics();
+      await loadLogs();
+
+      // Enter key on search
+      document.getElementById('searchInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') applyFilters();
+      });
+
+      window.applyFilters = applyFilters;
+      window.loadAnalytics = loadAnalytics;
+      window.exportData = exportData;
+      window.handleLogout = handleLogout;
+      window.changePage = changePage;
+    });
+
+    async function loadAnalytics() {
+      const timeframe = document.getElementById('timeframeSelect').value;
+      try {
+        const res = await fetch(`${API_BASE}/analytics/overview?timeframe=${encodeURIComponent(timeframe)}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Failed to load overview');
+
+        const d = json.data;
+        document.getElementById('statDownloads').textContent = Number(d.summary.total_downloads || 0).toLocaleString();
+        document.getElementById('statViews').textContent = Number(d.summary.total_views || 0).toLocaleString();
+        document.getElementById('statStudents').textContent = Number(d.summary.unique_students_active || 0).toLocaleString();
+        
+        const careerActivity = (d.by_resource_type?.career_path?.views || 0) + (d.by_resource_type?.career_path?.saves || 0);
+        document.getElementById('statCareer').textContent = Number(careerActivity).toLocaleString();
+
+        renderCharts(d);
+        renderTopResources(d.top_resources || []);
+        renderTopStudents(d.top_students || []);
+
+      } catch (err) {
+        console.error('Analytics load error:', err);
+      }
+    }
+
+    function renderCharts(data) {
+      // 1. Timeline Trend
+      const trendCtx = document.getElementById('trendChart').getContext('2d');
+      const timeline = data.timeline || [];
+      const labels = timeline.map(t => t.date);
+      const viewsData = timeline.map(t => t.views);
+      const dlData = timeline.map(t => t.downloads);
+
+      if (trendChartInstance) trendChartInstance.destroy();
+      trendChartInstance = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+          labels: labels.length ? labels : ['No Data'],
+          datasets: [
+            {
+              label: 'Downloads',
+              data: dlData.length ? dlData : [0],
+              borderColor: '#16a34a',
+              backgroundColor: 'rgba(22, 163, 74, 0.1)',
+              fill: true,
+              tension: 0.3
+            },
+            {
+              label: 'Views',
+              data: viewsData.length ? viewsData : [0],
+              borderColor: '#0284c7',
+              backgroundColor: 'rgba(2, 132, 199, 0.1)',
+              fill: true,
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } },
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+      });
+
+      // 2. Category Pie
+      const catCtx = document.getElementById('categoryChart').getContext('2d');
+      const byType = data.by_resource_type || {};
+      const catLabels = ['Past Questions', 'Academic Resources', 'Timetables', 'Career Paths'];
+      const catCounts = [
+        byType.past_question?.total || 0,
+        byType.academic_resource?.total || 0,
+        byType.timetable?.total || 0,
+        byType.career_path?.total || 0
+      ];
+
+      if (categoryChartInstance) categoryChartInstance.destroy();
+      categoryChartInstance = new Chart(catCtx, {
+        type: 'doughnut',
+        data: {
+          labels: catLabels,
+          datasets: [{
+            data: catCounts,
+            backgroundColor: ['#ef4444', '#3b82f6', '#f59e0b', '#a855f7']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    function renderTopResources(list) {
+      const tb = document.getElementById('topResourcesTable');
+      if (!list.length) {
+        tb.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No resource engagement recorded yet.</td></tr>';
+        return;
+      }
+      tb.innerHTML = list.slice(0, 5).map(r => `
+        <tr>
+          <td><strong class="text-dark">${escapeHtml(r.title)}</strong> ${r.course_code ? `<span class="badge bg-secondary ms-1">${escapeHtml(r.course_code)}</span>` : ''}</td>
+          <td><span class="category-pill ${getCategoryClass(r.type)}">${formatCategory(r.type)}</span></td>
+          <td class="text-center"><span class="badge bg-success">${r.downloads || 0}</span></td>
+          <td class="text-center"><span class="badge bg-info text-dark">${r.views || 0}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderTopStudents(list) {
+      const tb = document.getElementById('topStudentsTable');
+      if (!list.length) {
+        tb.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No student downloads recorded yet.</td></tr>';
+        return;
+      }
+      tb.innerHTML = list.slice(0, 5).map(s => `
+        <tr>
+          <td><strong>${escapeHtml(s.name)}</strong></td>
+          <td><code>${escapeHtml(s.matric_no)}</code></td>
+          <td><span class="small text-muted">${escapeHtml(s.department)} (${s.level ? s.level + 'L' : 'N/A'})</span></td>
+          <td class="text-center"><span class="badge bg-dark">${s.total || 0}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadLogs() {
+      const search = document.getElementById('searchInput').value;
+      const type = document.getElementById('typeFilter').value;
+      const action = document.getElementById('actionFilter').value;
+      const department = document.getElementById('departmentFilter').value;
+
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: currentLimit
+      });
+      if (search) params.set('search', search);
+      if (type !== 'all') params.set('resource_type', type);
+      if (action !== 'all') params.set('action', action);
+      if (department !== 'all') params.set('department', department);
+
+      try {
+        const res = await fetch(`${API_BASE}/analytics/logs?${params.toString()}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Failed to fetch logs');
+
+        const logs = json.data.logs || [];
+        const total = json.data.pagination?.total || 0;
+        const totalPages = json.data.pagination?.total_pages || 1;
+
+        document.getElementById('logCountBadge').textContent = `${total} Total Events`;
+        document.getElementById('pageInfoSpan').textContent = `Page ${currentPage} of ${totalPages} (${total} items)`;
+
+        const tbody = document.getElementById('logsTableBody');
+        if (!logs.length) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No matching activities found for selected filters.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = logs.map(item => {
+          const dateStr = item.created_at ? new Date(item.created_at).toLocaleString('en-NG', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A';
+          const isGuest = !item.matric_no && item.student_name === 'Guest Visitor';
+          return `
+            <tr>
+              <td class="small text-muted text-nowrap">${dateStr}</td>
+              <td>
+                <div class="fw-bold ${isGuest ? 'text-secondary fst-italic' : 'text-dark'}">${escapeHtml(item.student_name || 'Guest')}</div>
+                ${item.student_email ? `<div class="small text-muted">${escapeHtml(item.student_email)}</div>` : ''}
+              </td>
+              <td>${item.matric_no ? `<code>${escapeHtml(item.matric_no)}</code>` : '<span class="text-muted small">—</span>'}</td>
+              <td class="small text-nowrap">${item.department ? `${escapeHtml(item.department)} ${item.level ? `<span class="badge bg-light text-dark border ms-1">${item.level}L</span>` : ''}` : '<span class="text-muted">—</span>'}</td>
+              <td><span class="category-pill ${getCategoryClass(item.resource_type)}">${formatCategory(item.resource_type)}</span></td>
+              <td>
+                <div class="fw-semibold text-dark">${escapeHtml(item.resource_title)}</div>
+                ${item.course_code ? `<span class="badge bg-secondary small">${escapeHtml(item.course_code)}</span>` : ''}
+              </td>
+              <td>
+                <span class="action-badge ${getActionBadgeClass(item.action)}">
+                  <i class="bi ${getActionIcon(item.action)}"></i> ${item.action}
+                </span>
+              </td>
+              <td class="small text-muted text-nowrap"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(item.ip_address || 'Unknown')}</td>
+            </tr>
+          `;
+        }).join('');
+
+        renderPagination(totalPages);
+
+      } catch (err) {
+        console.error('Logs load error:', err);
+      }
+    }
+
+    function renderPagination(totalPages) {
+      const ul = document.getElementById('paginationUl');
+      if (totalPages <= 1) {
+        ul.innerHTML = '';
+        return;
+      }
+      let html = '';
+      if (currentPage > 1) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">«</a></li>`;
+      }
+      for (let p = Math.max(1, currentPage - 2); p <= Math.min(totalPages, currentPage + 2); p++) {
+        html += `<li class="page-item ${p === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="changePage(${p}); return false;">${p}</a></li>`;
+      }
+      if (currentPage < totalPages) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">»</a></li>`;
+      }
+      ul.innerHTML = html;
+    }
+
+    function changePage(p) {
+      currentPage = p;
+      loadLogs();
+    }
+
+    function applyFilters() {
+      currentPage = 1;
+      loadLogs();
+    }
+
+    function exportData() {
+      const type = document.getElementById('typeFilter').value;
+      const action = document.getElementById('actionFilter').value;
+      const url = `${API_BASE}/analytics/export?resource_type=${encodeURIComponent(type)}&action=${encodeURIComponent(action)}`;
+      window.open(url, '_blank');
+    }
+
+    async function handleLogout() {
+      await supabase.auth.signOut();
+      window.location.href = 'admin-login.html';
+    }
+
+    function getCategoryClass(t) {
+      if (t === 'past_question') return 'cat-pq';
+      if (t === 'academic_resource') return 'cat-resource';
+      if (t === 'timetable') return 'cat-timetable';
+      if (t === 'career_path') return 'cat-career';
+      return 'cat-other';
+    }
+
+    function formatCategory(t) {
+      if (t === 'past_question') return 'Past Question';
+      if (t === 'academic_resource') return 'Academic Resource';
+      if (t === 'timetable') return 'Timetable';
+      if (t === 'career_path') return 'Career Path';
+      return 'General';
+    }
+
+    function getActionBadgeClass(a) {
+      if (a === 'download') return 'badge-download';
+      if (a === 'view') return 'badge-view';
+      if (a === 'save') return 'badge-save';
+      return 'badge-view';
+    }
+
+    function getActionIcon(a) {
+      if (a === 'download') return 'bi-download';
+      if (a === 'view') return 'bi-eye';
+      if (a === 'save') return 'bi-bookmark-check';
+      return 'bi-activity';
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const d = document.createElement('div');
+      d.textContent = text;
+      return d.innerHTML;
+    }
+  </script>
+</body>
+</html>

@@ -769,7 +769,7 @@
             Swal.fire({
               title: 'Verification In Progress',
               html: `
-                <p>${escapeHtml(err.message || 'Your bank transfer is being confirmed by the payment gateway.')}</p>
+                <p>${escapeHtml(err.message && !err.message.includes('not defined') && !err.message.includes('TypeError') ? err.message : 'Your bank transfer is being confirmed by the payment gateway.')}</p>
                 <p class="small text-muted">If you were already debited, your admission pass will be automatically credited once Bachs completes interbank settlement.</p>
               `,
               icon: 'info',

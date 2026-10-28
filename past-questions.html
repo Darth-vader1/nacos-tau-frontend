@@ -222,6 +222,7 @@
   <script type="module" src="assets/js/supabase-config.js"></script>
   <script type="module" src="assets/js/api-config.js"></script>
   <script src="assets/js/main.js"></script>
+  <script src="assets/js/tracker.js"></script>
 
 
   <script type="module">
@@ -389,7 +390,7 @@
 
       container.innerHTML = questions.map(q => `
         <div class="col-lg-4 col-md-6">
-          <div class="card resource-card" onclick="window.downloadQuestion('${escapeHtml(q.id)}', '${escapeHtml(q.file_url)}', '${escapeHtml(q.course_code)}')">
+          <div class="card resource-card" onclick="window.viewQuestion('${escapeHtml(q.id)}', '${escapeHtml(q.file_url)}', '${escapeHtml(q.course_code)}', '${escapeHtml(q.title || q.course_name)}')">
             <div class="card-body text-center p-4">
               <i class="bi bi-file-earmark-pdf file-icon mb-3"></i>
               <h5 class="card-title">${escapeHtml(q.course_code)}</h5>
@@ -399,7 +400,7 @@
                 <span class="badge bg-secondary ms-2">${escapeHtml(q.semester)}</span>
               </div>
               <p class="small text-muted mb-3">${escapeHtml(q.title)}</p>
-              <a href="${escapeHtml(q.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background-color: #1b8c0c; border-color: #1b8c0c; color: white;" onclick="event.stopPropagation(); trackDownload('${escapeHtml(q.id)}', '${escapeHtml(q.course_code)}')">
+              <a href="${escapeHtml(q.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background-color: #1b8c0c; border-color: #1b8c0c; color: white;" onclick="event.stopPropagation(); trackDownload('${escapeHtml(q.id)}', '${escapeHtml(q.course_code)}', '${escapeHtml(q.title || q.course_name)}')">
                 <i class="bi bi-download me-1"></i> Download PDF
               </a>
             </div>
@@ -409,8 +410,21 @@
     }
 
     // Make download function global for onclick
-    window.downloadQuestion = (id, url, courseCode) => {
-      trackDownload(id, courseCode);
+    window.viewQuestion = (id, url, courseCode, title) => {
+      if (window.trackResourceActivity) {
+        window.trackResourceActivity({
+          resource_type: 'past_question',
+          resource_id: id,
+          resource_title: title || courseCode || 'Past Question',
+          course_code: courseCode,
+          action: 'view'
+        });
+      }
+      window.open(url, '_blank');
+    };
+
+    window.downloadQuestion = (id, url, courseCode, title) => {
+      trackDownload(id, courseCode, title);
       window.open(url, '_blank');
     };
 
@@ -418,7 +432,16 @@
     // DOWNLOAD TRACKING
     // ============================================
 
-    async function trackDownload(questionId, courseCode) {
+    async function trackDownload(questionId, courseCode, title) {
+      if (window.trackResourceActivity) {
+        window.trackResourceActivity({
+          resource_type: 'past_question',
+          resource_id: questionId,
+          resource_title: title || courseCode || 'Past Question',
+          course_code: courseCode,
+          action: 'download'
+        });
+      }
       try {
         // Track download in console (you can add a downloads table later)
         console.log(`Download tracked: ${courseCode} (${questionId}) at ${new Date().toISOString()}`);

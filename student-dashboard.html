@@ -18,6 +18,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="NACOS TAU">
   <script src="assets/js/pwa-install.js" defer></script>
+  <script src="assets/js/tracker.js" defer></script>
 
   <!-- Vendor CSS Files -->
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -1440,7 +1441,7 @@
               <div class="col-lg-3 col-md-6">
                 <article class="resource-card">
                   ${safeUrl
-                    ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" class="text-decoration-none d-block h-100">
+                    ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" class="text-decoration-none d-block h-100" data-track-resource="academic_resource" data-track-id="${escapeHtml(resource.id || '')}" data-track-title="${title}" data-track-action="download">
                         <i class="bi bi-link-45deg" style="font-size: 2rem; color: #1b8c0c;" aria-hidden="true"></i>
                         <h6 class="mt-2" style="color: #333;">${title}</h6>
                         <p class="small text-muted">${type}</p>
@@ -1480,7 +1481,7 @@
               <div class="col-lg-3 col-md-6">
                 <article class="resource-card">
                   ${safeUrl
-                    ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" class="text-decoration-none d-block h-100">
+                    ? `<a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer" class="text-decoration-none d-block h-100" data-track-resource="past_question" data-track-id="${escapeHtml(pq.id || '')}" data-track-title="${title}" data-track-course="${courseCode}" data-track-action="download">
                         <span class="badge bg-success mb-2">${courseCode || 'PQ'}</span>
                         <h6 class="mt-1" style="color: #333;">${title}</h6>
                         <p class="small text-muted"><i class="bi bi-file-earmark-pdf me-1"></i> View PDF</p>
@@ -1911,7 +1912,7 @@
         await loadEvents();
       } catch (err) {
         console.error('Verification error:', err);
-        Swal.fire('Verification Error', err.message || 'Could not verify payment on server', 'error');
+        Swal.fire('Verification Error', (err.message && !err.message.includes('not defined') && !err.message.includes('TypeError')) ? err.message : 'Could not verify payment on server. Please retry shortly.', 'error');
       }
     }
 
