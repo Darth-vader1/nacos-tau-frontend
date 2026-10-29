@@ -752,7 +752,12 @@
       <div id="payments-section" class="content-section" style="display: none;">
         <div class="card">
           <div class="card-header">
-            <span><i class="bi bi-credit-card me-2"></i>Payment Verifications</span>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <span><i class="bi bi-credit-card me-2"></i>Payment Verifications</span>
+              <button class="btn btn-outline-success btn-sm" id="exportPaymentsCsvBtn" title="Export Payments to CSV">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+              </button>
+            </div>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
@@ -781,6 +786,9 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-people me-2"></i>Students Directory</span>
+            <button class="btn btn-outline-success btn-sm ms-auto" id="exportStudentsCsvBtn" title="Export Students to CSV">
+              <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+            </button>
             <div class="btn-group btn-group-sm">
               <button class="btn btn-outline-secondary active" data-student-filter="active">Active</button>
               <button class="btn btn-outline-secondary" data-student-filter="pending">Pending</button>
@@ -2906,6 +2914,7 @@ window.deleteEvent = async function(id) {
     
     let currentStudentFilter = 'active';
     let allStudents = []; // Store all students for client-side filtering
+    let currentFilteredStudents = [];
     
     async function loadStudents(filter = 'active') {
       currentStudentFilter = filter;
@@ -3003,6 +3012,8 @@ window.deleteEvent = async function(id) {
         return matchesSearch && matchesDept && matchesLevel;
       });
       
+      currentFilteredStudents = filtered;
+
       // Update results info
       if (resultsInfo) {
         if (filtered.length === allStudents.length) {
@@ -3174,6 +3185,102 @@ window.deleteEvent = async function(id) {
     if (studentLevelFilter) {
       studentLevelFilter.addEventListener('change', filterAndDisplayStudents);
     }
+
+    function exportStudentsToCsv(studentsToExport) {
+      if (!studentsToExport || !studentsToExport.length) {
+        Swal.fire('No Records', 'There are no students to export matching the current filter.', 'info');
+        return;
+      }
+
+      const escapeCsv = (val) => {
+        if (val === null || val === undefined) return '""';
+        if (Array.isArray(val)) val = val.join('; ');
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const headers = [
+        'Full Name',
+        'First Name',
+        'Last Name',
+        'Matric No',
+        'Email',
+        'Phone',
+        'Department',
+        'Course',
+        'Level',
+        'Status',
+        'Bio',
+        'Skills',
+        'Interests',
+        'LinkedIn',
+        'GitHub',
+        'Twitter',
+        'Instagram',
+        'Portfolio URL',
+        'Registration Date'
+      ];
+
+      const rows = studentsToExport.map(s => {
+        const lvl = getComputedStudentLevel(s);
+        const fullName = (s.name && s.name.trim()) || `${s.first_name || ''} ${s.last_name || ''}`.trim() || 'Student';
+        const dateStr = s.created_at ? new Date(s.created_at).toISOString().split('T')[0] : '';
+
+        return [
+          escapeCsv(fullName),
+          escapeCsv(s.first_name || ''),
+          escapeCsv(s.last_name || ''),
+          escapeCsv(s.matric_no || ''),
+          escapeCsv(s.email || ''),
+          escapeCsv(s.phone || ''),
+          escapeCsv(s.department || ''),
+          escapeCsv(s.course || ''),
+          escapeCsv(lvl ? `${lvl} Level` : 'Not Set'),
+          escapeCsv(s.status || 'pending'),
+          escapeCsv(s.bio || ''),
+          escapeCsv(s.skills || []),
+          escapeCsv(s.interests || []),
+          escapeCsv(s.linkedin || ''),
+          escapeCsv(s.github || ''),
+          escapeCsv(s.twitter || ''),
+          escapeCsv(s.instagram || ''),
+          escapeCsv(s.portfolio_url || ''),
+          escapeCsv(dateStr)
+        ].join(',');
+      });
+
+      const csvContent = '\uFEFF' + [headers.map(h => `"${h}"`).join(','), ...rows].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateTag = new Date().toISOString().split('T')[0];
+      link.setAttribute('href', url);
+      link.setAttribute('download', `nacos_students_directory_${dateTag}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      Swal.fire({
+        title: 'Export Complete!',
+        text: `Exported ${studentsToExport.length} student records to CSV.`,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+    }
+
+    const exportStudentsBtn = document.getElementById('exportStudentsCsvBtn');
+    if (exportStudentsBtn) {
+      exportStudentsBtn.addEventListener('click', () => {
+        const listToExport = (currentFilteredStudents && currentFilteredStudents.length > 0)
+          ? currentFilteredStudents
+          : allStudents;
+        exportStudentsToCsv(listToExport);
+      });
+    }
     
     // ============================================
     // LOAD OTHER DATA (Simplified)
@@ -3333,6 +3440,9 @@ window.deleteEvent = async function(id) {
       }
     };
     
+    let allPaymentsList = [];
+    let paymentsEventMap = new Map();
+
     async function loadPayments() {
       const tbody = document.getElementById('payments-table-body');
       if (!tbody) return;
@@ -3352,6 +3462,7 @@ window.deleteEvent = async function(id) {
         }
 
         const records = response.data?.payments || [];
+        allPaymentsList = records;
 
         if (records.length === 0) {
           tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">No payments recorded yet</td></tr>`;
@@ -3360,6 +3471,7 @@ window.deleteEvent = async function(id) {
 
         const eventIds = [...new Set(records.map(p => p.event_id).filter(Boolean))];
         const eventMap = new Map();
+        paymentsEventMap = eventMap;
         if (eventIds.length) {
           const { data, error } = await supabase.from('events').select('id, title').in('id', eventIds);
           if (!error && data) {
@@ -3411,7 +3523,132 @@ window.deleteEvent = async function(id) {
         loadPayments(); loadDashboardStats();
       } catch (error) {
         console.error('Error in verifyPayment:', error);
-        Swal.fire('Error', 'Failed to update: ' + error.message, 'error');
+        Swal.fire('Error', 'Payment update error: ' + error.message, 'error');
+      }
+    };
+
+    function exportPaymentsToCsv(paymentsToExport, eventMap) {
+      if (!paymentsToExport || !paymentsToExport.length) {
+        Swal.fire('No Records', 'There are no payment records to export.', 'info');
+        return;
+      }
+
+      const escapeCsv = (val) => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const headers = [
+        'Transaction Ref',
+        'Student Name',
+        'Matric No',
+        'Student Email',
+        'Department',
+        'Purpose / Event',
+        'Payment Type',
+        'Amount (NGN)',
+        'Status',
+        'Date Submitted',
+        'Verified At'
+      ];
+
+      const rows = paymentsToExport.map(p => {
+        const studentName = p.students?.name || 'Student';
+        const matricNo = p.students?.matric_no || '';
+        const email = p.students?.email || '';
+        const department = p.students?.department || '';
+        const ev = p.event_id && eventMap ? eventMap.get(p.event_id) : null;
+        const purpose = ev?.title || p.description || (p.payment_type === 'event_registration' ? 'Event Registration' : 'Payment');
+        const amount = Number(p.amount) || 0;
+        const dateSubmitted = p.submitted_at || p.created_at ? new Date(p.submitted_at || p.created_at).toISOString().split('T')[0] : '';
+        const verifiedAt = p.verified_at ? new Date(p.verified_at).toISOString().split('T')[0] : '';
+
+        return [
+          escapeCsv(p.transaction_id || p.id || ''),
+          escapeCsv(studentName),
+          escapeCsv(matricNo),
+          escapeCsv(email),
+          escapeCsv(department),
+          escapeCsv(purpose),
+          escapeCsv(p.payment_type || 'event_registration'),
+          escapeCsv(amount),
+          escapeCsv(p.status || 'verified'),
+          escapeCsv(dateSubmitted),
+          escapeCsv(verifiedAt)
+        ].join(',');
+      });
+
+      const csvContent = '\uFEFF' + [headers.map(h => `"${h}"`).join(','), ...rows].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateTag = new Date().toISOString().split('T')[0];
+      link.setAttribute('href', url);
+      link.setAttribute('download', `nacos_payments_${dateTag}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      Swal.fire({
+        title: 'Export Complete!',
+        text: `Exported ${paymentsToExport.length} payment records to CSV.`,
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+    }
+
+    const exportPaymentsBtn = document.getElementById('exportPaymentsCsvBtn');
+    if (exportPaymentsBtn) {
+      exportPaymentsBtn.addEventListener('click', async () => {
+        // First try exporting directly from backend API
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const base = window.API_URL || (window.__CONFIG && window.__CONFIG.apiUrl) || 'https://naco-tau-backend.vercel.app/api';
+            const res = await fetch(`${base}/payments/export/csv`, {
+              headers: { 'Authorization': `Bearer ${session.access_token}` }
+            });
+            if (res.ok) {
+              const blob = await res.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `nacos_payments_${new Date().toISOString().split('T')[0]}.csv`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              Swal.fire({
+                title: 'Export Complete!',
+                text: 'Payments exported to CSV.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+              });
+              return;
+            }
+          }
+        } catch (apiErr) {
+          console.warn('[exportPaymentsCsvBtn] Backend export failed, falling back to client-side records:', apiErr);
+        }
+
+        // Fallback to client-side records loaded in table
+        if (allPaymentsList && allPaymentsList.length > 0) {
+          exportPaymentsToCsv(allPaymentsList, paymentsEventMap);
+        } else {
+          Swal.fire('No Records', 'There are no payment records to export.', 'info');
+        }
+      });
+    }
+    const _ignoreLegacyBraces = () => {
+
       }
     };
 
