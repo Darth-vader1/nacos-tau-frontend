@@ -1162,6 +1162,42 @@
     </div>
 </div>
 
+  <!-- Event Attendees Modal -->
+  <div class="modal fade" id="eventAttendeesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title mb-0" id="eventAttendeesModalTitle"><i class="bi bi-people-fill me-2 text-primary"></i>Event Attendees</h5>
+            <small class="text-muted" id="eventAttendeesModalSubtitle">Registered &amp; Paid Students</small>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Student</th>
+                  <th>Matric No</th>
+                  <th>Department</th>
+                  <th>Fee / Status</th>
+                  <th>Registered</th>
+                </tr>
+              </thead>
+              <tbody id="eventAttendeesTableBody">
+                <tr><td colspan="5" class="text-center text-muted py-4">Loading attendees...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Add Hackathon Modal -->
   <div class="modal fade" id="addHackathonModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -2196,7 +2232,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         .select('*')
         .order('date', { ascending: false });
       
-      const tbody = document.getElementById('events-table-body');
+      window.currentEventsList = data || []; const tbody = document.getElementById('events-table-body'); try { const eIds = (data||[]).map(e=>e.id); const [rRes, pRes] = await Promise.all([supabase.from('event_registrations').select('event_id,user_id').in('event_id', eIds), supabase.from('payments').select('event_id,user_id').in('event_id', eIds).eq('status','verified')]); const cMap = {}; eIds.forEach(id => { cMap[id] = new Set(); }); (rRes.data||[]).forEach(r => { if(r.event_id && r.user_id && cMap[r.event_id]) cMap[r.event_id].add(r.user_id); }); (pRes.data||[]).forEach(p => { if(p.event_id && p.user_id && cMap[p.event_id]) cMap[p.event_id].add(p.user_id); }); window.eventCountsMap = {}; Object.keys(cMap).forEach(k => { window.eventCountsMap[k] = cMap[k].size; }); } catch(cntErr){ console.warn('[loadEvents] count err:', cntErr); }
       const colSpan = 6;
       
       if (isMissingTableError(error, 'events')) {
@@ -2218,15 +2254,65 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
           </td>
           <td>${ev.date}</td>
           <td>${ev.requires_payment ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning">${formatCurrency(ev.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}</td>
-          <td>${ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</td>
+          <td><button class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:12px;font-weight:600;" onclick="viewEventAttendees('${ev.id}')" title="Click to view attending / paid students"><i class="bi bi-people me-1"></i>${(window.eventCountsMap && window.eventCountsMap[ev.id]) || ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</button></td>
           <td>${ev.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
           <td>
-            <button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-info me-1" onclick="viewEventAttendees('${ev.id}')" title="View Attendees"><i class="bi bi-people"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
             <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${ev.id}')"><i class="bi bi-trash"></i></button>
           </td>
         </tr>
       `).join('');
     }
+
+    window.viewEventAttendees = async function(eventId) {
+      const targetEvent = (window.currentEventsList || []).find(e => e.id === eventId);
+      const title = targetEvent ? targetEvent.title : 'Event';
+      document.getElementById('eventAttendeesModalTitle').innerHTML = '<i class="bi bi-people-fill me-2 text-primary"></i>Attendees: ' + escapeHtml(title);
+      const tbody = document.getElementById('eventAttendeesTableBody');
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading attendees...</td></tr>';
+      new bootstrap.Modal(document.getElementById('eventAttendeesModal')).show();
+      try {
+        const [regRes, payRes] = await Promise.all([
+          supabase.from('event_registrations').select('*').eq('event_id', eventId),
+          supabase.from('payments').select('*').eq('event_id', eventId).eq('status', 'verified')
+        ]);
+        const regs = regRes.data || [];
+        const pays = payRes.data || [];
+        const uids = [...new Set([...regs.map(r=>r.user_id), ...pays.map(p=>p.user_id)].filter(Boolean))];
+        if (!uids.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No students have registered or paid for this event yet.</td></tr>';
+          document.getElementById('eventAttendeesModalSubtitle').textContent = '0 students registered';
+          return;
+        }
+        const { data: stus } = await supabase.from('students').select('user_id, name, first_name, last_name, matric_no, department, email').in('user_id', uids);
+        const sMap = {};
+        (stus || []).forEach(s => { sMap[s.user_id] = s; });
+        const pMap = {};
+        pays.forEach(p => { if (p.user_id) pMap[p.user_id] = p; });
+        document.getElementById('eventAttendeesModalSubtitle').textContent = uids.length + ' student(s) registered / paid';
+        tbody.innerHTML = uids.map(uid => {
+          const st = sMap[uid];
+          const pay = pMap[uid];
+          const reg = regs.find(r => r.user_id === uid);
+          const sName = st ? (st.name || ((st.first_name || '') + ' ' + (st.last_name || '')).trim() || 'Student') : 'Student';
+          const mNo = st?.matric_no || '<span class="text-muted">N/A</span>';
+          const dpt = st?.department || '<span class="text-muted">N/A</span>';
+          const eml = st?.email || '';
+          let pBadge = '<span class="badge bg-success">Registered (Free)</span>';
+          if (pay) {
+            pBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid ' + formatCurrency(pay.amount) + '</span>';
+          } else if (reg?.linked_payment_id) {
+            pBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid</span>';
+          }
+          const rDate = reg?.registration_date || pay?.verified_at || pay?.submitted_at || null;
+          const dStr = rDate ? new Date(rDate).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+          return '<tr><td><strong>' + escapeHtml(sName) + '</strong>' + (eml ? '<br><small class="text-muted">' + escapeHtml(eml) + '</small>' : '') + '</td><td><code>' + mNo + '</code></td><td>' + escapeHtml(dpt) + '</td><td>' + pBadge + '</td><td><small class="text-muted">' + dStr + '</small></td></tr>';
+        }).join('');
+      } catch (err) {
+        console.error('[viewEventAttendees]', err);
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Error loading attendees: ' + escapeHtml(err.message || String(err)) + '</td></tr>';
+      }
+    };
 
     // Edit Event - Load data into modal
 window.editEvent = async function(eventId) {
