@@ -688,6 +688,47 @@
                 <i class="bi bi-plus"></i> Add New
             </button>
           </div>
+
+          <!-- Search and Filter Bar -->
+          <div class="card-body border-bottom bg-light">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-7">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="resSearchInput" 
+                    placeholder="Search by title, description, or course..."
+                    aria-label="Search resources">
+                  <button class="btn btn-outline-secondary" type="button" id="resSearchClearBtn" title="Clear search" style="display: none;">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <select class="form-select" id="resTypeFilter" aria-label="Filter by resource type">
+                  <option value="">All Resource Types</option>
+                  <option value="reference_material">Documentation / Reference</option>
+                  <option value="tutorial">Tutorial</option>
+                  <option value="lecture_note">Course / Lecture Note</option>
+                  <option value="past_question">Past Question</option>
+                </select>
+              </div>
+              <div class="col-md-1 d-flex justify-content-end">
+                <button class="btn btn-outline-secondary w-100" id="resResetFiltersBtn" title="Reset all filters">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+              <small class="text-muted" id="resResultsInfo">Loading resources...</small>
+            </div>
+          </div>
+          <div style="display:none">
+                <i class="bi bi-plus"></i> Add New
+            </button>
+          </div>
           <div class="card-body p-0">
             <div class="table-responsive">
               <table class="table table-hover mb-0">
@@ -717,14 +758,59 @@
                 <i class="bi bi-plus"></i> Add New
             </button>
           </div>
+
+          <!-- Search and Filter Bar -->
+          <div class="card-body border-bottom bg-light">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-7">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="cpSearchInput" 
+                    placeholder="Search by title, overview, skills, or tools..."
+                    aria-label="Search career paths">
+                  <button class="btn btn-outline-secondary" type="button" id="cpSearchClearBtn" title="Clear search" style="display: none;">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <select class="form-select" id="cpCategoryFilter" aria-label="Filter by category">
+                  <option value="">All Categories</option>
+                  <option value="Development">Development</option>
+                  <option value="Data Science">Data Science</option>
+                  <option value="DevOps">DevOps</option>
+                  <option value="Security">Cybersecurity</option>
+                  <option value="Design">Design</option>
+                  <option value="Mobile">Mobile Development</option>
+                  <option value="AI/ML">AI / Machine Learning</option>
+                  <option value="Cloud">Cloud Computing</option>
+                </select>
+              </div>
+              <div class="col-md-1 d-flex justify-content-end">
+                <button class="btn btn-outline-secondary w-100" id="cpResetFiltersBtn" title="Reset all filters">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+              <small class="text-muted" id="cpResultsInfo">Loading career paths...</small>
+            </div>
+          </div>
+          <div style="display:none">
+                <i class="bi bi-plus"></i> Add New
+            </button>
+          </div>
           <div class="card-body p-0">
             <div class="table-responsive">
               <table class="table table-hover mb-0">
                 <thead>
                   <tr>
-                    <th>Path Key</th>
+                    <th>Title</th><th>Category</th><!--
                     <th>Title</th>
-                    <th>Overview</th>
+--><th>Overview</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -806,6 +892,55 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
               <span><i class="bi bi-credit-card me-2"></i>Payment Verifications</span>
               <button class="btn btn-outline-success btn-sm" id="exportPaymentsCsvBtn" title="Export Payments to CSV">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Search and Filter Bar -->
+          <div class="card-body border-bottom bg-light">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-5">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="paymentSearchInput" 
+                    placeholder="Search by student name, matric no, ref, or event..."
+                    aria-label="Search payments">
+                  <button class="btn btn-outline-secondary" type="button" id="paymentSearchClearBtn" title="Clear search" style="display: none;">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col-md-3 col-sm-6">
+                <select class="form-select" id="paymentStatusFilter" aria-label="Filter by status">
+                  <option value="">All Statuses</option>
+                  <option value="verified">Verified</option>
+                  <option value="pending">Pending</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+              <div class="col-md-3 col-sm-6">
+                <select class="form-select" id="paymentTypeFilter" aria-label="Filter by type">
+                  <option value="">All Payment Types</option>
+                  <option value="event_registration">Event Registration</option>
+                  <option value="association_fee">Association Fee</option>
+                  <option value="other">Other / General</option>
+                </select>
+              </div>
+              <div class="col-md-1 d-flex justify-content-end">
+                <button class="btn btn-outline-secondary w-100" id="paymentResetFiltersBtn" title="Reset all filters">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+              <small class="text-muted" id="paymentResultsInfo">Loading payments...</small>
+            </div>
+          </div>
+          <div style="display:none">
                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
               </button>
             </div>
@@ -3657,6 +3792,114 @@ window.deleteEvent = async function(id) {
       }
     };
     
+    // ============================================
+    // ACADEMIC RESOURCES (State, Search & Filter)
+    // ============================================
+    let allResourcesList = [];
+    let currentFilteredResources = [];
+
+    function filterAndDisplayResources() {
+      const searchInput = document.getElementById('resSearchInput');
+      const typeFilter = document.getElementById('resTypeFilter');
+      const tbody = document.getElementById('resources-table-body');
+      const resultsInfo = document.getElementById('resResultsInfo');
+      const clearBtn = document.getElementById('resSearchClearBtn');
+      const colSpan = 4;
+
+      if (!tbody) return;
+
+      const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+      const selectedType = typeFilter ? typeFilter.value.toLowerCase().trim() : '';
+
+      if (clearBtn) {
+        clearBtn.style.display = searchTerm ? 'block' : 'none';
+      }
+
+      if (!allResourcesList || allResourcesList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">No resources recorded yet</td></tr>`;
+        if (resultsInfo) resultsInfo.textContent = 'Showing 0 resources';
+        currentFilteredResources = [];
+        return;
+      }
+
+      const filtered = allResourcesList.filter(r => {
+        const title = String(r.title || '').toLowerCase();
+        const desc = String(r.description || '').toLowerCase();
+        const course = String(r.course || '').toLowerCase();
+        const matchesSearch = !searchTerm || title.includes(searchTerm) || desc.includes(searchTerm) || course.includes(searchTerm);
+
+        const rType = String(r.resource_type || '').toLowerCase().trim();
+        const matchesType = !selectedType || rType === selectedType;
+
+        return matchesSearch && matchesType;
+      });
+
+      currentFilteredResources = filtered;
+
+      if (resultsInfo) {
+        if (filtered.length === allResourcesList.length) {
+          resultsInfo.innerHTML = `Showing all <strong>${filtered.length}</strong> resources`;
+        } else {
+          resultsInfo.innerHTML = `Showing <strong>${filtered.length}</strong> of ${allResourcesList.length} resources (filtered)`;
+        }
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4"><i class="bi bi-search me-1"></i> No resources match your filters</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => {
+        const typeLabel = {
+          'reference_material': 'Documentation',
+          'tutorial': 'Tutorial',
+          'lecture_note': 'Course',
+          'past_question': 'Past Question'
+        }[r.resource_type] || r.resource_type;
+        const fileUrl = r.file_url || r.url || '#';
+
+        return `
+          <tr>
+            <td>${escapeHtml(r.title)}</td>
+            <td><span class="badge-category">${escapeHtml(typeLabel)}</span></td>
+            <td><a href="${escapeHtml(fileUrl)}" target="_blank" rel="noopener" class="text-truncate" style="max-width:200px;">${escapeHtml(fileUrl)}</a></td>
+            <td><button class="btn btn-sm btn-outline-danger" title="Delete" onclick="deleteResource('${r.id}')"><i class="bi bi-trash"></i></button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    let resSearchTimeout = null;
+    const resSearchInputEl = document.getElementById('resSearchInput');
+    if (resSearchInputEl) {
+      resSearchInputEl.addEventListener('input', () => {
+        clearTimeout(resSearchTimeout);
+        resSearchTimeout = setTimeout(filterAndDisplayResources, 200);
+      });
+    }
+
+    const resTypeFilterEl = document.getElementById('resTypeFilter');
+    if (resTypeFilterEl) {
+      resTypeFilterEl.addEventListener('change', filterAndDisplayResources);
+    }
+
+    const resSearchClearBtnEl = document.getElementById('resSearchClearBtn');
+    if (resSearchClearBtnEl) {
+      resSearchClearBtnEl.addEventListener('click', () => {
+        if (resSearchInputEl) resSearchInputEl.value = '';
+        filterAndDisplayResources();
+      });
+    }
+
+    const resResetFiltersBtnEl = document.getElementById('resResetFiltersBtn');
+    if (resResetFiltersBtnEl) {
+      resResetFiltersBtnEl.addEventListener('click', () => {
+        if (resSearchInputEl) resSearchInputEl.value = '';
+        if (resTypeFilterEl) resTypeFilterEl.value = '';
+        filterAndDisplayResources();
+      });
+    }
+
     async function loadResources() {
       const { data, error } = await supabase.from('academic_resources').select('*').order('created_at', { ascending: false });
       const tbody = document.getElementById('resources-table-body');
@@ -3671,7 +3914,10 @@ window.deleteEvent = async function(id) {
         tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading resources: ${escapeHtml(error.message || String(error))}` : 'No resources'}</td></tr>`;
         return;
       }
-      tbody.innerHTML = data.map(r => {
+      allResourcesList = data || [];
+      filterAndDisplayResources();
+      return;
+      const _unusedResources = data.map(r => {
         const typeLabel = {
           'reference_material': 'Documentation',
           'tutorial': 'Tutorial',
@@ -3700,6 +3946,111 @@ window.deleteEvent = async function(id) {
       }
     };
     
+    // ============================================
+    // CAREER PATHS (State, Search & Filter)
+    // ============================================
+    let allCareerPathsList = [];
+    let currentFilteredCareerPaths = [];
+
+    function filterAndDisplayCareerPaths() {
+      const searchInput = document.getElementById('cpSearchInput');
+      const categoryFilter = document.getElementById('cpCategoryFilter');
+      const tbody = document.getElementById('careers-table-body');
+      const resultsInfo = document.getElementById('cpResultsInfo');
+      const clearBtn = document.getElementById('cpSearchClearBtn');
+      const colSpan = 4;
+
+      if (!tbody) return;
+
+      const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+      const selectedCategory = categoryFilter ? categoryFilter.value.toLowerCase().trim() : '';
+
+      if (clearBtn) {
+        clearBtn.style.display = searchTerm ? 'block' : 'none';
+      }
+
+      if (!allCareerPathsList || allCareerPathsList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">No career paths recorded yet</td></tr>`;
+        if (resultsInfo) resultsInfo.textContent = 'Showing 0 career paths';
+        currentFilteredCareerPaths = [];
+        return;
+      }
+
+      const filtered = allCareerPathsList.filter(c => {
+        const title = String(c.title || '').toLowerCase();
+        const overview = String(c.overview || c.description || '').toLowerCase();
+        const skills = Array.isArray(c.skills) ? c.skills.join(' ').toLowerCase() : String(c.skills || '').toLowerCase();
+        const tools = Array.isArray(c.tools) ? c.tools.join(' ').toLowerCase() : String(c.tools || '').toLowerCase();
+        const category = String(c.category || '').toLowerCase();
+
+        const matchesSearch = !searchTerm ||
+          title.includes(searchTerm) ||
+          overview.includes(searchTerm) ||
+          skills.includes(searchTerm) ||
+          tools.includes(searchTerm) ||
+          category.includes(searchTerm);
+
+        const matchesCategory = !selectedCategory || category === selectedCategory;
+
+        return matchesSearch && matchesCategory;
+      });
+
+      currentFilteredCareerPaths = filtered;
+
+      if (resultsInfo) {
+        if (filtered.length === allCareerPathsList.length) {
+          resultsInfo.innerHTML = `Showing all <strong>${filtered.length}</strong> career paths`;
+        } else {
+          resultsInfo.innerHTML = `Showing <strong>${filtered.length}</strong> of ${allCareerPathsList.length} career paths (filtered)`;
+        }
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4"><i class="bi bi-search me-1"></i> No career paths match your filters</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(c => `
+        <tr>
+          <td><strong>${escapeHtml(c.title)}</strong></td>
+          <td><span class="badge-category">${escapeHtml(c.category || 'N/A')}</span></td>
+          <td>${escapeHtml((c.overview || c.description || '').substring(0, 80))}</td>
+          <td><button class="btn btn-sm btn-outline-danger" title="Delete" onclick="deleteCareerPath('${c.id}')"><i class="bi bi-trash"></i></button></td>
+        </tr>
+      `).join('');
+    }
+
+    let cpSearchTimeout = null;
+    const cpSearchInputEl = document.getElementById('cpSearchInput');
+    if (cpSearchInputEl) {
+      cpSearchInputEl.addEventListener('input', () => {
+        clearTimeout(cpSearchTimeout);
+        cpSearchTimeout = setTimeout(filterAndDisplayCareerPaths, 200);
+      });
+    }
+
+    const cpCategoryFilterEl = document.getElementById('cpCategoryFilter');
+    if (cpCategoryFilterEl) {
+      cpCategoryFilterEl.addEventListener('change', filterAndDisplayCareerPaths);
+    }
+
+    const cpSearchClearBtnEl = document.getElementById('cpSearchClearBtn');
+    if (cpSearchClearBtnEl) {
+      cpSearchClearBtnEl.addEventListener('click', () => {
+        if (cpSearchInputEl) cpSearchInputEl.value = '';
+        filterAndDisplayCareerPaths();
+      });
+    }
+
+    const cpResetFiltersBtnEl = document.getElementById('cpResetFiltersBtn');
+    if (cpResetFiltersBtnEl) {
+      cpResetFiltersBtnEl.addEventListener('click', () => {
+        if (cpSearchInputEl) cpSearchInputEl.value = '';
+        if (cpCategoryFilterEl) cpCategoryFilterEl.value = '';
+        filterAndDisplayCareerPaths();
+      });
+    }
+
     async function loadCareerPaths() {
       const { data, error } = await supabase.from('career_paths').select('*').order('created_at', { ascending: false });
       const tbody = document.getElementById('careers-table-body');
@@ -3714,7 +4065,10 @@ window.deleteEvent = async function(id) {
         tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading career paths: ${escapeHtml(error.message || String(error))}` : 'No career paths'}</td></tr>`;
         return;
       }
-      tbody.innerHTML = data.map(c => `
+      allCareerPathsList = data || [];
+      filterAndDisplayCareerPaths();
+      return;
+      const _unusedCareerRender = data.map(c => `
         <tr>
           <td><strong>${escapeHtml(c.title)}</strong></td>
           <td><span class="badge-category">${escapeHtml(c.category || 'N/A')}</span></td>
@@ -3737,7 +4091,148 @@ window.deleteEvent = async function(id) {
     };
     
     let allPaymentsList = [];
+    let currentFilteredPayments = [];
     let paymentsEventMap = new Map();
+
+    function filterAndDisplayPayments() {
+      const searchInput = document.getElementById('paymentSearchInput');
+      const statusFilter = document.getElementById('paymentStatusFilter');
+      const typeFilter = document.getElementById('paymentTypeFilter');
+      const tbody = document.getElementById('payments-table-body');
+      const resultsInfo = document.getElementById('paymentResultsInfo');
+      const clearBtn = document.getElementById('paymentSearchClearBtn');
+      const colSpan = 6;
+
+      if (!tbody) return;
+
+      const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+      const selectedStatus = statusFilter ? statusFilter.value.toLowerCase().trim() : '';
+      const selectedType = typeFilter ? typeFilter.value.toLowerCase().trim() : '';
+
+      if (clearBtn) {
+        clearBtn.style.display = searchTerm ? 'block' : 'none';
+      }
+
+      if (!allPaymentsList || allPaymentsList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">No payments recorded yet</td></tr>`;
+        if (resultsInfo) resultsInfo.textContent = 'Showing 0 payments';
+        currentFilteredPayments = [];
+        return;
+      }
+
+      const filtered = allPaymentsList.filter(p => {
+        // Student info
+        const studentName = String(p.students?.name || '').toLowerCase();
+        const matricNo = String(p.students?.matric_no || '').toLowerCase();
+        const studentEmail = String(p.students?.email || '').toLowerCase();
+
+        // Transaction & Event info
+        const ref = String(p.transaction_id || p.id || '').toLowerCase();
+        const ev = p.event_id && paymentsEventMap ? paymentsEventMap.get(p.event_id) : null;
+        const evTitle = String(ev?.title || p.description || '').toLowerCase();
+
+        // Search match
+        const matchesSearch = !searchTerm ||
+          studentName.includes(searchTerm) ||
+          matricNo.includes(searchTerm) ||
+          studentEmail.includes(searchTerm) ||
+          ref.includes(searchTerm) ||
+          evTitle.includes(searchTerm);
+
+        // Status match
+        const pStatus = String(p.status || 'verified').toLowerCase().trim();
+        const matchesStatus = !selectedStatus || pStatus === selectedStatus;
+
+        // Payment type match
+        const pType = String(p.payment_type || 'event_registration').toLowerCase().trim();
+        const matchesType = !selectedType || pType === selectedType;
+
+        return matchesSearch && matchesStatus && matchesType;
+      });
+
+      currentFilteredPayments = filtered;
+
+      // Update results counter info
+      if (resultsInfo) {
+        if (filtered.length === allPaymentsList.length) {
+          resultsInfo.innerHTML = `Showing all <strong>${filtered.length}</strong> payments`;
+        } else {
+          resultsInfo.innerHTML = `Showing <strong>${filtered.length}</strong> of ${allPaymentsList.length} payments (filtered)`;
+        }
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4"><i class="bi bi-search me-1"></i> No payments match your filters</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(p => {
+        const studentText = p.students 
+          ? `${escapeHtml(p.students.name)}<br><small class="text-muted">${escapeHtml(p.students.matric_no || '')}</small>`
+          : '<span class="text-muted">Student</span>';
+        
+        const eventInfo = p.event_id ? paymentsEventMap.get(p.event_id) : null;
+        const eventTitle = eventInfo?.title ? escapeHtml(eventInfo.title) : (p.payment_type === 'event_registration' ? '<span class="text-muted">Event Registration</span>' : '<span class="text-muted">General Payment</span>');
+
+        const badgeClass = p.status === 'verified' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark';
+        const ref = escapeHtml(p.transaction_id || p.id || '');
+        let validReceiptUrl = p.payment_proof_url;
+        if (validReceiptUrl && validReceiptUrl.includes('paystack.com/receipt/')) {
+          validReceiptUrl = `https://dashboard.paystack.com/#/search?q=${encodeURIComponent(ref)}`;
+        }
+
+        return `
+          <tr>
+            <td>${studentText}</td>
+            <td>${eventTitle}</td>
+            <td><strong class="text-success">${formatCurrency(p.amount)}</strong></td>
+            <td><code>${ref}</code></td>
+            <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
+            <td>
+              ${p.status === 'pending' ? `<button class="btn btn-sm btn-success me-1" onclick="verifyPayment('${p.id}', true)">Approve</button>` : ''}
+              ${validReceiptUrl ? `<a href="${escapeHtml(validReceiptUrl)}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Paystack Receipt"><i class="bi bi-box-arrow-up-right me-1"></i>Receipt</a>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    let paymentSearchTimeout = null;
+    const paymentSearchInputEl = document.getElementById('paymentSearchInput');
+    if (paymentSearchInputEl) {
+      paymentSearchInputEl.addEventListener('input', () => {
+        clearTimeout(paymentSearchTimeout);
+        paymentSearchTimeout = setTimeout(filterAndDisplayPayments, 200);
+      });
+    }
+
+    const paymentStatusFilterEl = document.getElementById('paymentStatusFilter');
+    if (paymentStatusFilterEl) {
+      paymentStatusFilterEl.addEventListener('change', filterAndDisplayPayments);
+    }
+
+    const paymentTypeFilterEl = document.getElementById('paymentTypeFilter');
+    if (paymentTypeFilterEl) {
+      paymentTypeFilterEl.addEventListener('change', filterAndDisplayPayments);
+    }
+
+    const paymentSearchClearBtnEl = document.getElementById('paymentSearchClearBtn');
+    if (paymentSearchClearBtnEl) {
+      paymentSearchClearBtnEl.addEventListener('click', () => {
+        if (paymentSearchInputEl) paymentSearchInputEl.value = '';
+        filterAndDisplayPayments();
+      });
+    }
+
+    const paymentResetFiltersBtnEl = document.getElementById('paymentResetFiltersBtn');
+    if (paymentResetFiltersBtnEl) {
+      paymentResetFiltersBtnEl.addEventListener('click', () => {
+        if (paymentSearchInputEl) paymentSearchInputEl.value = '';
+        if (paymentStatusFilterEl) paymentStatusFilterEl.value = '';
+        if (paymentTypeFilterEl) paymentTypeFilterEl.value = '';
+        filterAndDisplayPayments();
+      });
+    }
 
     async function loadPayments() {
       const tbody = document.getElementById('payments-table-body');
@@ -3775,7 +4270,9 @@ window.deleteEvent = async function(id) {
           }
         }
 
-        tbody.innerHTML = records.map(p => {
+        filterAndDisplayPayments();
+        return;
+        const _unusedPaymentsRender = records.map(p => {
           const studentText = p.students 
             ? `${escapeHtml(p.students.name)}<br><small class="text-muted">${escapeHtml(p.students.matric_no || '')}</small>`
             : '<span class="text-muted">Student</span>';
@@ -3901,6 +4398,13 @@ window.deleteEvent = async function(id) {
     const exportPaymentsBtn = document.getElementById('exportPaymentsCsvBtn');
     if (exportPaymentsBtn) {
       exportPaymentsBtn.addEventListener('click', async () => {
+        // If filters are active, export the filtered view directly
+        const isFiltered = currentFilteredPayments && allPaymentsList && currentFilteredPayments.length !== allPaymentsList.length;
+        if (isFiltered) {
+          exportPaymentsToCsv(currentFilteredPayments, paymentsEventMap);
+          return;
+        }
+
         // First try exporting directly from backend API
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -3936,8 +4440,11 @@ window.deleteEvent = async function(id) {
         }
 
         // Fallback to client-side records loaded in table
-        if (allPaymentsList && allPaymentsList.length > 0) {
-          exportPaymentsToCsv(allPaymentsList, paymentsEventMap);
+        const listToExport = (currentFilteredPayments && currentFilteredPayments.length > 0)
+          ? currentFilteredPayments
+          : allPaymentsList;
+        if (listToExport && listToExport.length > 0) {
+          exportPaymentsToCsv(listToExport, paymentsEventMap);
         } else {
           Swal.fire('No Records', 'There are no payment records to export.', 'info');
         }
