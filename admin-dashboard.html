@@ -572,8 +572,16 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-file-earmark-pdf me-2"></i>Past Questions</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
-              <i class="bi bi-plus"></i> Add New
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0" title="Toggle automatic email alerts when uploading past questions">
+                <input class="form-check-input" type="checkbox" role="switch" id="pqGlobalEmailToggle" checked>
+                <label class="form-check-label small text-muted d-none d-sm-inline" for="pqGlobalEmailToggle">Email alerts</label>
+              </div>
+              <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addQuestionModal"><i class="bi bi-plus"></i> Add New</button>
+            </div>
+          </div>
+          <div style="display:none">
+                <i class="bi bi-plus"></i> Add New
             </button>
           </div>
           <div class="card-body p-0">
@@ -634,7 +642,7 @@
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-link-45deg me-2"></i>Academic Resources</span>
             <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addResourceModal">
-              <i class="bi bi-plus"></i> Add New
+                <i class="bi bi-plus"></i> Add New
             </button>
           </div>
           <div class="card-body p-0">
@@ -663,7 +671,7 @@
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-graph-up me-2"></i>Career Paths</span>
             <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addCareerPathModal">
-              <i class="bi bi-plus"></i> Add New
+                <i class="bi bi-plus"></i> Add New
             </button>
           </div>
           <div class="card-body p-0">
@@ -1433,6 +1441,15 @@
             <div class="mb-3">
               <label class="form-label">File (PDF/Image)</label>
               <input type="file" class="form-control" id="q-file" accept=".pdf,.jpg,.jpeg,.png" required>
+            </div>
+            <div class="form-check form-switch mb-3 p-3 bg-light rounded border">
+              <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="q-send-email" checked>
+              <label class="form-check-label fw-bold" for="q-send-email">
+                <i class="bi bi-envelope-fill text-success me-1"></i> Send email alert to students
+              </label>
+              <div class="form-text text-muted small mt-1 ms-1">
+                Notify active students at this level via email upon upload. Turn off to upload silently.
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -2240,7 +2257,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         .select('*')
         .order('date', { ascending: false });
       
-      window.currentEventsList = data || []; const tbody = document.getElementById('events-table-body'); try { const eIds = (data||[]).map(e=>e.id); const [rRes, pRes] = await Promise.all([supabase.from('event_registrations').select('event_id,user_id').in('event_id', eIds), supabase.from('payments').select('event_id,user_id').in('event_id', eIds).eq('status','verified')]); const cMap = {}; eIds.forEach(id => { cMap[id] = new Set(); }); (rRes.data||[]).forEach(r => { if(r.event_id && r.user_id && cMap[r.event_id]) cMap[r.event_id].add(r.user_id); }); (pRes.data||[]).forEach(p => { if(p.event_id && p.user_id && cMap[p.event_id]) cMap[p.event_id].add(p.user_id); }); window.eventCountsMap = {}; Object.keys(cMap).forEach(k => { window.eventCountsMap[k] = cMap[k].size; }); } catch(cntErr){ console.warn('[loadEvents] count err:', cntErr); }
+      window.currentEventsList = data || []; const tbody = document.getElementById('events-table-body'); window.eventCountsMap = {}; try { let allP = []; if (Array.isArray(window.allPaymentsList) && window.allPaymentsList.length > 0) { allP = window.allPaymentsList; } else if (typeof api?.payments?.getAll === 'function') { const pr = await api.payments.getAll({ limit: 500 }); allP = pr?.data?.payments || []; window.allPaymentsList = allP; } (data || []).forEach(ev => { const evPays = allP.filter(p => p.event_id === ev.id && (p.status === 'verified' || !p.status)); window.eventCountsMap[ev.id] = evPays.length; }); } catch(cntErr){ console.warn('[loadEvents] count err:', cntErr); }
       const colSpan = 6;
       
       if (isMissingTableError(error, 'events')) {
@@ -2273,6 +2290,66 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
     }
 
     window.viewEventAttendees = async function(eventId) {
+      const targetEvent = (window.currentEventsList || []).find(e => e.id === eventId);
+      const title = targetEvent ? targetEvent.title : 'Event';
+      document.getElementById('eventAttendeesModalTitle').innerHTML = '<i class="bi bi-people-fill me-2 text-primary"></i>Attendees: ' + escapeHtml(title);
+      const tbody = document.getElementById('eventAttendeesTableBody');
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading attendees...</td></tr>';
+      new bootstrap.Modal(document.getElementById('eventAttendeesModal')).show();
+
+      try {
+        let allP = [];
+        if (typeof api?.payments?.getAll === 'function') {
+          const pr = await api.payments.getAll({ limit: 500 });
+          allP = pr?.data?.payments || [];
+          window.allPaymentsList = allP;
+        } else if (Array.isArray(window.allPaymentsList)) {
+          allP = window.allPaymentsList;
+        }
+
+        const evPays = allP.filter(p => p.event_id === eventId && (p.status === 'verified' || !p.status));
+
+        let nonPaidRegs = [];
+        try {
+          const { data: regs } = await supabase.from('event_registrations').select('*').eq('event_id', eventId);
+          if (regs) nonPaidRegs = regs;
+        } catch (_) {}
+
+        if (!evPays.length && !nonPaidRegs.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No students have registered or paid for this event yet.</td></tr>';
+          document.getElementById('eventAttendeesModalSubtitle').textContent = '0 students registered / paid';
+          return;
+        }
+
+        const totalCount = evPays.length + nonPaidRegs.filter(r => !evPays.some(p => p.user_id && p.user_id === r.user_id)).length;
+        document.getElementById('eventAttendeesModalSubtitle').textContent = totalCount + ' student(s) registered / paid';
+
+        let rowsHtml = '';
+        evPays.forEach(p => {
+          const st = p.students || {};
+          const sName = st.name || 'Student';
+          const mNo = st.matric_no ? ('<code>' + escapeHtml(st.matric_no) + '</code>') : '<span class="text-muted">N/A</span>';
+          const dpt = st.department ? escapeHtml(st.department) : '<span class="text-muted">N/A</span>';
+          const eml = st.email ? ('<br><small class="text-muted">' + escapeHtml(st.email) + '</small>') : '';
+          const pBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid ' + formatCurrency(p.amount) + '</span>';
+          const rDate = p.verified_at || p.submitted_at || p.created_at || null;
+          const dStr = rDate ? new Date(rDate).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+
+          rowsHtml += '<tr>' +
+            '<td><strong>' + escapeHtml(sName) + '</strong>' + eml + '</td>' +
+            '<td>' + mNo + '</td>' +
+            '<td>' + dpt + '</td>' +
+            '<td>' + pBadge + '</td>' +
+            '<td><small class="text-muted">' + dStr + '</small></td>' +
+          '</tr>';
+        });
+
+        tbody.innerHTML = rowsHtml;
+      } catch (err) {
+        console.error('[viewEventAttendees]', err);
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Error loading attendees: ' + escapeHtml(err.message || String(err)) + '</td></tr>';
+      }
+    }; /* OLD_VIEW_ATTENDEES
       const targetEvent = (window.currentEventsList || []).find(e => e.id === eventId);
       const title = targetEvent ? targetEvent.title : 'Event';
       document.getElementById('eventAttendeesModalTitle').innerHTML = '<i class="bi bi-people-fill me-2 text-primary"></i>Attendees: ' + escapeHtml(title);
@@ -2321,6 +2398,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Error loading attendees: ' + escapeHtml(err.message || String(err)) + '</td></tr>';
       }
     };
+*/
 
     // Edit Event - Load data into modal
 window.editEvent = async function(eventId) {
@@ -2506,7 +2584,39 @@ window.deleteEvent = async function(id) {
     });
     
     // ============================================
-    // PAST QUESTIONS (with File Upload)
+    // PAST QUESTIONS (with File Upload & Email Broadcast Toggle)
+    // ============================================
+
+    const pqGlobalToggle = document.getElementById('pqGlobalEmailToggle');
+    const pqModalToggle = document.getElementById('q-send-email');
+    const storedPqEmailPref = localStorage.getItem('nacos_pq_send_email');
+    const initialPqEmailPref = storedPqEmailPref !== null ? storedPqEmailPref === 'true' : true;
+
+    if (pqGlobalToggle) pqGlobalToggle.checked = initialPqEmailPref;
+    if (pqModalToggle) pqModalToggle.checked = initialPqEmailPref;
+
+    if (pqGlobalToggle) {
+      pqGlobalToggle.addEventListener('change', (e) => {
+        const val = e.target.checked;
+        localStorage.setItem('nacos_pq_send_email', String(val));
+        if (pqModalToggle) pqModalToggle.checked = val;
+      });
+    }
+
+    if (pqModalToggle) {
+      pqModalToggle.addEventListener('change', (e) => {
+        const val = e.target.checked;
+        localStorage.setItem('nacos_pq_send_email', String(val));
+        if (pqGlobalToggle) pqGlobalToggle.checked = val;
+      });
+    }
+
+    document.getElementById('addQuestionModal')?.addEventListener('show.bs.modal', () => {
+      const curPref = localStorage.getItem('nacos_pq_send_email');
+      const shouldCheck = curPref !== null ? curPref === 'true' : true;
+      if (pqModalToggle) pqModalToggle.checked = shouldCheck;
+      if (pqGlobalToggle) pqGlobalToggle.checked = shouldCheck;
+    });
     // ============================================
 
     document.getElementById('addQuestionForm')?.addEventListener('submit', async (e) => {
@@ -2520,7 +2630,9 @@ window.deleteEvent = async function(id) {
       const semester = document.getElementById('q-semester').value;
       const title = document.getElementById('q-title').value.trim();
       const fileInput = document.getElementById('q-file');
+      const shouldSendEmail = document.getElementById('q-send-email') ? document.getElementById('q-send-email').checked : true;
       const file = fileInput.files[0];
+
 
       if (!file) {
         Swal.fire('Error', 'Please select a file to upload', 'error');
@@ -2555,12 +2667,17 @@ window.deleteEvent = async function(id) {
           semester,
           file_url: fileUrl,
           file_type: fileExt,
+          send_email: shouldSendEmail,
           uploaded_by: adminData?.id
         });
 
-        await logAdminAction('CREATE', 'past_question', null, { courseCode, title });
+        await logAdminAction('CREATE', 'past_question', null, { courseCode, title, sendEmail: shouldSendEmail });
         
-        Swal.fire('Success', 'Past question uploaded successfully!', 'success').then(() => {
+        const successMsg = shouldSendEmail
+          ? 'Past question uploaded and email broadcast dispatched to active students!'
+          : 'Past question uploaded successfully (email notification skipped).';
+        
+        Swal.fire('Success', successMsg, 'success').then(() => {
           try {
             bootstrap.Modal.getInstance(document.getElementById('addQuestionModal')).hide();
           } catch (modalErr) {
@@ -2601,6 +2718,7 @@ window.deleteEvent = async function(id) {
       const isCurrent = document.getElementById('t-current').value === 'true';
       const fileInput = document.getElementById('t-file');
       const file = fileInput.files[0];
+
 
       if (!file) {
         Swal.fire('Error', 'Please select a file to upload', 'error');
@@ -3647,10 +3765,7 @@ window.deleteEvent = async function(id) {
         }
       });
     }
-    const _ignoreLegacyBraces = () => {
 
-      }
-    };
 
     // ============================================
     // HACKATHONS & PITCHATHONS
