@@ -580,6 +580,49 @@
               <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addQuestionModal"><i class="bi bi-plus"></i> Add New</button>
             </div>
           </div>
+          <!-- Search and Filter Bar -->
+          <div class="card-body border-bottom bg-light">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-5">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="pqSearchInput" 
+                    placeholder="Search by course code, title, or name..."
+                    aria-label="Search past questions">
+                  <button class="btn btn-outline-secondary" type="button" id="pqSearchClearBtn" title="Clear search" style="display: none;">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col-md-3 col-sm-6">
+                <select class="form-select" id="pqLevelFilter" aria-label="Filter by level">
+                  <option value="">All Levels</option>
+                  <option value="100">100 Level</option>
+                  <option value="200">200 Level</option>
+                  <option value="300">300 Level</option>
+                  <option value="400">400 Level</option>
+                </select>
+              </div>
+              <div class="col-md-3 col-sm-6">
+                <select class="form-select" id="pqSemesterFilter" aria-label="Filter by semester">
+                  <option value="">All Semesters</option>
+                  <option value="Harmattan">Harmattan</option>
+                  <option value="Rain">Rain</option>
+                </select>
+              </div>
+              <div class="col-md-1 d-flex justify-content-end">
+                <button class="btn btn-outline-secondary w-100" id="pqResetFiltersBtn" title="Reset all filters">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+              <small class="text-muted" id="pqResultsInfo">Loading past questions...</small>
+            </div>
+          </div>
           <div style="display:none">
                 <i class="bi bi-plus"></i> Add New
             </button>
@@ -3404,6 +3447,129 @@ window.deleteEvent = async function(id) {
     // LOAD OTHER DATA (Simplified)
     // ============================================
     
+    // ============================================
+    // PAST QUESTIONS (State, Search & Filter)
+    // ============================================
+    let allPastQuestions = [];
+    let currentFilteredPastQuestions = [];
+
+    function filterAndDisplayPastQuestions() {
+      const searchInput = document.getElementById('pqSearchInput');
+      const levelFilter = document.getElementById('pqLevelFilter');
+      const semesterFilter = document.getElementById('pqSemesterFilter');
+      const tbody = document.getElementById('questions-table-body');
+      const resultsInfo = document.getElementById('pqResultsInfo');
+      const clearBtn = document.getElementById('pqSearchClearBtn');
+
+      if (!tbody) return;
+
+      const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+      const selectedLevel = levelFilter ? levelFilter.value : '';
+      const selectedSemester = semesterFilter ? semesterFilter.value.toLowerCase().trim() : '';
+
+      if (clearBtn) {
+        clearBtn.style.display = searchTerm ? 'block' : 'none';
+      }
+
+      if (!allPastQuestions || allPastQuestions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No past questions recorded yet</td></tr>';
+        if (resultsInfo) resultsInfo.textContent = 'Showing 0 past questions';
+        currentFilteredPastQuestions = [];
+        return;
+      }
+
+      const filtered = allPastQuestions.filter(q => {
+        // Search by course code, course name, title
+        const code = String(q.course_code || '').toLowerCase();
+        const name = String(q.course_name || '').toLowerCase();
+        const title = String(q.title || '').toLowerCase();
+        const matchesSearch = !searchTerm || code.includes(searchTerm) || name.includes(searchTerm) || title.includes(searchTerm);
+
+        // Level filter
+        const qLevel = String(q.level || '').replace(/[^0-9]/g, '');
+        const targetLevel = String(selectedLevel || '').replace(/[^0-9]/g, '');
+        const matchesLevel = !selectedLevel || qLevel === targetLevel;
+
+        // Semester filter
+        const qSemester = String(q.semester || '').toLowerCase().trim();
+        const matchesSemester = !selectedSemester || qSemester === selectedSemester;
+
+        return matchesSearch && matchesLevel && matchesSemester;
+      });
+
+      currentFilteredPastQuestions = filtered;
+
+      // Update results counter info
+      if (resultsInfo) {
+        if (filtered.length === allPastQuestions.length) {
+          resultsInfo.innerHTML = `Showing all <strong>${filtered.length}</strong> past questions`;
+        } else {
+          resultsInfo.innerHTML = `Showing <strong>${filtered.length}</strong> of ${allPastQuestions.length} past questions (filtered)`;
+        }
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-search me-1"></i> No past questions match your filters</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(q => {
+        const lvlStr = q.level ? `${String(q.level).replace(/[^0-9]/g, '')} Level` : 'N/A';
+        const semesterStr = escapeHtml(q.semester || 'N/A');
+        const viewLink = q.file_url 
+          ? `<a href="${escapeHtml(q.file_url)}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary"><i class="bi bi-file-earmark-arrow-down me-1"></i>View</a>`
+          : '<span class="text-muted">No file</span>';
+
+        return `
+          <tr>
+            <td><strong>${escapeHtml(q.course_code || 'N/A')}</strong></td>
+            <td>${escapeHtml(q.course_name || q.title || 'Untitled')}</td>
+            <td><span class="badge-category">${escapeHtml(lvlStr)}</span></td>
+            <td>${semesterStr}</td>
+            <td>${viewLink}</td>
+            <td><button class="btn btn-sm btn-outline-danger" title="Delete" onclick="deletePastQuestion('${q.id}')"><i class="bi bi-trash"></i></button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    let pqSearchTimeout = null;
+    const pqSearchInputEl = document.getElementById('pqSearchInput');
+    if (pqSearchInputEl) {
+      pqSearchInputEl.addEventListener('input', () => {
+        clearTimeout(pqSearchTimeout);
+        pqSearchTimeout = setTimeout(filterAndDisplayPastQuestions, 200);
+      });
+    }
+
+    const pqLevelFilterEl = document.getElementById('pqLevelFilter');
+    if (pqLevelFilterEl) {
+      pqLevelFilterEl.addEventListener('change', filterAndDisplayPastQuestions);
+    }
+
+    const pqSemesterFilterEl = document.getElementById('pqSemesterFilter');
+    if (pqSemesterFilterEl) {
+      pqSemesterFilterEl.addEventListener('change', filterAndDisplayPastQuestions);
+    }
+
+    const pqSearchClearBtnEl = document.getElementById('pqSearchClearBtn');
+    if (pqSearchClearBtnEl) {
+      pqSearchClearBtnEl.addEventListener('click', () => {
+        if (pqSearchInputEl) pqSearchInputEl.value = '';
+        filterAndDisplayPastQuestions();
+      });
+    }
+
+    const pqResetFiltersBtnEl = document.getElementById('pqResetFiltersBtn');
+    if (pqResetFiltersBtnEl) {
+      pqResetFiltersBtnEl.addEventListener('click', () => {
+        if (pqSearchInputEl) pqSearchInputEl.value = '';
+        if (pqLevelFilterEl) pqLevelFilterEl.value = '';
+        if (pqSemesterFilterEl) pqSemesterFilterEl.value = '';
+        filterAndDisplayPastQuestions();
+      });
+    }
+
     async function loadPastQuestions() {
       const { data, error } = await supabase.from('past_questions').select('*').order('created_at', { ascending: false });
       const tbody = document.getElementById('questions-table-body');
@@ -3414,11 +3580,23 @@ window.deleteEvent = async function(id) {
         return;
       }
       if (error || !data || data.length === 0) {
-        if (error) console.warn('[loadPastQuestions] query error:', error);
+        if (error) {
+          console.warn('[loadPastQuestions] query error:', error);
+          tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">Error loading past questions: ${escapeHtml(error.message || String(error))}</td></tr>`;
+          return;
+        }
+        allPastQuestions = [];
+        filterAndDisplayPastQuestions();
+        return;
+        filterAndDisplayPastQuestions();
+        return;
         tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading past questions: ${escapeHtml(error.message || String(error))}` : 'No past questions'}</td></tr>`;
         return;
       }
-      tbody.innerHTML = data.map(q => `
+      allPastQuestions = data || [];
+      filterAndDisplayPastQuestions();
+      return;
+      const _unused = data.map(q => `
         <tr>
           <td><strong>${escapeHtml(q.course_code)}</strong></td>
           <td>${escapeHtml(q.course_name)}</td>
