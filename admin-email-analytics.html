@@ -243,49 +243,60 @@
       </div>
     </div>
 
-    <!-- 4 KPI Stat Cards -->
+    <!-- 5 KPI Stat Cards -->
     <div class="row g-3 mb-4">
-      <div class="col-lg-3 col-md-6">
+      <div class="col-xl col-md-6">
         <div class="stats-card">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="stat-label">Total Emails Sent</span>
-            <div class="stat-icon-wrap" style="background: #dcfce7; color: #16a34a;"><i class="bi bi-send-fill"></i></div>
+            <span class="stat-label">Total Delivered</span>
+            <div class="stat-icon-wrap" style="background: #dcfce7; color: #16a34a;"><i class="bi bi-send-check-fill"></i></div>
           </div>
           <div class="stat-value" id="statTotalSent">0</div>
-          <div class="text-muted small mt-1" id="statSentSubtitle">Across active timeframe</div>
+          <div class="text-muted small mt-1" id="statHealth">100% success rate</div>
         </div>
       </div>
 
-      <div class="col-lg-3 col-md-6">
+      <div class="col-xl col-md-6">
+        <div class="stats-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="stat-label">Past Questions</span>
+            <div class="stat-icon-wrap" style="background: #e0e7ff; color: #4338ca;"><i class="bi bi-journal-bookmark-fill"></i></div>
+          </div>
+          <div class="stat-value text-primary" id="statPastQuestions">0</div>
+          <div class="text-muted small mt-1">Course study dispatches</div>
+        </div>
+      </div>
+
+      <div class="col-xl col-md-6">
+        <div class="stats-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="stat-label">Sign-Ups & Welcome</span>
+            <div class="stat-icon-wrap" style="background: #d1fae5; color: #059669;"><i class="bi bi-person-plus-fill"></i></div>
+          </div>
+          <div class="stat-value text-success" id="statSignUps">0</div>
+          <div class="text-muted small mt-1">Student activation emails</div>
+        </div>
+      </div>
+
+      <div class="col-xl col-md-6">
         <div class="stats-card">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <span class="stat-label">Profile Reminders</span>
             <div class="stat-icon-wrap" style="background: #fef3c7; color: #d97706;"><i class="bi bi-bell-fill"></i></div>
           </div>
-          <div class="stat-value" id="statReminders">0</div>
-          <div class="text-muted small mt-1">Dispatched to incomplete profiles</div>
+          <div class="stat-value text-warning" id="statReminders">0</div>
+          <div class="text-muted small mt-1">Automated cron notifications</div>
         </div>
       </div>
 
-      <div class="col-lg-3 col-md-6">
+      <div class="col-xl col-md-6">
         <div class="stats-card">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="stat-label">Broadcasts & Alerts</span>
+            <span class="stat-label">Broadcasts & Events</span>
             <div class="stat-icon-wrap" style="background: #e0f2fe; color: #0284c7;"><i class="bi bi-megaphone-fill"></i></div>
           </div>
           <div class="stat-value" id="statBroadcasts">0</div>
-          <div class="text-muted small mt-1">Announcements & event updates</div>
-        </div>
-      </div>
-
-      <div class="col-lg-3 col-md-6">
-        <div class="stats-card">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="stat-label">Delivery Health</span>
-            <div class="stat-icon-wrap" style="background: #f1f5f9; color: #334155;"><i class="bi bi-shield-check"></i></div>
-          </div>
-          <div class="stat-value text-success" id="statHealth">100%</div>
-          <div class="text-muted small mt-1" id="statHealthDetails">0 failures recorded</div>
+          <div class="text-muted small mt-1">Timetables, events & hackathons</div>
         </div>
       </div>
     </div>
@@ -406,10 +417,12 @@
         </div>
         <div class="col-md-5">
           <select class="form-select form-select-sm" id="logTypeFilter" onchange="loadEmailLogs()">
-            <option value="all">All Email Types</option>
-            <option value="profile_reminder">Profile Reminders</option>
-            <option value="broadcast">Broadcast Announcements</option>
-            <option value="failed">Delivery Failures</option>
+            <option value="all">All Email Dispatches</option>
+            <option value="past_question">📚 Past Questions</option>
+            <option value="sign_up">👤 Sign-Ups & Welcome</option>
+            <option value="profile_reminder">⏰ Profile Reminders</option>
+            <option value="broadcast">📢 Broadcasts & Events</option>
+            <option value="failed">❌ Delivery Failures</option>
           </select>
         </div>
       </div>
@@ -609,11 +622,12 @@
         const data = res.data;
 
         // Populate KPIs
-        document.getElementById('statTotalSent').textContent = Number(data.summary.totalSent || 0).toLocaleString();
+        document.getElementById('statTotalSent').textContent = Number(data.summary.totalDelivered || data.summary.totalSent || 0).toLocaleString();
+        document.getElementById('statPastQuestions').textContent = Number(data.summary.pastQuestions || 0).toLocaleString();
+        document.getElementById('statSignUps').textContent = Number(data.summary.signUps || 0).toLocaleString();
         document.getElementById('statReminders').textContent = Number(data.summary.profileReminders || 0).toLocaleString();
         document.getElementById('statBroadcasts').textContent = Number(data.summary.broadcasts || 0).toLocaleString();
-        document.getElementById('statHealth').textContent = `${data.summary.successRate}%`;
-        document.getElementById('statHealthDetails').textContent = `${data.summary.failedEmails || 0} failed dispatch(es)`;
+        document.getElementById('statHealth').textContent = `${data.summary.successRate}% delivery rate (${data.summary.failedEmails || 0} errors)`;
 
         // Cron Status
         const nextDate = data.cronStatus.nextRunUtc ? new Date(data.cronStatus.nextRunUtc) : null;
@@ -721,13 +735,12 @@
       const ctx = document.getElementById('emailCategoryChart').getContext('2d');
       if (categoryChart) categoryChart.destroy();
 
-      const labels = ['Profile Reminders', 'Broadcasts', 'Tickets & Receipts', 'Welcome', 'Others'];
+      const labels = ['📚 Past Questions', '👤 Sign-Ups & Welcome', '⏰ Profile Reminders', '📢 Broadcasts & Events'];
       const data = [
+        distribution.pastQuestions || 0,
+        distribution.signUps || 0,
         distribution.profileReminders || 0,
-        distribution.broadcasts || 0,
-        distribution.ticketEmails || 0,
-        distribution.welcomeEmails || 0,
-        distribution.otherEmails || 0
+        distribution.broadcasts || 0
       ];
 
       categoryChart = new Chart(ctx, {
@@ -780,46 +793,47 @@
         }
 
         tbody.innerHTML = logs.map(l => {
-          const act = (l.action || '').toLowerCase();
           let badgeClass = 'type-reminder';
-          let badgeText = 'Reminder';
+          let badgeText = l.categoryLabel || 'Reminder';
 
-          if (act.includes('broadcast')) {
-            badgeClass = 'type-broadcast';
-            badgeText = 'Broadcast';
-          } else if (act.includes('ticket') || act.includes('payment')) {
-            badgeClass = 'type-ticket';
-            badgeText = 'Ticket/Receipt';
-          } else if (act.includes('welcome')) {
-            badgeClass = 'type-welcome';
-            badgeText = 'Welcome';
-          } else if (act.includes('failed')) {
+          if (l.category === 'past_question') {
+            badgeClass = 'type-past-question';
+          } else if (l.category === 'sign_up') {
+            badgeClass = 'type-signup';
+          } else if (l.category === 'profile_reminder') {
+            badgeClass = 'type-reminder';
+          } else if (l.category === 'timetable_resource') {
+            badgeClass = 'type-timetable';
+          } else if (l.category === 'event_hackathon') {
+            badgeClass = 'type-event';
+          } else if (l.category === 'test_email') {
+            badgeClass = 'type-test';
+          } else if (l.status === 'failed') {
             badgeClass = 'type-failed';
-            badgeText = 'Failed';
+          } else {
+            badgeClass = 'type-broadcast';
           }
 
           const dateObj = l.timestamp ? new Date(l.timestamp) : null;
           const dateStr = dateObj ? dateObj.toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
           const timeStr = dateObj ? dateObj.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' }) : '';
 
-          let detailsText = '-';
+          let displaySubject = escapeHtml(l.subject || 'NACOS Notification');
+          let detailsSnippet = '';
           if (l.details) {
-            if (Array.isArray(l.details.missing_fields)) {
-              detailsText = `<span class="text-muted small">Missing:</span> <strong>${escapeHtml(l.details.missing_fields.join(', '))}</strong>`;
-            } else if (l.details.subject) {
-              detailsText = escapeHtml(l.details.subject);
-            } else if (l.details.target) {
-              detailsText = `Test email to <code>${escapeHtml(l.details.target)}</code>`;
-            } else {
-              detailsText = escapeHtml(JSON.stringify(l.details));
-            }
+            detailsSnippet = `<div class="text-muted small mt-1">${escapeHtml(typeof l.details === 'object' ? JSON.stringify(l.details) : l.details)}</div>`;
           }
 
-          const recipientText = l.user_email 
-            ? `<strong>${escapeHtml(l.user_email)}</strong>${l.details?.matric_no ? `<br><small class="text-muted"><code>${escapeHtml(l.details.matric_no)}</code></small>` : ''}`
-            : '<span class="text-muted">Broadcast / System</span>';
+          let recipientDisplay = '';
+          if (l.recipientEmail) {
+            recipientDisplay = `<strong>${escapeHtml(l.recipientEmail)}</strong>`;
+          } else if (l.recipient) {
+            recipientDisplay = `<span class="badge bg-light text-dark border">${escapeHtml(l.recipient)}</span>`;
+          } else {
+            recipientDisplay = '<span class="text-muted">Student Community</span>';
+          }
 
-          const isFailure = act.includes('failed');
+          const isFailure = l.status === 'failed';
 
           return `
             <tr>
@@ -827,9 +841,12 @@
                 <div class="fw-semibold text-dark">${dateStr}</div>
                 <div class="text-muted small">${timeStr}</div>
               </td>
-              <td>${recipientText}</td>
+              <td>${recipientDisplay}</td>
               <td><span class="badge badge-pill-email ${badgeClass}">${badgeText}</span></td>
-              <td style="max-width: 380px;">${detailsText}</td>
+              <td style="max-width: 420px;">
+                <div class="fw-semibold text-dark">${displaySubject}</div>
+                ${detailsSnippet}
+              </td>
               <td>
                 ${isFailure 
                   ? '<span class="badge bg-danger-subtle text-danger border border-danger">Failed</span>'
