@@ -828,7 +828,52 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-calendar-event me-2"></i>Events</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addEventModal">
+            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addEventModal" id="addEventModalBtn"><i class="bi bi-plus"></i> Add Event</button>
+          </div>
+
+          <!-- Search and Filter Bar -->
+          <div class="card-body border-bottom bg-light">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-5">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="eventSearchInput" 
+                    placeholder="Search by event title, location, description, or date..."
+                    aria-label="Search events">
+                  <button class="btn btn-outline-secondary" type="button" id="eventSearchClearBtn" title="Clear search" style="display: none;">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="eventStatusFilter" aria-label="Filter by status">
+                  <option value="">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="eventFeeFilter" aria-label="Filter by fee">
+                  <option value="">All Events (Free & Paid)</option>
+                  <option value="free">Free Only</option>
+                  <option value="paid">Paid Only</option>
+                </select>
+              </div>
+              <div class="col-md-1 d-flex justify-content-end">
+                <button class="btn btn-outline-secondary w-100" id="eventResetFiltersBtn" title="Reset all filters">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+              <small class="text-muted" id="eventResultsInfo">Loading events...</small>
+            </div>
+          </div>
+          <div style="display:none">
+            <button>
               <i class="bi bi-plus"></i> Add Event
             </button>
           </div>
@@ -859,7 +904,54 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-trophy me-2"></i>Hackathons & Pitchathons</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addHackathonModal">
+            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addHackathonModal" id="addHackathonModalBtn"><i class="bi bi-plus"></i> Create Hackathon</button>
+          </div>
+
+          <!-- Search and Filter Bar -->
+          <div class="card-body border-bottom bg-light">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-5">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    id="hackathonSearchInput" 
+                    placeholder="Search by title, tagline, description, location..."
+                    aria-label="Search hackathons">
+                  <button class="btn btn-outline-secondary" type="button" id="hackathonSearchClearBtn" title="Clear search" style="display: none;">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="hackathonStatusFilter" aria-label="Filter by status">
+                  <option value="">All Statuses</option>
+                  <option value="upcoming">Upcoming</option>
+                  <option value="ongoing">Ongoing</option>
+                  <option value="judging">Judging / Voting</option>
+                  <option value="completed">Completed / Past</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="hackathonTypeFilter" aria-label="Filter by type">
+                  <option value="">All Types</option>
+                  <option value="hackathon">Hackathon</option>
+                  <option value="pitchathon">Pitchathon</option>
+                </select>
+              </div>
+              <div class="col-md-1 d-flex justify-content-end">
+                <button class="btn btn-outline-secondary w-100" id="hackathonResetFiltersBtn" title="Reset all filters">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+              <small class="text-muted" id="hackathonResultsInfo">Loading hackathons & pitchathons...</small>
+            </div>
+          </div>
+          <div style="display:none">
+            <button>
               <i class="bi bi-plus"></i> Create Hackathon
             </button>
           </div>
@@ -2429,6 +2521,129 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
     // EVENTS (with File Upload)
     // ============================================
     
+    let allEventsList = [];
+    let currentFilteredEvents = [];
+
+    function filterAndDisplayEvents() {
+      const searchInput = document.getElementById('eventSearchInput');
+      const statusFilter = document.getElementById('eventStatusFilter');
+      const feeFilter = document.getElementById('eventFeeFilter');
+      const tbody = document.getElementById('events-table-body');
+      const resultsInfo = document.getElementById('eventResultsInfo');
+      const clearBtn = document.getElementById('eventSearchClearBtn');
+      const colSpan = 6;
+      if (!tbody) return;
+
+      const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+      const selectedStatus = statusFilter ? statusFilter.value : '';
+      const selectedFee = feeFilter ? feeFilter.value : '';
+
+      if (clearBtn) {
+        clearBtn.style.display = searchTerm ? 'block' : 'none';
+      }
+
+      let filtered = (allEventsList || []).filter(ev => {
+        const title = (ev.title || '').toLowerCase();
+        const desc = (ev.description || '').toLowerCase();
+        const loc = (ev.location || '').toLowerCase();
+        const dateStr = (ev.date || '').toLowerCase();
+        const typeStr = (ev.event_type || '').toLowerCase();
+
+        const matchesSearch = !searchTerm ||
+          title.includes(searchTerm) ||
+          desc.includes(searchTerm) ||
+          loc.includes(searchTerm) ||
+          dateStr.includes(searchTerm) ||
+          typeStr.includes(searchTerm);
+
+        let matchesStatus = true;
+        if (selectedStatus === 'active') {
+          matchesStatus = ev.is_active === true || ev.is_active === 'true' || ev.is_active === 1;
+        } else if (selectedStatus === 'inactive') {
+          matchesStatus = ev.is_active === false || ev.is_active === 'false' || ev.is_active === 0;
+        }
+
+        let matchesFee = true;
+        if (selectedFee === 'free') {
+          matchesFee = !ev.requires_payment;
+        } else if (selectedFee === 'paid') {
+          matchesFee = !!ev.requires_payment;
+        }
+
+        return matchesSearch && matchesStatus && matchesFee;
+      });
+
+      currentFilteredEvents = filtered;
+
+      if (resultsInfo) {
+        if (filtered.length === allEventsList.length) {
+          resultsInfo.innerHTML = `Showing all <strong>${filtered.length}</strong> events`;
+        } else {
+          resultsInfo.innerHTML = `Showing <strong>${filtered.length}</strong> of ${allEventsList.length} events (filtered)`;
+        }
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4"><i class="bi bi-search me-1"></i> No events match your filters</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(ev => `
+        <tr>
+          <td>
+            ${ev.image_url ? `<img src="${ev.image_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px;" class="me-2">` : ''}
+            <strong>${escapeHtml(ev.title)}</strong>
+          </td>
+          <td>${ev.date || 'TBD'}</td>
+          <td>${ev.requires_payment ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning">${formatCurrency(ev.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}</td>
+          <td><button class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:12px;font-weight:600;" onclick="viewEventAttendees('${ev.id}')" title="Click to view attending / paid students"><i class="bi bi-people me-1"></i>${(window.eventCountsMap && window.eventCountsMap[ev.id]) || ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</button></td>
+          <td>${ev.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-info me-1" onclick="viewEventAttendees('${ev.id}')" title="View Attendees"><i class="bi bi-people"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${ev.id}')"><i class="bi bi-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    let eventSearchTimeout = null;
+    const eventSearchInputEl = document.getElementById('eventSearchInput');
+    if (eventSearchInputEl) {
+      eventSearchInputEl.addEventListener('input', () => {
+        clearTimeout(eventSearchTimeout);
+        eventSearchTimeout = setTimeout(filterAndDisplayEvents, 200);
+      });
+    }
+
+    const eventStatusFilterEl = document.getElementById('eventStatusFilter');
+    if (eventStatusFilterEl) {
+      eventStatusFilterEl.addEventListener('change', filterAndDisplayEvents);
+    }
+
+    const eventFeeFilterEl = document.getElementById('eventFeeFilter');
+    if (eventFeeFilterEl) {
+      eventFeeFilterEl.addEventListener('change', filterAndDisplayEvents);
+    }
+
+    const eventSearchClearBtnEl = document.getElementById('eventSearchClearBtn');
+    if (eventSearchClearBtnEl) {
+      eventSearchClearBtnEl.addEventListener('click', () => {
+        if (eventSearchInputEl) eventSearchInputEl.value = '';
+        filterAndDisplayEvents();
+      });
+    }
+
+    const eventResetFiltersBtnEl = document.getElementById('eventResetFiltersBtn');
+    if (eventResetFiltersBtnEl) {
+      eventResetFiltersBtnEl.addEventListener('click', () => {
+        if (eventSearchInputEl) eventSearchInputEl.value = '';
+        if (eventStatusFilterEl) eventStatusFilterEl.value = '';
+        if (eventFeeFilterEl) eventFeeFilterEl.value = '';
+        filterAndDisplayEvents();
+      });
+    }
+    // ============================================
+    
     async function loadEvents() {
       const { data, error } = await supabase
         .from('events')
@@ -2445,11 +2660,11 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       }
       if (error || !data || data.length === 0) {
         if (error) console.warn('[loadEvents] query error:', error);
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading events: ${escapeHtml(error.message || String(error))}` : 'No events yet'}</td></tr>`;
+        if (document.getElementById('eventResultsInfo')) document.getElementById('eventResultsInfo').textContent = error ? 'Error loading events' : 'No events yet'; tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading events: ${escapeHtml(error.message || String(error))}` : 'No events yet'}</td></tr>`;
         return;
       }
       
-      tbody.innerHTML = data.map(ev => `
+      allEventsList = data || []; window.currentEventsList = allEventsList; filterAndDisplayEvents(); return; const _unusedEventsRender = data.map(ev => `
         <tr>
           <td>
             ${ev.image_url ? `<img src="${ev.image_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px;" class="me-2">` : ''}
@@ -3265,6 +3480,14 @@ window.deleteEvent = async function(id) {
     
     function getComputedStudentLevel(s) {
       if (s.current_level) return s.current_level;
+      if (s.level) return s.level;
+      if (s.year_of_study) {
+        const now = new Date();
+        const currentAcadYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+        const diff = currentAcadYear - s.year_of_study;
+        const calc = (diff + 1) * 100;
+        if (calc >= 100 && calc <= 500) return calc;
+      }
       if (s.matric_no) {
         const m = String(s.matric_no).trim().match(/^(\d{2})\//);
         if (m) {
@@ -3346,7 +3569,29 @@ window.deleteEvent = async function(id) {
         
         return `
           <tr>
-            <td><strong>${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</strong></td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                ${s.profile_picture_url ? `
+                  <img src="${escapeHtml(s.profile_picture_url)}" 
+                       alt="${escapeHtml(s.first_name || '')}" 
+                       class="rounded-circle border shadow-sm flex-shrink-0" 
+                       style="width: 38px; height: 38px; object-fit: cover; cursor: pointer; transition: transform 0.15s ease;"
+                       title="Click to view full photo"
+                       onclick="viewStudentPhoto('${s.id}')"
+                       onmouseover="this.style.transform='scale(1.15)'"
+                       onmouseout="this.style.transform='scale(1)'"
+                       onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'rounded-circle d-flex align-items-center justify-content-center bg-light text-primary border fw-bold flex-shrink-0\\' style=\\'width: 38px; height: 38px; font-size: 13px;\\'>${escapeHtml(((s.first_name?.[0] || '') + (s.last_name?.[0] || '')).toUpperCase() || 'S')}</div>';">
+                ` : `
+                  <div class="rounded-circle d-flex align-items-center justify-content-center bg-light text-primary border fw-bold flex-shrink-0" 
+                       style="width: 38px; height: 38px; font-size: 13px;">
+                    ${escapeHtml(((s.first_name?.[0] || '') + (s.last_name?.[0] || '')).toUpperCase() || 'S')}
+                  </div>
+                `}
+                <div>
+                  <strong>${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</strong>
+                </div>
+              </div>
+            </td>
             <td>${escapeHtml(s.email)}</td>
             <td>${escapeHtml(s.matric_no)}</td>
             <td>${escapeHtml(s.department)}</td>
@@ -3365,6 +3610,53 @@ window.deleteEvent = async function(id) {
     // All registered students are auto-activated on signup and redirected to their dashboard.
     // Admins can still ban / un-ban via a future PUT /students/:id/ban endpoint if needed.
     
+    window.viewStudentPhoto = function(studentId) {
+      const s = (allStudents || []).find(st => String(st.id) === String(studentId));
+      if (!s) return;
+      const fullName = `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.name || 'Student';
+      const photoUrl = s.profile_picture_url;
+      const matric = s.matric_no || 'N/A';
+      const dept = s.department || 'N/A';
+      const computedLvl = getComputedStudentLevel(s);
+      const levelText = computedLvl ? `${computedLvl} Level` : '';
+
+      if (!photoUrl) {
+        Swal.fire({
+          icon: 'info',
+          title: escapeHtml(fullName),
+          text: 'No profile picture uploaded by this student.',
+          confirmButtonColor: '#1b8c0c'
+        });
+        return;
+      }
+
+      Swal.fire({
+        title: `<div class="fw-bold" style="font-size: 1.2rem; color: #1e293b;">${escapeHtml(fullName)}</div>
+                <div class="text-muted mt-1" style="font-size: 0.85rem; font-weight: normal;">
+                  <span class="badge bg-light text-dark border me-1"><code>${escapeHtml(matric)}</code></span>
+                  <span class="badge bg-light text-dark border me-1">${escapeHtml(dept)}</span>
+                  ${levelText ? `<span class="badge bg-success-subtle text-success-emphasis border">${levelText}</span>` : ''}
+                </div>`,
+        html: `
+          <div class="text-center p-2">
+            <img src="${escapeHtml(photoUrl)}" 
+                 alt="${escapeHtml(fullName)}" 
+                 class="img-fluid rounded shadow-sm" 
+                 style="max-height: 70vh; max-width: 100%; object-fit: contain; background: #0b0f19;"
+                 onerror="this.onerror=null;this.src='assets/img/tau_logo-removebg-preview.png';">
+          </div>
+        `,
+        showCloseButton: true,
+        showConfirmButton: false,
+        width: '520px',
+        padding: '1.25rem',
+        background: '#ffffff',
+        customClass: {
+          popup: 'rounded-4 shadow-lg'
+        }
+      });
+    };
+
     window.approveStudent = async function(studentId) {
       try {
         const result = await Swal.fire({
@@ -4458,6 +4750,159 @@ window.deleteEvent = async function(id) {
 
     let currentManagingHackathonId = null;
     let currentHackathonRegistrations = [];
+    let allHackathonsList = [];
+    let currentFilteredHackathons = [];
+
+    function filterAndDisplayHackathons() {
+      const searchInput = document.getElementById('hackathonSearchInput');
+      const statusFilter = document.getElementById('hackathonStatusFilter');
+      const typeFilter = document.getElementById('hackathonTypeFilter');
+      const tbody = document.getElementById('hackathons-table-body');
+      const resultsInfo = document.getElementById('hackathonResultsInfo');
+      const clearBtn = document.getElementById('hackathonSearchClearBtn');
+      const colSpan = 6;
+      if (!tbody) return;
+
+      const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+      const selectedStatus = statusFilter ? statusFilter.value.toLowerCase().trim() : '';
+      const selectedType = typeFilter ? typeFilter.value.toLowerCase().trim() : '';
+
+      if (clearBtn) {
+        clearBtn.style.display = searchTerm ? 'block' : 'none';
+      }
+
+      let filtered = (allHackathonsList || []).filter(h => {
+        const title = (h.title || '').toLowerCase();
+        const tagline = (h.tagline || '').toLowerCase();
+        const desc = (h.description || '').toLowerCase();
+        const loc = (h.location || '').toLowerCase();
+        const rules = (h.rules || '').toLowerCase();
+        const st = (h.status || 'upcoming').toLowerCase();
+        const evType = (h.event_type || 'hackathon').toLowerCase();
+
+        const matchesSearch = !searchTerm ||
+          title.includes(searchTerm) ||
+          tagline.includes(searchTerm) ||
+          desc.includes(searchTerm) ||
+          loc.includes(searchTerm) ||
+          rules.includes(searchTerm);
+
+        let matchesStatus = true;
+        if (selectedStatus === 'upcoming') {
+          matchesStatus = st === 'upcoming';
+        } else if (selectedStatus === 'ongoing') {
+          matchesStatus = st === 'ongoing';
+        } else if (selectedStatus === 'judging') {
+          matchesStatus = st === 'judging' || st === 'voting';
+        } else if (selectedStatus === 'completed') {
+          matchesStatus = st === 'completed' || st === 'past';
+        }
+
+        let matchesType = true;
+        if (selectedType === 'pitchathon') {
+          matchesType = evType === 'pitchathon';
+        } else if (selectedType === 'hackathon') {
+          matchesType = evType === 'hackathon';
+        }
+
+        return matchesSearch && matchesStatus && matchesType;
+      });
+
+      currentFilteredHackathons = filtered;
+
+      if (resultsInfo) {
+        if (filtered.length === allHackathonsList.length) {
+          resultsInfo.innerHTML = `Showing all <strong>${filtered.length}</strong> hackathons & pitchathons`;
+        } else {
+          resultsInfo.innerHTML = `Showing <strong>${filtered.length}</strong> of ${allHackathonsList.length} hackathons & pitchathons (filtered)`;
+        }
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4"><i class="bi bi-search me-1"></i> No hackathons or pitchathons match your filters</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(h => {
+        let statusBadge = 'bg-secondary';
+        const st = (h.status || 'upcoming').toLowerCase();
+        if (st === 'upcoming') statusBadge = 'bg-primary';
+        else if (st === 'ongoing') statusBadge = 'bg-success';
+        else if (st === 'voting' || st === 'judging') statusBadge = 'bg-warning text-dark';
+        else if (st === 'completed' || st === 'past') statusBadge = 'bg-dark';
+
+        const typeBadge = h.event_type === 'pitchathon'
+          ? '<span class="badge bg-purple" style="background:#6f42c1;">Pitchathon</span>'
+          : '<span class="badge bg-info text-dark">Hackathon</span>';
+
+        const dates = `${formatDate(h.start_date)} - ${formatDate(h.end_date)}`;
+
+        return `
+          <tr>
+            <td>
+              <strong>${escapeHtml(h.title)}</strong>
+              ${h.tagline ? `<br><small class="text-muted">${escapeHtml(h.tagline)}</small>` : ''}
+            </td>
+            <td>${typeBadge}</td>
+            <td><small>${dates}</small></td>
+            <td>${h.min_team_size || 1} - ${h.max_team_size || 4} members</td>
+            <td>
+              <span class="badge ${statusBadge}" style="cursor: pointer;" onclick="changeHackathonStatus('${h.id}', '${h.status || 'upcoming'}', '${escapeHtml(h.title)}')" title="Click to change status">
+                ${escapeHtml(h.status || 'upcoming')} <i class="bi bi-pencil-fill ms-1" style="font-size: 9px;"></i>
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary me-1" onclick="manageHackathon('${h.id}', '${escapeHtml(h.title)}', '${escapeHtml(h.status || 'upcoming')}', '${escapeHtml(h.prize_pool || '')}')">
+                <i class="bi bi-people"></i> Manage
+              </button>
+              <button class="btn btn-sm btn-outline-secondary me-1" onclick="changeHackathonStatus('${h.id}', '${h.status || 'upcoming'}', '${escapeHtml(h.title)}')">
+                <i class="bi bi-arrow-repeat"></i> Status
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteHackathon('${h.id}')">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    let hackathonSearchTimeout = null;
+    const hackathonSearchInputEl = document.getElementById('hackathonSearchInput');
+    if (hackathonSearchInputEl) {
+      hackathonSearchInputEl.addEventListener('input', () => {
+        clearTimeout(hackathonSearchTimeout);
+        hackathonSearchTimeout = setTimeout(filterAndDisplayHackathons, 200);
+      });
+    }
+
+    const hackathonStatusFilterEl = document.getElementById('hackathonStatusFilter');
+    if (hackathonStatusFilterEl) {
+      hackathonStatusFilterEl.addEventListener('change', filterAndDisplayHackathons);
+    }
+
+    const hackathonTypeFilterEl = document.getElementById('hackathonTypeFilter');
+    if (hackathonTypeFilterEl) {
+      hackathonTypeFilterEl.addEventListener('change', filterAndDisplayHackathons);
+    }
+
+    const hackathonSearchClearBtnEl = document.getElementById('hackathonSearchClearBtn');
+    if (hackathonSearchClearBtnEl) {
+      hackathonSearchClearBtnEl.addEventListener('click', () => {
+        if (hackathonSearchInputEl) hackathonSearchInputEl.value = '';
+        filterAndDisplayHackathons();
+      });
+    }
+
+    const hackathonResetFiltersBtnEl = document.getElementById('hackathonResetFiltersBtn');
+    if (hackathonResetFiltersBtnEl) {
+      hackathonResetFiltersBtnEl.addEventListener('click', () => {
+        if (hackathonSearchInputEl) hackathonSearchInputEl.value = '';
+        if (hackathonStatusFilterEl) hackathonStatusFilterEl.value = '';
+        if (hackathonTypeFilterEl) hackathonTypeFilterEl.value = '';
+        filterAndDisplayHackathons();
+      });
+    }
 
     async function loadHackathons() {
       const tbody = document.getElementById('hackathons-table-body');
@@ -4478,10 +4923,11 @@ window.deleteEvent = async function(id) {
 
         if (error || !data || data.length === 0) {
           if (error) console.warn('[loadHackathons] error:', error);
-          tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading hackathons: ${escapeHtml(error.message || String(error))}` : 'No hackathons or pitchathons created yet'}</td></tr>`;
+          if (document.getElementById('hackathonResultsInfo')) document.getElementById('hackathonResultsInfo').textContent = error ? 'Error loading hackathons' : 'No hackathons or pitchathons created yet'; tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading hackathons: ${escapeHtml(error.message || String(error))}` : 'No hackathons or pitchathons created yet'}</td></tr>`;
           return;
         }
 
+        allHackathonsList = data || []; filterAndDisplayHackathons(); return;
         tbody.innerHTML = data.map(h => {
           let statusBadge = 'bg-secondary';
           const st = (h.status || 'upcoming').toLowerCase();
