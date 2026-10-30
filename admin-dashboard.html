@@ -2597,7 +2597,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       tbody.innerHTML = filtered.map(ev => `
         <tr>
           <td>
-            ${ev.image_url ? `<img src="${ev.image_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px;" class="me-2">` : ''}
+            ${ev.image_url ? `<img src="${escapeHtml(ev.image_url)}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px;" class="me-2">` : ''}
             <strong>${escapeHtml(ev.title)}</strong>
           </td>
           <td>${ev.date || 'TBD'}</td>
@@ -4853,15 +4853,15 @@ window.deleteEvent = async function(id) {
             <td><small>${dates}</small></td>
             <td>${h.min_team_size || 1} - ${h.max_team_size || 4} members</td>
             <td>
-              <span class="badge ${statusBadge}" style="cursor: pointer;" onclick="changeHackathonStatus('${h.id}', '${h.status || 'upcoming'}', '${escapeHtml(h.title)}')" title="Click to change status">
+              <span class="badge ${statusBadge}" style="cursor: pointer;" onclick="changeHackathonStatus('${h.id}')" title="Click to change status">
                 ${escapeHtml(h.status || 'upcoming')} <i class="bi bi-pencil-fill ms-1" style="font-size: 9px;"></i>
               </span>
             </td>
             <td>
-              <button class="btn btn-sm btn-outline-primary me-1" onclick="manageHackathon('${h.id}', '${escapeHtml(h.title)}', '${escapeHtml(h.status || 'upcoming')}', '${escapeHtml(h.prize_pool || '')}')">
+              <button class="btn btn-sm btn-outline-primary me-1" onclick="manageHackathon('${h.id}')">
                 <i class="bi bi-people"></i> Manage
               </button>
-              <button class="btn btn-sm btn-outline-secondary me-1" onclick="changeHackathonStatus('${h.id}', '${h.status || 'upcoming'}', '${escapeHtml(h.title)}')">
+              <button class="btn btn-sm btn-outline-secondary me-1" onclick="changeHackathonStatus('${h.id}')">
                 <i class="bi bi-arrow-repeat"></i> Status
               </button>
               <button class="btn btn-sm btn-outline-danger" onclick="deleteHackathon('${h.id}')">
@@ -5153,12 +5153,17 @@ window.deleteEvent = async function(id) {
     let currentManagingHackathonTitle = '';
     let currentManagingHackathonPrizePool = '';
 
-    window.manageHackathon = async function(hackathonId, hackathonTitle, hackathonStatus = 'upcoming', hackathonPrizePool = '') {
+    window.manageHackathon = async function(hackathonId, hackathonTitle, hackathonStatus, hackathonPrizePool) {
+      const foundHk = (window.allHackathonsList || []).find(x => x.id === hackathonId) || {};
+      const resolvedTitle = hackathonTitle || foundHk.title || 'Competition';
+      const resolvedStatus = hackathonStatus || foundHk.status || 'upcoming';
+      const resolvedPrize = hackathonPrizePool !== undefined && hackathonPrizePool !== '' ? hackathonPrizePool : (foundHk.prize_pool || '');
+
       currentManagingHackathonId = hackathonId;
-      currentManagingHackathonTitle = hackathonTitle;
-      currentManagingHackathonStatus = hackathonStatus;
-      currentManagingHackathonPrizePool = hackathonPrizePool;
-      document.getElementById('manageHkTitle').textContent = `Manage: ${hackathonTitle}`;
+      currentManagingHackathonTitle = resolvedTitle;
+      currentManagingHackathonStatus = resolvedStatus;
+      currentManagingHackathonPrizePool = resolvedPrize;
+      document.getElementById('manageHkTitle').textContent = `Manage: ${resolvedTitle}`;
       const subtitleEl = document.getElementById('manageHkSubtitle');
       if (subtitleEl) {
         subtitleEl.innerHTML = 'View participants, teams, and project submissions' +
@@ -5197,7 +5202,10 @@ window.deleteEvent = async function(id) {
     };
 
     window.changeHackathonStatus = async function(id, currentStatus, title) {
-      const currNorm = (currentStatus || 'upcoming').toLowerCase();
+      const foundHk = (window.allHackathonsList || []).find(x => x.id === id) || {};
+      const resolvedStatus = currentStatus || foundHk.status || 'upcoming';
+      const resolvedTitle = title || foundHk.title || 'Competition';
+      const currNorm = (resolvedStatus || 'upcoming').toLowerCase();
       const isUpcoming = currNorm === 'upcoming';
       const isOngoing = currNorm === 'ongoing';
       const isVoting = currNorm === 'voting' || currNorm === 'judging';
