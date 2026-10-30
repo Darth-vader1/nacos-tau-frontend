@@ -132,9 +132,14 @@
     }
 
     .type-reminder { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .type-signup { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; font-weight: 700; }
+    .type-past-question { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; font-weight: 700; }
     .type-broadcast { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .type-timetable { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .type-event { background: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; }
     .type-ticket { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-    .type-welcome { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+    .type-welcome { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .type-test { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
     .type-failed { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 
     .btn-action-primary {
@@ -794,24 +799,32 @@
 
         tbody.innerHTML = logs.map(l => {
           let badgeClass = 'type-reminder';
-          let badgeText = l.categoryLabel || 'Reminder';
+          let badgeText = '⏰ Profile Reminder';
 
           if (l.category === 'past_question') {
             badgeClass = 'type-past-question';
+            badgeText = '📚 Past Question';
           } else if (l.category === 'sign_up') {
             badgeClass = 'type-signup';
+            badgeText = '👤 Welcome & Sign-Up';
           } else if (l.category === 'profile_reminder') {
             badgeClass = 'type-reminder';
+            badgeText = '⏰ Profile Reminder';
           } else if (l.category === 'timetable_resource') {
             badgeClass = 'type-timetable';
+            badgeText = '📅 Timetable';
           } else if (l.category === 'event_hackathon') {
             badgeClass = 'type-event';
+            badgeText = '🎉 Event';
           } else if (l.category === 'test_email') {
             badgeClass = 'type-test';
+            badgeText = '🧪 Test Dispatch';
           } else if (l.status === 'failed') {
             badgeClass = 'type-failed';
+            badgeText = '❌ Failed';
           } else {
             badgeClass = 'type-broadcast';
+            badgeText = '📢 Broadcast';
           }
 
           const dateObj = l.timestamp ? new Date(l.timestamp) : null;
@@ -820,7 +833,39 @@
 
           let displaySubject = escapeHtml(l.subject || 'NACOS Notification');
           let detailsSnippet = '';
-          if (l.details) {
+
+          // Format clean, human-readable details
+          if (l.category === 'profile_reminder') {
+            let missing = l.missingFields || [];
+            let matric = l.matricNo;
+
+            if (missing.length === 0 && l.details) {
+              if (typeof l.details === 'object') {
+                missing = l.details.missing_fields || [];
+                matric = matric || l.details.matric_no;
+              } else if (typeof l.details === 'string') {
+                try {
+                  const p = JSON.parse(l.details);
+                  missing = p.missing_fields || [];
+                  matric = matric || p.matric_no;
+                } catch(_) {}
+              }
+            }
+
+            detailsSnippet = `
+              <div class="mt-1 d-flex align-items-center flex-wrap gap-1">
+                ${matric ? `<span class="badge bg-light text-dark border"><i class="bi bi-person-badge me-1"></i><code>${escapeHtml(matric)}</code></span>` : ''}
+                ${missing.length > 0 ? `<span class="text-muted small">Missing:</span> <span class="text-danger small fw-semibold">${escapeHtml(missing.join(', '))}</span>` : `<span class="text-muted small">Profile update reminder</span>`}
+              </div>
+            `;
+          } else if (l.category === 'sign_up') {
+            detailsSnippet = `
+              <div class="mt-1 d-flex align-items-center gap-1">
+                ${l.matricNo ? `<span class="badge bg-light text-dark border"><i class="bi bi-person-badge me-1"></i><code>${escapeHtml(l.matricNo)}</code></span>` : ''}
+                <span class="text-success small fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>New student account verified & activated</span>
+              </div>
+            `;
+          } else if (l.details) {
             detailsSnippet = `<div class="text-muted small mt-1">${escapeHtml(typeof l.details === 'object' ? JSON.stringify(l.details) : l.details)}</div>`;
           }
 
