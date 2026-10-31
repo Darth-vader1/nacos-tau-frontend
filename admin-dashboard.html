@@ -2670,22 +2670,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         return;
       }
       
-      allEventsList = data || []; window.currentEventsList = allEventsList; filterAndDisplayEvents(); return; const _unusedEventsRender = data.map(ev => `
-        <tr>
-          <td>
-            ${ev.image_url ? `<img src="${ev.image_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px;" class="me-2">` : ''}
-            <strong>${escapeHtml(ev.title)}</strong>
-          </td>
-          <td>${ev.date}</td>
-          <td>${ev.requires_payment ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning">${formatCurrency(ev.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}</td>
-          <td><button class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:12px;font-weight:600;" onclick="viewEventAttendees('${ev.id}')" title="Click to view attending / paid students"><i class="bi bi-people me-1"></i>${(window.eventCountsMap && window.eventCountsMap[ev.id]) || ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</button></td>
-          <td>${ev.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-info me-1" onclick="viewEventAttendees('${ev.id}')" title="View Attendees"><i class="bi bi-people"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${ev.id}')"><i class="bi bi-trash"></i></button>
-          </td>
-        </tr>
-      `).join('');
+      allEventsList = data || []; window.currentEventsList = allEventsList; filterAndDisplayEvents();
     }
 
     window.viewEventAttendees = async function(eventId) {
@@ -4933,49 +4918,8 @@ window.deleteEvent = async function(id) {
           return;
         }
 
-        allHackathonsList = data || []; filterAndDisplayHackathons(); return;
-        tbody.innerHTML = data.map(h => {
-          let statusBadge = 'bg-secondary';
-          const st = (h.status || 'upcoming').toLowerCase();
-          if (st === 'upcoming') statusBadge = 'bg-primary';
-          else if (st === 'ongoing') statusBadge = 'bg-success';
-          else if (st === 'voting' || st === 'judging') statusBadge = 'bg-warning text-dark';
-          else if (st === 'completed' || st === 'past') statusBadge = 'bg-dark';
-
-          const typeBadge = h.event_type === 'pitchathon'
-            ? '<span class="badge bg-purple" style="background:#6f42c1;">Pitchathon</span>'
-            : '<span class="badge bg-info text-dark">Hackathon</span>';
-
-          const dates = `${formatDate(h.start_date)} - ${formatDate(h.end_date)}`;
-
-          return `
-            <tr>
-              <td>
-                <strong>${escapeHtml(h.title)}</strong>
-                ${h.tagline ? `<br><small class="text-muted">${escapeHtml(h.tagline)}</small>` : ''}
-              </td>
-              <td>${typeBadge}</td>
-              <td><small>${dates}</small></td>
-              <td>${h.min_team_size || 1} - ${h.max_team_size || 4} members</td>
-              <td>
-                <span class="badge ${statusBadge}" style="cursor: pointer;" onclick="changeHackathonStatus('${h.id}', '${h.status || 'upcoming'}', '${escapeHtml(h.title)}')" title="Click to change status">
-                  ${escapeHtml(h.status || 'upcoming')} <i class="bi bi-pencil-fill ms-1" style="font-size: 9px;"></i>
-                </span>
-              </td>
-              <td>
-                <button class="btn btn-sm btn-outline-primary me-1" onclick="manageHackathon('${h.id}', '${escapeHtml(h.title)}', '${escapeHtml(h.status || 'upcoming')}', '${escapeHtml(h.prize_pool || '')}')">
-                  <i class="bi bi-people"></i> Manage
-                </button>
-                <button class="btn btn-sm btn-outline-secondary me-1" onclick="changeHackathonStatus('${h.id}', '${h.status || 'upcoming'}', '${escapeHtml(h.title)}')">
-                  <i class="bi bi-arrow-repeat"></i> Status
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteHackathon('${h.id}')">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
+        allHackathonsList = data || [];
+        filterAndDisplayHackathons();
       } catch (err) {
         console.error('[loadHackathons] fatal:', err);
         tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-danger py-4">Failed to load hackathons: ${escapeHtml(err.message || String(err))}</td></tr>`;

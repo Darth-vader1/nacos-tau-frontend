@@ -865,6 +865,52 @@
                 <span class="text-success small fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>New student account verified & activated</span>
               </div>
             `;
+          } else if (
+            l.category === 'past_question' || 
+            l.category === 'timetable_resource' || 
+            l.category === 'broadcast' || 
+            l.category === 'event_hackathon' || 
+            l.source === 'notification' || 
+            (l.details && (
+              l.details.toLowerCase().includes('target:') || 
+              l.details.toLowerCase().includes('audience:') || 
+              l.details.includes('"audiences"') ||
+              l.details.includes('"combos"')
+            ))
+          ) {
+            let targetText = l.targetAudience || '';
+            if (!targetText && l.details) {
+              targetText = String(l.details).replace(/^Target:\s*/i, '').replace(/^Audience:\s*/i, '').trim();
+            }
+            if (!targetText) targetText = 'All Active Students';
+
+            if (targetText.includes('{') || targetText.includes('"audiences"') || targetText.includes('"combos"')) {
+              try {
+                const jsonStart = targetText.indexOf('{');
+                const jsonStr = jsonStart !== -1 ? targetText.substring(jsonStart) : targetText;
+                const parsed = JSON.parse(jsonStr);
+                const list = parsed.audiences || parsed.combos || parsed.targetCombos || [];
+                if (Array.isArray(list) && list.length > 0) {
+                  targetText = list.map(it => {
+                    const lvl = it.level ? `${it.level} Level` : '';
+                    const dept = it.department || '';
+                    if (lvl && dept) return `${lvl} • ${dept}`;
+                    if (lvl) return `${lvl} (All Departments)`;
+                    return dept || 'All Students';
+                  }).join(', ');
+                } else {
+                  targetText = 'All Active Students';
+                }
+              } catch (_) {}
+            }
+
+            detailsSnippet = `
+              <div class="mt-1 d-flex align-items-center flex-wrap gap-1">
+                <span class="badge bg-light text-dark border">
+                  <i class="bi bi-bullseye me-1 text-primary"></i>Target: <strong>${escapeHtml(targetText)}</strong>
+                </span>
+              </div>
+            `;
           } else if (l.details) {
             detailsSnippet = `<div class="text-muted small mt-1">${escapeHtml(typeof l.details === 'object' ? JSON.stringify(l.details) : l.details)}</div>`;
           }
