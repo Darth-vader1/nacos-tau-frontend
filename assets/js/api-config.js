@@ -231,6 +231,19 @@ export const api = {
             return response.json();
         },
 
+        // Re-query the gateway for an online checkout the student started
+        async recheck(paymentId) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/payments/${encodeURIComponent(paymentId)}/recheck`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({})
+            });
+            return response.json();
+        },
+
         async createBachsSession(data) {
             const { data: { session } } = await supabase.auth.getSession();
             const response = await secureRequest('POST', `${API_URL}/payments/bachs-session`, {
