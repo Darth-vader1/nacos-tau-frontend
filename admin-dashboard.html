@@ -893,6 +893,7 @@
                     <th>Fee</th>
                     <th>Attendees</th>
                     <th>Status</th>
+                    <th>Ticket options</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -1333,6 +1334,32 @@
                 </div>
               </div>
             </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label" for="ev-allow-repeat">Allow repeat purchases</label>
+                  <select class="form-select" id="ev-allow-repeat">
+                    <option value="false">No (one order per student)</option>
+                    <option value="true">Yes (students can buy again)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label" for="ev-open-public">Open to non-members</label>
+                  <select class="form-select" id="ev-open-public">
+                    <option value="false">No (members only)</option>
+                    <option value="true">Yes (guest checkout)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label" for="ev-public-price">Guest price per ticket (₦)</label>
+                  <input type="number" class="form-control" id="ev-public-price" min="1" step="0.01" placeholder="Required if open to non-members">
+                </div>
+              </div>
+            </div>
             <div class="mb-3">
               <label class="form-label">Payment Details</label>
               <textarea class="form-control" id="ev-payment-details" rows="2" placeholder="Bank name, account number, etc."></textarea>
@@ -1426,6 +1453,32 @@
                             <div class="mb-3">
                                 <label class="form-label">Amount (₦)</label>
                                 <input type="number" class="form-control" id="edit-ev-amount" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label" for="edit-ev-allow-repeat">Allow repeat purchases</label>
+                                <select class="form-select" id="edit-ev-allow-repeat">
+                                    <option value="false">No (one order per student)</option>
+                                    <option value="true">Yes (students can buy again)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label" for="edit-ev-open-public">Open to non-members</label>
+                                <select class="form-select" id="edit-ev-open-public">
+                                    <option value="false">No (members only)</option>
+                                    <option value="true">Yes (guest checkout)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label" for="edit-ev-public-price">Guest price per ticket (₦)</label>
+                                <input type="number" class="form-control" id="edit-ev-public-price" min="1" step="0.01">
                             </div>
                         </div>
                     </div>
@@ -2537,7 +2590,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       const tbody = document.getElementById('events-table-body');
       const resultsInfo = document.getElementById('eventResultsInfo');
       const clearBtn = document.getElementById('eventSearchClearBtn');
-      const colSpan = 6;
+      const colSpan = 7;
       if (!tbody) return;
 
       const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
@@ -2604,6 +2657,16 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
           <td>${ev.requires_payment ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning">${formatCurrency(ev.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}</td>
           <td><button class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:12px;font-weight:600;" onclick="viewEventAttendees('${ev.id}')" title="Click to view attending / paid students"><i class="bi bi-people me-1"></i>${(window.eventCountsMap && window.eventCountsMap[ev.id]) || ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</button></td>
           <td>${ev.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
+          <td class="small" style="min-width: 190px;">
+            <div class="form-check form-switch mb-1">
+              <input class="form-check-input" type="checkbox" role="switch" id="rep-${ev.id}" ${ev.allow_repeat_orders ? 'checked' : ''} ${ev.requires_payment ? '' : 'disabled title="Only for paid events"'} onchange="toggleEventOption('${ev.id}', 'allow_repeat_orders', this)">
+              <label class="form-check-label" for="rep-${ev.id}">Repeat purchases</label>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="pub-${ev.id}" ${ev.open_to_public ? 'checked' : ''} ${ev.requires_payment ? '' : 'disabled title="Only for paid events"'} onchange="toggleEventOption('${ev.id}', 'open_to_public', this)">
+              <label class="form-check-label" for="pub-${ev.id}">Non-members${ev.open_to_public && Number(ev.public_price) > 0 ? ' (' + formatCurrency(ev.public_price) + ')' : ''}</label>
+            </div>
+          </td>
           <td>
             <button class="btn btn-sm btn-outline-info me-1" onclick="viewEventAttendees('${ev.id}')" title="View Attendees"><i class="bi bi-people"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
             <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${ev.id}')"><i class="bi bi-trash"></i></button>
@@ -2650,6 +2713,60 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
     }
     // ============================================
     
+    // Guest (non-member) settings from the create (prefix '') or edit ('edit-') form.
+    function readGuestOptions(prefix) {
+      const open = document.getElementById(prefix + 'ev-open-public').value === 'true';
+      const raw = document.getElementById(prefix + 'ev-public-price').value;
+      const price = raw === '' ? null : Number(raw);
+      if (open && !(Number.isFinite(price) && price > 0)) {
+        return { error: 'Set a guest price per ticket (₦) to open this event to non-members.' };
+      }
+      if (price !== null && !(Number.isFinite(price) && price > 0)) {
+        return { error: 'Guest price must be a positive amount.' };
+      }
+      return { open_to_public: open, public_price: price };
+    }
+
+    // One-click switches on the events table.
+    window.toggleEventOption = async function(eventId, field, checkbox) {
+      const ev = (window.currentEventsList || []).find(e => e.id === eventId) || {};
+      const enabled = checkbox.checked;
+      const patch = { [field]: enabled, updated_at: new Date().toISOString() };
+
+      if (field === 'open_to_public' && enabled && !(Number(ev.public_price) > 0)) {
+        const { value: price, isConfirmed } = await Swal.fire({
+          title: 'Guest price per ticket',
+          text: 'Non-members will pay this amount per ticket.',
+          input: 'number',
+          inputAttributes: { min: '1', step: '0.01' },
+          inputValue: ev.payment_amount || '',
+          showCancelButton: true,
+          confirmButtonText: 'Open to non-members',
+          inputValidator: (v) => (Number(v) > 0 ? undefined : 'Enter an amount greater than 0')
+        });
+        if (!isConfirmed) { checkbox.checked = false; return; }
+        patch.public_price = Number(price);
+      }
+
+      checkbox.disabled = true;
+      try {
+        const res = await apiAdmin.update('events', eventId, patch);
+        if (res && res.success === false) throw new Error(res.error || 'Update failed');
+        Object.assign(ev, patch);
+        await logAdminAction('UPDATE', 'event', eventId, patch);
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', timer: 2200, showConfirmButton: false,
+          title: field === 'allow_repeat_orders'
+            ? (enabled ? 'Repeat purchases ON' : 'Repeat purchases OFF')
+            : (enabled ? 'Open to non-members' : 'Members only') });
+        filterAndDisplayEvents();
+      } catch (err) {
+        checkbox.checked = !enabled;
+        Swal.fire('Error', 'Could not update event: ' + (err.message || err), 'error');
+      } finally {
+        checkbox.disabled = false;
+      }
+    };
+
     async function loadEvents() {
       const { data, error } = await supabase
         .from('events')
@@ -2657,7 +2774,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         .order('date', { ascending: false });
       
       window.currentEventsList = data || []; const tbody = document.getElementById('events-table-body'); window.eventCountsMap = {}; try { let allP = []; if (Array.isArray(window.allPaymentsList) && window.allPaymentsList.length > 0) { allP = window.allPaymentsList; } else if (typeof api?.payments?.getAll === 'function') { const pr = await api.payments.getAll({ limit: 500 }); allP = pr?.data?.payments || []; window.allPaymentsList = allP; } (data || []).forEach(ev => { const evPays = allP.filter(p => p.event_id === ev.id && (p.status === 'verified' || !p.status)); /* seats are counted in tickets: current_attendees is synced server-side (free + paid); paid ticket sum is a fallback */ const paidTickets = evPays.reduce((sum, p) => sum + Math.max(1, parseInt(p.ticket_quantity, 10) || 1), 0); window.eventCountsMap[ev.id] = Math.max(Number(ev.current_attendees) || 0, paidTickets); }); } catch(cntErr){ console.warn('[loadEvents] count err:', cntErr); }
-      const colSpan = 6;
+      const colSpan = 7;
       
       if (isMissingTableError(error, 'events')) {
         console.error('[loadEvents] table missing:', error);
@@ -2707,7 +2824,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
 
         // Seats are counted in tickets (one order can hold several tickets).
         const qtyOf = (row) => Math.max(1, parseInt(row && row.ticket_quantity, 10) || 1);
-        const otherRegs = nonPaidRegs.filter(r => !evPays.some(p => p.user_id && p.user_id === r.user_id));
+        const otherRegs = nonPaidRegs.filter(r => !r.linked_payment_id || !evPays.some(p => p.id === r.linked_payment_id));
         const totalCount = evPays.length + otherRegs.length;
         const totalTickets = evPays.reduce((sum, p) => sum + qtyOf(p), 0) + otherRegs.reduce((sum, r) => sum + qtyOf(r), 0);
         document.getElementById('eventAttendeesModalSubtitle').textContent = totalCount + ' student(s) registered / paid · ' + totalTickets + ' ticket(s)';
@@ -2715,10 +2832,13 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         let rowsHtml = '';
         evPays.forEach(p => {
           const st = p.students || {};
-          const sName = st.name || 'Student';
+          const isGuestRow = !p.user_id && !!p.guest_email;
+          const sName = st.name || (isGuestRow ? (p.guest_name || 'Guest') : 'Student');
           const mNo = st.matric_no ? ('<code>' + escapeHtml(st.matric_no) + '</code>') : '<span class="text-muted">N/A</span>';
           const dpt = st.department ? escapeHtml(st.department) : '<span class="text-muted">N/A</span>';
-          const eml = st.email ? ('<br><small class="text-muted">' + escapeHtml(st.email) + '</small>') : '';
+          const emlVal = st.email || (isGuestRow ? p.guest_email : '');
+          const eml = (emlVal ? ('<br><small class="text-muted">' + escapeHtml(emlVal) + (isGuestRow && p.guest_phone ? ' · ' + escapeHtml(p.guest_phone) : '') + '</small>') : '') +
+            (isGuestRow ? ' <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">Guest</span>' : '');
           const pQty = qtyOf(p);
           const pBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid ' + formatCurrency(p.amount) + '</span>' +
             ' <span class="badge bg-light text-dark border">' + pQty + ' ticket' + (pQty > 1 ? 's' : '') + '</span>';
@@ -2813,6 +2933,9 @@ window.editEvent = async function(eventId) {
         document.getElementById('edit-ev-requires-payment').value = event.requires_payment ? 'true' : 'false';
         document.getElementById('edit-ev-amount').value = event.payment_amount || 0;
         document.getElementById('edit-ev-payment-details').value = event.payment_details || '';
+        document.getElementById('edit-ev-allow-repeat').value = event.allow_repeat_orders ? 'true' : 'false';
+        document.getElementById('edit-ev-open-public').value = event.open_to_public ? 'true' : 'false';
+        document.getElementById('edit-ev-public-price').value = event.public_price || '';
         document.getElementById('edit-ev-status').value = event.is_active ? 'true' : 'false';
         document.getElementById('edit-ev-image').value = event.image_url || '';
         
@@ -2832,6 +2955,11 @@ document.getElementById('editEventForm')?.addEventListener('submit', async (e) =
     const eventId = document.getElementById('edit-event-id').value;
     const requiresPayment = document.getElementById('edit-ev-requires-payment').value === 'true';
     const isActive = document.getElementById('edit-ev-status').value === 'true';
+    const guestOpts = readGuestOptions('edit-');
+    if (guestOpts.error) {
+        Swal.fire('Check guest settings', guestOpts.error, 'warning');
+        return;
+    }
     
     const updateData = {
         title: document.getElementById('edit-ev-title').value.trim(),
@@ -2844,6 +2972,9 @@ document.getElementById('editEventForm')?.addEventListener('submit', async (e) =
         requires_payment: requiresPayment,
         payment_amount: requiresPayment ? parseFloat(document.getElementById('edit-ev-amount').value) : null,
         payment_details: document.getElementById('edit-ev-payment-details').value.trim() || null,
+        allow_repeat_orders: document.getElementById('edit-ev-allow-repeat').value === 'true',
+        open_to_public: guestOpts.open_to_public,
+        public_price: guestOpts.public_price,
         is_active: isActive,
         image_url: document.getElementById('edit-ev-image').value.trim() || null,
         updated_at: new Date().toISOString()
@@ -2920,6 +3051,12 @@ window.deleteEvent = async function(id) {
       const amount = document.getElementById('ev-amount').value || 0;
       const paymentDetails = document.getElementById('ev-payment-details').value.trim();
       const imageFile = document.getElementById('ev-image').files[0];
+      const allowRepeat = document.getElementById('ev-allow-repeat').value === 'true';
+      const guestOpts = readGuestOptions('');
+      if (guestOpts.error) {
+        Swal.fire('Check guest settings', guestOpts.error, 'warning');
+        return;
+      }
       
       let imageUrl = null;
       const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -2948,6 +3085,9 @@ window.deleteEvent = async function(id) {
           requires_payment: requiresPayment,
           payment_amount: requiresPayment ? parseFloat(amount) : null,
           payment_details: paymentDetails,
+          allow_repeat_orders: allowRepeat,
+          open_to_public: guestOpts.open_to_public,
+          public_price: guestOpts.public_price,
           image_url: imageUrl,
           created_by: adminData?.id,
           is_active: true
@@ -4458,7 +4598,9 @@ window.deleteEvent = async function(id) {
       tbody.innerHTML = filtered.map(p => {
         const studentText = p.students 
           ? `${escapeHtml(p.students.name)}<br><small class="text-muted">${escapeHtml(p.students.matric_no || '')}</small>`
-          : '<span class="text-muted">Student</span>';
+          : (p.guest_email
+              ? `${escapeHtml(p.guest_name || 'Guest')} <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">Guest</span><br><small class="text-muted">${escapeHtml(p.guest_email)}${p.guest_phone ? ' · ' + escapeHtml(p.guest_phone) : ''}</small>`
+              : '<span class="text-muted">Student</span>');
         
         const eventInfo = p.event_id ? paymentsEventMap.get(p.event_id) : null;
         const eventTitle = eventInfo?.title ? escapeHtml(eventInfo.title) : (p.payment_type === 'event_registration' ? '<span class="text-muted">Event Registration</span>' : '<span class="text-muted">General Payment</span>');
@@ -4623,6 +4765,7 @@ window.deleteEvent = async function(id) {
 
       const headers = [
         'Transaction Ref',
+        'Buyer Type',
         'Student Name',
         'Matric No',
         'Student Email',
@@ -4638,9 +4781,10 @@ window.deleteEvent = async function(id) {
       ];
 
       const rows = paymentsToExport.map(p => {
-        const studentName = p.students?.name || 'Student';
+        const isGuest = !p.user_id && !!p.guest_email;
+        const studentName = p.students?.name || (isGuest ? (p.guest_name || 'Guest') : 'Student');
         const matricNo = p.students?.matric_no || '';
-        const email = p.students?.email || '';
+        const email = p.students?.email || (isGuest ? p.guest_email : '') || '';
         const department = p.students?.department || '';
         const ev = p.event_id && eventMap ? eventMap.get(p.event_id) : null;
         const purpose = ev?.title || p.description || (p.payment_type === 'event_registration' ? 'Event Registration' : 'Payment');
@@ -4652,6 +4796,7 @@ window.deleteEvent = async function(id) {
 
         return [
           escapeCsv(p.transaction_id || p.id || ''),
+          escapeCsv(isGuest ? 'Guest' : 'Member'),
           escapeCsv(studentName),
           escapeCsv(matricNo),
           escapeCsv(email),

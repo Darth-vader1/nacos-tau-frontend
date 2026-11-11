@@ -173,6 +173,9 @@
           <button type="button" id="myPaymentsBtn" class="btn btn-outline-success btn-sm mt-2 d-none" style="min-height: 44px;">
             <i class="bi bi-receipt"></i> My payments &amp; tickets
           </button>
+          <button type="button" id="guestLookupBtn" class="btn btn-outline-secondary btn-sm mt-2 d-none" style="min-height: 44px;">
+            <i class="bi bi-search"></i> Find my guest ticket
+          </button>
         </div>
 
         <div class="row g-4" id="eventsContainer" data-aos="fade-up">
@@ -287,11 +290,11 @@
       return clampQuantity(input.value, parseInt(input.max, 10) || MAX_TICKETS_PER_ORDER);
     }
 
-    function bindQuantityPicker(event) {
+    function bindQuantityPicker(event, unitPrice) {
       const input = document.getElementById('ticketQty');
       if (!input) return;
       const max = parseInt(input.max, 10) || 1;
-      const unit = Number(event.payment_amount) || 0;
+      const unit = Number(unitPrice ?? event.payment_amount) || 0;
       const totalEl = document.getElementById('payTotal');
       const minus = document.getElementById('qtyMinus');
       const plus = document.getElementById('qtyPlus');
@@ -320,6 +323,11 @@
         myPaymentsBtn.classList.remove('d-none');
         myPaymentsBtn.addEventListener('click', showMyPayments);
       }
+      const guestLookupBtn = document.getElementById('guestLookupBtn');
+      if (guestLookupBtn && !userSession) {
+        guestLookupBtn.classList.remove('d-none');
+        guestLookupBtn.addEventListener('click', () => showGuestTicketLookup());
+      }
 
       await loadEvents();
 
@@ -332,6 +340,21 @@
       if (isPaymentSuccess && urlEventId) {
         // Clean URL to prevent re-triggering on page refresh
         window.history.replaceState({}, document.title, window.location.pathname);
+
+        // Guest orders confirm with reference + the email given at checkout
+        if (params.get('guest') === '1' || !userSession) {
+          let savedGuest = {};
+          try { savedGuest = JSON.parse(localStorage.getItem('pending_bachs_checkout') || '{}') || {}; } catch (_) {}
+          const guestRef = params.get('reference') || params.get('checkout_id') || params.get('session_id') ||
+            (savedGuest.eventId === urlEventId ? savedGuest.checkoutId : null);
+          const guestEmail = savedGuest.eventId === urlEventId ? savedGuest.guestEmail : null;
+          if (guestRef && guestEmail) {
+            await confirmGuestTicket(guestRef, guestEmail);
+          } else {
+            await showGuestTicketLookup({ reference: guestRef || '' });
+          }
+          return;
+        }
 
         // Resolve the checkout reference: URL params, then this device's saved
         // checkout, then the checkout the server recorded when it was started.
@@ -466,7 +489,11 @@
                   ${event.max_attendees ? `<span class="spots-badge"><i class="bi bi-people me-1"></i>${spotsLeft} spots left</span>` : ''}
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
-                  ${event.requires_payment ? `<span class="payment-badge"><i class="bi bi-credit-card me-1"></i>${formatCurrency(event.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}
+                  <span>
+                    ${event.requires_payment ? `<span class="payment-badge"><i class="bi bi-credit-card me-1"></i>${formatCurrency(event.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}
+                    ${event.requires_payment && isGuestOpen(event) ? `<span class="badge bg-light text-dark border ms-1" title="Non-members can buy at the guest price"><i class="bi bi-people me-1"></i>Guests ${formatCurrency(event.public_price)}</span>` : ''}
+                    ${event.requires_payment && event.allow_repeat_orders ? '<span class="badge bg-light text-dark border ms-1" title="You can buy more tickets after your first order"><i class="bi bi-arrow-repeat me-1"></i>Buy again</span>' : ''}
+                  </span>
                   <button class="btn btn-register btn-sm" onclick="showEventDetails('${escapeJsString(event.id)}')">
                     View Details
                   </button>
@@ -536,45 +563,53 @@
       document.getElementById('eventModalBody').innerHTML = bodyHtml;
 
       let footerHtml = '';
+      let pickerUnitPrice = Number(event.payment_amount) || 0;
+      const isPaid = event.requires_payment && Number(event.payment_amount) > 0;
+      const maxQty = Math.max(1, Math.min(MAX_TICKETS_PER_ORDER, spotsLeft === null ? MAX_TICKETS_PER_ORDER : spotsLeft));
+      const hasSeats = spotsLeft === null || spotsLeft > 0;
+
+      const pickerHtml = (unitPrice) => `
+        <div class="d-flex align-items-center gap-2 me-auto flex-wrap">
+          <label for="ticketQty" class="small text-muted mb-0">Tickets</label>
+          <div class="input-group input-group-sm" style="width: 136px;">
+            <button class="btn btn-outline-secondary" type="button" id="qtyMinus" aria-label="Fewer tickets" style="min-width: 40px;">&minus;</button>
+            <input type="number" id="ticketQty" class="form-control text-center" value="1" min="1" max="${maxQty}" step="1" inputmode="numeric" aria-label="Number of tickets">
+            <button class="btn btn-outline-secondary" type="button" id="qtyPlus" aria-label="More tickets" style="min-width: 40px;">+</button>
+          </div>
+          <small class="text-muted" id="qtyHint">${formatCurrency(unitPrice)} each &middot; max ${maxQty}</small>
+        </div>`;
+
       if (userSession) {
         footerHtml = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`;
 
+        // One row per order (repeat purchases can create several).
         const student = await getStudentId();
-        let registration = null;
+        let myRegs = [];
         if (student && userSession.user) {
-          const { data: reg } = await supabase
+          const { data: regs } = await supabase
             .from('event_registrations')
-            .select('*')
+            .select('id, ticket_quantity, linked_payment_id, status')
             .eq('event_id', eventId)
-            .eq('user_id', userSession.user.id)
-            .maybeSingle();
-          registration = reg;
+            .eq('user_id', userSession.user.id);
+          myRegs = (regs || []).filter(r => (r.status || 'registered') !== 'cancelled');
         }
+        const heldTickets = myRegs.reduce((sum, r) => sum + Math.max(1, parseInt(r.ticket_quantity, 10) || 1), 0);
+        const canBuyMore = isPaid && event.allow_repeat_orders;
 
-        if (registration) {
-          const regQty = Math.max(1, parseInt(registration.ticket_quantity, 10) || 1);
+        if (myRegs.length && !canBuyMore) {
           footerHtml += `
             <button class="btn btn-success" disabled>
-              <i class="bi bi-check-circle-fill me-1"></i>Registered${regQty > 1 ? ` &middot; ${regQty} tickets` : ''}
+              <i class="bi bi-check-circle-fill me-1"></i>Registered${heldTickets > 1 ? ` &middot; ${heldTickets} tickets` : ''}
             </button>
           `;
-        } else if (spotsLeft === null || spotsLeft > 0) {
-          const isPaid = event.requires_payment && Number(event.payment_amount) > 0;
-          const maxQty = Math.max(1, Math.min(MAX_TICKETS_PER_ORDER, spotsLeft === null ? MAX_TICKETS_PER_ORDER : spotsLeft));
-
+        } else if (hasSeats) {
           if (isPaid) {
+            const buyMore = myRegs.length > 0;
             footerHtml += `
-              <div class="d-flex align-items-center gap-2 me-auto flex-wrap">
-                <label for="ticketQty" class="small text-muted mb-0">Tickets</label>
-                <div class="input-group input-group-sm" style="width: 136px;">
-                  <button class="btn btn-outline-secondary" type="button" id="qtyMinus" aria-label="Fewer tickets" style="min-width: 40px;">&minus;</button>
-                  <input type="number" id="ticketQty" class="form-control text-center" value="1" min="1" max="${maxQty}" step="1" inputmode="numeric" aria-label="Number of tickets">
-                  <button class="btn btn-outline-secondary" type="button" id="qtyPlus" aria-label="More tickets" style="min-width: 40px;">+</button>
-                </div>
-                <small class="text-muted" id="qtyHint">${formatCurrency(event.payment_amount)} each &middot; max ${maxQty}</small>
-              </div>
+              ${buyMore ? `<div class="w-100 small text-success mb-1"><i class="bi bi-ticket-perforated me-1"></i>You have ${heldTickets} ticket${heldTickets > 1 ? 's' : ''} for this event. Repeat purchases are open, so you can buy more.</div>` : ''}
+              ${pickerHtml(event.payment_amount)}
               <button type="button" class="btn btn-register" onclick="registerForEvent('${escapeJsString(eventId)}')">
-                <i class="bi bi-credit-card me-1"></i> Register &amp; Pay (<span id="payTotal">${formatCurrency(event.payment_amount)}</span>)
+                <i class="bi bi-credit-card me-1"></i> ${buyMore ? 'Buy More' : 'Register &amp; Pay'} (<span id="payTotal">${formatCurrency(event.payment_amount)}</span>)
               </button>
             `;
           } else {
@@ -587,13 +622,27 @@
         } else {
           footerHtml += `
             <button class="btn btn-danger" disabled>
-              <i class="bi bi-x-circle me-1"></i>Event Full
+              <i class="bi bi-x-circle me-1"></i>${myRegs.length ? `Event Full &middot; you have ${heldTickets} ticket${heldTickets > 1 ? 's' : ''}` : 'Event Full'}
             </button>
           `;
         }
+      } else if (isPaid && isGuestOpen(event) && hasSeats) {
+        // Non-members: guest checkout at the event's guest price
+        pickerUnitPrice = Number(event.public_price);
+        footerHtml = `
+          <div class="w-100 small text-muted mb-1">
+            <i class="bi bi-people me-1"></i>Open to non-members at ${formatCurrency(event.public_price)} per ticket.
+            NACOS members: <a href="student-login.html">sign in</a> for the member price (${formatCurrency(event.payment_amount)}).
+          </div>
+          ${pickerHtml(event.public_price)}
+          <button type="button" class="btn btn-register" onclick="startGuestCheckout('${escapeJsString(eventId)}')">
+            <i class="bi bi-credit-card me-1"></i> Buy as Guest (<span id="payTotal">${formatCurrency(event.public_price)}</span>)
+          </button>
+        `;
       } else {
         footerHtml = `
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          ${!hasSeats && isPaid && isGuestOpen(event) ? '<button class="btn btn-danger" disabled>Event Full</button>' : ''}
           <a href="student-login.html" class="btn btn-register">
             Sign In to Register
           </a>
@@ -601,7 +650,7 @@
       }
 
       document.getElementById('eventModalFooter').innerHTML = footerHtml;
-      bindQuantityPicker(event);
+      bindQuantityPicker(event, pickerUnitPrice);
 
       new bootstrap.Modal(document.getElementById('eventModal')).show();
     };
@@ -782,6 +831,142 @@
         }
       }
     };
+
+    // ---- Guest (non-member) checkout ------------------------------------------
+
+    function isGuestOpen(event) {
+      return !!event?.open_to_public && Number(event?.public_price) > 0;
+    }
+
+    function guestTicketStudent(data) {
+      return { name: data?.guest?.name || 'Guest', email: data?.guest?.email || '' };
+    }
+
+    window.startGuestCheckout = async function(eventId) {
+      const event = currentEvent;
+      if (!event || event.id !== eventId) return;
+      const quantity = getSelectedQuantity();
+      const unit = Number(event.public_price) || 0;
+      const total = Math.round(unit * quantity * 100) / 100;
+
+      const evModal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+      if (evModal) evModal.hide();
+
+      const { value: form, isConfirmed } = await Swal.fire({
+        title: 'Buy as a guest',
+        html: `
+          <p class="small text-muted mb-2">${quantity} ticket${quantity > 1 ? 's' : ''} &times; ${formatCurrency(unit)} = <strong>${formatCurrency(total)}</strong>. Your ticket will be emailed to you.</p>
+          <input id="guestName" class="swal2-input" placeholder="Full name" autocomplete="name" maxlength="100">
+          <input id="guestEmail" class="swal2-input" type="email" placeholder="Email address" autocomplete="email" maxlength="254">
+          <input id="guestPhone" class="swal2-input" type="tel" placeholder="Phone number" autocomplete="tel" maxlength="20">
+          <p class="small text-muted mt-2 mb-0">We only use these details to issue your ticket and contact you about this event.</p>`,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: `Continue to payment (${formatCurrency(total)})`,
+        confirmButtonColor: '#157a09',
+        preConfirm: () => {
+          const name = document.getElementById('guestName').value.trim();
+          const email = document.getElementById('guestEmail').value.trim();
+          const phone = document.getElementById('guestPhone').value.trim();
+          if (name.length < 2) return Swal.showValidationMessage('Please enter your full name');
+          if (!/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(email)) return Swal.showValidationMessage('Please enter a valid email address');
+          if (!/^\+?[0-9][0-9 ()-]{6,19}$/.test(phone)) return Swal.showValidationMessage('Please enter a valid phone number');
+          return { name, email, phone };
+        }
+      });
+      if (!isConfirmed || !form) return;
+
+      Swal.fire({ title: 'Preparing secure checkout...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      try {
+        const res = await api.payments.guestSession({ event_id: eventId, quantity, ...form });
+        if (!res || !res.success) throw new Error(res?.error || res?.message || 'Could not start checkout');
+        const data = res.data || {};
+
+        try {
+          localStorage.setItem('pending_bachs_checkout', JSON.stringify({
+            eventId, checkoutId: data.checkout_id, quantity, guest: true, guestEmail: form.email, timestamp: Date.now()
+          }));
+        } catch (_) {}
+
+        if (data.is_simulation) {
+          // Local development only (the server never returns this in production)
+          await confirmGuestTicket(data.checkout_id, form.email);
+          return;
+        }
+        if (!data.checkout_url) throw new Error('Invalid checkout session received from server.');
+        window.location.href = data.checkout_url;
+      } catch (e) {
+        Swal.fire('Checkout could not start', escapeHtml(e.message || 'Please try again.'), 'error');
+      }
+    };
+
+    async function confirmGuestTicket(reference, email, attempt = 1) {
+      const maxAttempts = 6;
+      if (attempt === 1) {
+        Swal.fire({ title: 'Confirming your payment...', html: '<p class="small text-muted" id="guestVerifyStatus">Checking with the payment gateway...</p>', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      }
+      try {
+        const res = await api.payments.guestVerify({ reference, email });
+        if (res && res.success) {
+          try { localStorage.removeItem('pending_bachs_checkout'); } catch (_) {}
+          const d = res.data || {};
+          Swal.close();
+          showTicketModal({
+            event: d.event || currentEvent || {},
+            student: guestTicketStudent(d),
+            ticketNumber: d.ticket_number,
+            reference: d.payment?.transaction_id || reference,
+            amount: d.total_amount ?? 0,
+            quantity: d.ticket_quantity,
+            paymentType: 'Guest ticket (confirmed)'
+          });
+          await loadEvents();
+          return;
+        }
+        const msg = res?.error || res?.message || 'Payment not confirmed yet.';
+        // 400 = gateway hasn't confirmed yet; keep polling for a short while
+        if (attempt < maxAttempts && /could not be verified|not confirmed/i.test(msg)) {
+          const el = document.getElementById('guestVerifyStatus');
+          if (el) el.textContent = `Waiting for the bank to confirm (attempt ${attempt}/${maxAttempts})...`;
+          setTimeout(() => confirmGuestTicket(reference, email, attempt + 1), 3000);
+          return;
+        }
+        throw new Error(msg);
+      } catch (e) {
+        Swal.fire({
+          title: 'Payment not confirmed yet',
+          html: `<p>${escapeHtml(e.message || 'Please try again.')}</p>
+                 <p class="small text-muted">Your reference: <code>${escapeHtml(reference)}</code>. Keep it. If you were charged, your ticket is emailed automatically once the gateway confirms, or use <strong>Find my guest ticket</strong> on this page.</p>`,
+          icon: 'info',
+          showCancelButton: true,
+          confirmButtonText: 'Try again',
+          confirmButtonColor: '#157a09',
+          cancelButtonText: 'Close'
+        }).then(r => { if (r.isConfirmed) confirmGuestTicket(reference, email); });
+      }
+    }
+
+    async function showGuestTicketLookup(prefill = {}) {
+      const { value: form, isConfirmed } = await Swal.fire({
+        title: 'Find my guest ticket',
+        html: `
+          <p class="small text-muted mb-2">Enter the payment reference and the email you used at checkout.</p>
+          <input id="lookupRef" class="swal2-input" placeholder="Payment reference" value="${escapeHtml(prefill.reference || '')}">
+          <input id="lookupEmail" class="swal2-input" type="email" placeholder="Email address" value="${escapeHtml(prefill.email || '')}">`,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Find ticket',
+        confirmButtonColor: '#157a09',
+        preConfirm: () => {
+          const reference = document.getElementById('lookupRef').value.trim();
+          const email = document.getElementById('lookupEmail').value.trim();
+          if (!reference || !email) return Swal.showValidationMessage('Enter both the reference and the email');
+          return { reference, email };
+        }
+      });
+      if (!isConfirmed || !form) return;
+      await confirmGuestTicket(form.reference, form.email);
+    }
 
     // ---- Payment recovery (server-recorded checkouts) -------------------------
 

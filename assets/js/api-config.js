@@ -231,6 +231,24 @@ export const api = {
             return response.json();
         },
 
+        // Guest (non-member) checkout: no account, guest price, ticket by email
+        async guestSession(data) {
+            const response = await secureRequest('POST', `${API_URL}/payments/guest-session`, {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+
+        // Guest confirms / recovers a ticket with checkout reference + email
+        async guestVerify(data) {
+            const response = await secureRequest('POST', `${API_URL}/payments/guest-verify`, {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+
         // Re-query the gateway for an online checkout the student started
         async recheck(paymentId) {
             const { data: { session } } = await supabase.auth.getSession();
