@@ -170,6 +170,9 @@
         <div class="section-title" data-aos="fade-up">
           <h2>Upcoming Events</h2>
           <p>Register for events and get your tickets</p>
+          <button type="button" id="myPaymentsBtn" class="btn btn-outline-success btn-sm mt-2 d-none" style="min-height: 44px;">
+            <i class="bi bi-receipt"></i> My payments &amp; tickets
+          </button>
         </div>
 
         <div class="row g-4" id="eventsContainer" data-aos="fade-up">
@@ -262,6 +265,13 @@
     document.addEventListener('DOMContentLoaded', async function() {
       const { data: { session } } = await supabase.auth.getSession();
       userSession = session;
+
+      const myPaymentsBtn = document.getElementById('myPaymentsBtn');
+      if (myPaymentsBtn && userSession) {
+        myPaymentsBtn.classList.remove('d-none');
+        myPaymentsBtn.addEventListener('click', showMyPayments);
+      }
+
       await loadEvents();
 
       const params = new URLSearchParams(window.location.search);
@@ -274,17 +284,31 @@
         // Clean URL to prevent re-triggering on page refresh
         window.history.replaceState({}, document.title, window.location.pathname);
 
-        // Retrieve saved checkout session id from sessionStorage or URL query params
-        const savedRaw = sessionStorage.getItem('pending_bachs_checkout');
-        const saved = savedRaw ? JSON.parse(savedRaw) : {};
-        const reference = params.get('reference') || 
-                          params.get('checkout_id') || 
-                          params.get('session_id') || 
-                          params.get('id') || 
-                          saved.checkoutId || 
-                          ('BACHS-' + urlEventId.substring(0, 4).toUpperCase() + '-' + Date.now());
+        // Resolve the checkout reference: URL params, then this device's saved
+        // checkout, then the checkout the server recorded when it was started.
+        let saved = {};
+        try { saved = JSON.parse(localStorage.getItem('pending_bachs_checkout') || '{}') || {}; } catch (_) {}
+        let reference = params.get('reference') ||
+                        params.get('checkout_id') ||
+                        params.get('session_id') ||
+                        params.get('id') ||
+                        (saved.eventId === urlEventId ? saved.checkoutId : null);
 
-        sessionStorage.removeItem('pending_bachs_checkout');
+        if (!reference) {
+          const pending = await findPendingCheckout(urlEventId);
+          if (pending) reference = pending.transaction_id;
+        }
+
+        try { localStorage.removeItem('pending_bachs_checkout'); } catch (_) {}
+
+        if (!reference) {
+          Swal.fire({
+            title: 'We could not find your checkout',
+            html: '<p>If you were charged, tap <strong>My payments &amp; tickets</strong> on this page and use <strong>Re-check payment</strong>. Your ticket is issued automatically once the gateway confirms the payment.</p>',
+            icon: 'info'
+          });
+          return;
+        }
 
         // Fetch student profile
         const student = await getStudentId();
@@ -611,11 +635,16 @@
 
           if (data && data.checkout_url) {
             // Save pending checkout session details before redirecting
-            sessionStorage.setItem('pending_bachs_checkout', JSON.stringify({
-              eventId: eventId,
-              checkoutId: data.checkout_id || data.id,
-              timestamp: Date.now()
-            }));
+            // localStorage (not sessionStorage) survives the tab being killed
+            // during the redirect on low-memory phones. The server also records
+            // the checkout, so this is only a convenience.
+            try {
+              localStorage.setItem('pending_bachs_checkout', JSON.stringify({
+                eventId: eventId,
+                checkoutId: data.checkout_id || data.id,
+                timestamp: Date.now()
+              }));
+            } catch (_) {}
 
             // Redirect to Bachs Hosted Checkout
             window.location.href = data.checkout_url;
@@ -701,6 +730,112 @@
         }
       }
     };
+
+    // ---- Payment recovery (server-recorded checkouts) -------------------------
+
+    async function fetchMyPayments() {
+      const res = await api.payments.getMyPayments();
+      if (!res || res.success === false) throw new Error(res?.error || 'Could not load your payments');
+      return Array.isArray(res.data) ? res.data : [];
+    }
+
+    // Latest still-pending online checkout for an event (newest first from the API)
+    async function findPendingCheckout(eventId) {
+      try {
+        const rows = await fetchMyPayments();
+        return rows.find(p => p.event_id === eventId && p.status === 'pending' && p.transaction_id) || null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    async function showMyPayments() {
+      Swal.fire({ title: 'Loading your payments...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      let rows;
+      try {
+        rows = (await fetchMyPayments()).filter(p => p.event_id || p.payment_type === 'event_registration');
+      } catch (e) {
+        Swal.fire('Could not load payments', escapeHtml(e.message), 'error');
+        return;
+      }
+
+      if (!rows.length) {
+        Swal.fire({ title: 'My payments', text: 'You have no event payments yet.', icon: 'info' });
+        return;
+      }
+
+      const badge = (s) => ({
+        verified: '<span class="badge bg-success">Confirmed</span>',
+        pending: '<span class="badge bg-warning text-dark">Awaiting confirmation</span>',
+        rejected: '<span class="badge bg-danger">Rejected</span>'
+      }[s] || `<span class="badge bg-secondary">${escapeHtml(s || 'unknown')}</span>`);
+
+      const html = rows.map(p => {
+        const when = p.submitted_at ? new Date(p.submitted_at).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+        const action = p.status === 'pending'
+          ? `<button type="button" class="btn btn-success btn-sm js-recheck" data-id="${escapeHtml(p.id)}" style="min-height:44px;">Re-check payment</button>`
+          : p.status === 'verified'
+            ? `<a class="btn btn-outline-success btn-sm" style="min-height:44px;line-height:30px;" href="receipt.html?reference=${encodeURIComponent(p.transaction_id || '')}">View receipt</a>`
+            : '';
+        return `
+          <div class="border rounded p-2 mb-2 text-start">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">${escapeHtml(p.description || 'Event payment')}</div>
+                <div class="small text-muted">${formatCurrency(p.amount)} &middot; ${escapeHtml(when)}</div>
+              </div>
+              ${badge(p.status)}
+            </div>
+            <div class="mt-2">${action}</div>
+          </div>`;
+      }).join('');
+
+      Swal.fire({
+        title: 'My payments & tickets',
+        html: `<p class="small text-muted mb-2">Paid but no ticket yet? Tap <strong>Re-check payment</strong>. It asks the payment gateway directly, so it works even if you lost connection during checkout.</p>${html}`,
+        showConfirmButton: false,
+        showCloseButton: true,
+        didOpen: (popup) => {
+          popup.querySelectorAll('.js-recheck').forEach(btn => {
+            btn.addEventListener('click', () => recheckPayment(btn.dataset.id));
+          });
+        }
+      });
+    }
+
+    async function recheckPayment(paymentId) {
+      Swal.fire({ title: 'Checking with the payment gateway...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      try {
+        const res = await api.payments.recheck(paymentId);
+        if (!res || !res.success) {
+          Swal.fire({
+            title: 'Not confirmed yet',
+            html: `<p>${escapeHtml(res?.error || res?.message || 'The gateway has not confirmed this payment yet.')}</p><p class="small text-muted">Bank transfers can take a few minutes. Try again shortly; if you were debited and it stays unconfirmed, contact a NACOS executive with your receipt.</p>`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Try again',
+            confirmButtonColor: '#157a09',
+            cancelButtonText: 'Close'
+          }).then(r => { if (r.isConfirmed) recheckPayment(paymentId); });
+          return;
+        }
+
+        const student = await getStudentId();
+        const ev = res.data?.event || {};
+        Swal.close();
+        showTicketModal({
+          event: ev,
+          student,
+          ticketNumber: res.data?.ticket_number,
+          reference: res.data?.payment?.transaction_id || '',
+          amount: res.data?.payment?.amount ?? ev.payment_amount ?? 0,
+          paymentType: 'Online payment (confirmed)'
+        });
+        await loadEvents();
+      } catch (e) {
+        Swal.fire('Re-check failed', escapeHtml(e.message || 'Network error. Please try again.'), 'error');
+      }
+    }
 
     async function processPaymentVerification(eventId, reference, student) {
       let attempts = 0;
