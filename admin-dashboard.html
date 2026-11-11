@@ -660,9 +660,15 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-calendar-week me-2"></i>Timetables</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addTimetableModal">
-              <i class="bi bi-plus"></i> Upload New
-            </button>
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0" title="Toggle automatic email alerts when uploading timetables">
+                <input class="form-check-input" type="checkbox" role="switch" id="ttGlobalEmailToggle" checked>
+                <label class="form-check-label small text-muted d-none d-sm-inline" for="ttGlobalEmailToggle">Email alerts</label>
+              </div>
+              <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addTimetableModal">
+                <i class="bi bi-plus"></i> Upload New
+              </button>
+            </div>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
@@ -690,9 +696,15 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-link-45deg me-2"></i>Academic Resources</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addResourceModal">
-                <i class="bi bi-plus"></i> Add New
-            </button>
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0" title="Toggle automatic email alerts when adding academic resources">
+                <input class="form-check-input" type="checkbox" role="switch" id="arGlobalEmailToggle" checked>
+                <label class="form-check-label small text-muted d-none d-sm-inline" for="arGlobalEmailToggle">Email alerts</label>
+              </div>
+              <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addResourceModal">
+                  <i class="bi bi-plus"></i> Add New
+              </button>
+            </div>
           </div>
 
           <!-- Search and Filter Bar -->
@@ -760,9 +772,15 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-graph-up me-2"></i>Career Paths</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addCareerPathModal">
-                <i class="bi bi-plus"></i> Add New
-            </button>
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0" title="Toggle automatic email alerts when adding career paths">
+                <input class="form-check-input" type="checkbox" role="switch" id="cpGlobalEmailToggle" checked>
+                <label class="form-check-label small text-muted d-none d-sm-inline" for="cpGlobalEmailToggle">Email alerts</label>
+              </div>
+              <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addCareerPathModal">
+                  <i class="bi bi-plus"></i> Add New
+              </button>
+            </div>
           </div>
 
           <!-- Search and Filter Bar -->
@@ -834,7 +852,13 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-calendar-event me-2"></i>Events</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addEventModal" id="addEventModalBtn"><i class="bi bi-plus"></i> Add Event</button>
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0" title="Toggle automatic email alerts when creating events">
+                <input class="form-check-input" type="checkbox" role="switch" id="evGlobalEmailToggle" checked>
+                <label class="form-check-label small text-muted d-none d-sm-inline" for="evGlobalEmailToggle">Email alerts</label>
+              </div>
+              <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addEventModal" id="addEventModalBtn"><i class="bi bi-plus"></i> Add Event</button>
+            </div>
           </div>
 
           <!-- Search and Filter Bar -->
@@ -893,6 +917,7 @@
                     <th>Fee</th>
                     <th>Attendees</th>
                     <th>Status</th>
+                    <th>Ticket options</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -910,7 +935,13 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-trophy me-2"></i>Hackathons & Pitchathons</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addHackathonModal" id="addHackathonModalBtn"><i class="bi bi-plus"></i> Create Hackathon</button>
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0" title="Toggle automatic email alerts when publishing hackathons">
+                <input class="form-check-input" type="checkbox" role="switch" id="hkGlobalEmailToggle" checked>
+                <label class="form-check-label small text-muted d-none d-sm-inline" for="hkGlobalEmailToggle">Email alerts</label>
+              </div>
+              <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addHackathonModal" id="addHackathonModalBtn"><i class="bi bi-plus"></i> Create Hackathon</button>
+            </div>
           </div>
 
           <!-- Search and Filter Bar -->
@@ -1333,6 +1364,32 @@
                 </div>
               </div>
             </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label" for="ev-allow-repeat">Allow repeat purchases</label>
+                  <select class="form-select" id="ev-allow-repeat">
+                    <option value="false">No (one order per student)</option>
+                    <option value="true">Yes (students can buy again)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label" for="ev-open-public">Open to non-members</label>
+                  <select class="form-select" id="ev-open-public">
+                    <option value="false">No (members only)</option>
+                    <option value="true">Yes (guest checkout)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label" for="ev-public-price">Guest price per ticket (₦)</label>
+                  <input type="number" class="form-control" id="ev-public-price" min="1" step="0.01" placeholder="Required if open to non-members">
+                </div>
+              </div>
+            </div>
             <div class="mb-3">
               <label class="form-label">Payment Details</label>
               <textarea class="form-control" id="ev-payment-details" rows="2" placeholder="Bank name, account number, etc."></textarea>
@@ -1341,6 +1398,15 @@
               <label class="form-label">Event Image (optional)</label>
               <input type="file" class="form-control" id="ev-image" accept="image/jpeg,image/png,image/jpg,image/webp">
               <small class="text-muted">Max size: 2MB. Allowed: JPG, PNG, WebP</small>
+            </div>
+            <div class="form-check form-switch mb-3 p-3 bg-light rounded border">
+              <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="ev-send-email" checked>
+              <label class="form-check-label fw-bold" for="ev-send-email">
+                <i class="bi bi-envelope-fill text-success me-1"></i> Send email announcement to students
+              </label>
+              <div class="form-text text-muted small mt-1 ms-1">
+                Broadcast an event announcement email to all active students. Turn off to publish silently.
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -1426,6 +1492,32 @@
                             <div class="mb-3">
                                 <label class="form-label">Amount (₦)</label>
                                 <input type="number" class="form-control" id="edit-ev-amount" value="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label" for="edit-ev-allow-repeat">Allow repeat purchases</label>
+                                <select class="form-select" id="edit-ev-allow-repeat">
+                                    <option value="false">No (one order per student)</option>
+                                    <option value="true">Yes (students can buy again)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label" for="edit-ev-open-public">Open to non-members</label>
+                                <select class="form-select" id="edit-ev-open-public">
+                                    <option value="false">No (members only)</option>
+                                    <option value="true">Yes (guest checkout)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label" for="edit-ev-public-price">Guest price per ticket (₦)</label>
+                                <input type="number" class="form-control" id="edit-ev-public-price" min="1" step="0.01">
                             </div>
                         </div>
                     </div>
@@ -1573,6 +1665,15 @@
               <div class="col-md-12">
                 <label class="form-label">Rules & Eligibility</label>
                 <textarea class="form-control" id="hk-rules" rows="2" placeholder="e.g. Must be TAU students. Projects must be built during the hackathon window."></textarea>
+              </div>
+            </div>
+            <div class="form-check form-switch mb-3 p-3 bg-light rounded border mt-3">
+              <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="hk-send-email" checked>
+              <label class="form-check-label fw-bold" for="hk-send-email">
+                <i class="bi bi-envelope-fill text-success me-1"></i> Broadcast hackathon announcement to students
+              </label>
+              <div class="form-text text-muted small mt-1 ms-1">
+                Send a competition alert email with registration dates and prizes to all active students. Turn off to publish silently.
               </div>
             </div>
           </div>
@@ -1803,6 +1904,15 @@
               <label class="form-label">File (PDF/Image) *</label>
               <input type="file" class="form-control" id="t-file" accept=".pdf,.jpg,.jpeg,.png" required>
             </div>
+            <div class="form-check form-switch mb-3 p-3 bg-light rounded border">
+              <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="t-send-email" checked>
+              <label class="form-check-label fw-bold" for="t-send-email">
+                <i class="bi bi-envelope-fill text-success me-1"></i> Send email alert to students
+              </label>
+              <div class="form-text text-muted small mt-1 ms-1">
+                Notify active students in this department & level via email upon upload. Turn off to upload silently.
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1855,6 +1965,15 @@
             <div class="mb-3">
               <label class="form-label">Description</label>
               <textarea class="form-control" id="r-description" rows="2"></textarea>
+            </div>
+            <div class="form-check form-switch mb-3 p-3 bg-light rounded border">
+              <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="r-send-email" checked>
+              <label class="form-check-label fw-bold" for="r-send-email">
+                <i class="bi bi-envelope-fill text-success me-1"></i> Send email alert to students
+              </label>
+              <div class="form-text text-muted small mt-1 ms-1">
+                Notify active students about this new learning resource via email. Turn off to add silently.
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -1934,6 +2053,15 @@
               <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="add-resource-btn">
                 <i class="bi bi-plus"></i> Add Another Resource
               </button>
+            </div>
+            <div class="form-check form-switch mb-3 p-3 bg-light rounded border">
+              <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="cp-send-email" checked>
+              <label class="form-check-label fw-bold" for="cp-send-email">
+                <i class="bi bi-envelope-fill text-success me-1"></i> Send email alert to students
+              </label>
+              <div class="form-text text-muted small mt-1 ms-1">
+                Notify active students about this new career roadmap via email. Turn off to add silently.
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -2537,7 +2665,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       const tbody = document.getElementById('events-table-body');
       const resultsInfo = document.getElementById('eventResultsInfo');
       const clearBtn = document.getElementById('eventSearchClearBtn');
-      const colSpan = 6;
+      const colSpan = 7;
       if (!tbody) return;
 
       const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
@@ -2604,6 +2732,16 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
           <td>${ev.requires_payment ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning">${formatCurrency(ev.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}</td>
           <td><button class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:12px;font-weight:600;" onclick="viewEventAttendees('${ev.id}')" title="Click to view attending / paid students"><i class="bi bi-people me-1"></i>${(window.eventCountsMap && window.eventCountsMap[ev.id]) || ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</button></td>
           <td>${ev.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
+          <td class="small" style="min-width: 190px;">
+            <div class="form-check form-switch mb-1">
+              <input class="form-check-input" type="checkbox" role="switch" id="rep-${ev.id}" ${ev.allow_repeat_orders ? 'checked' : ''} ${ev.requires_payment ? '' : 'disabled title="Only for paid events"'} onchange="toggleEventOption('${ev.id}', 'allow_repeat_orders', this)">
+              <label class="form-check-label" for="rep-${ev.id}">Repeat purchases</label>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="pub-${ev.id}" ${ev.open_to_public ? 'checked' : ''} ${ev.requires_payment ? '' : 'disabled title="Only for paid events"'} onchange="toggleEventOption('${ev.id}', 'open_to_public', this)">
+              <label class="form-check-label" for="pub-${ev.id}">Non-members${ev.open_to_public && Number(ev.public_price) > 0 ? ' (' + formatCurrency(ev.public_price) + ')' : ''}</label>
+            </div>
+          </td>
           <td>
             <button class="btn btn-sm btn-outline-info me-1" onclick="viewEventAttendees('${ev.id}')" title="View Attendees"><i class="bi bi-people"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
             <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${ev.id}')"><i class="bi bi-trash"></i></button>
@@ -2650,6 +2788,60 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
     }
     // ============================================
     
+    // Guest (non-member) settings from the create (prefix '') or edit ('edit-') form.
+    function readGuestOptions(prefix) {
+      const open = document.getElementById(prefix + 'ev-open-public').value === 'true';
+      const raw = document.getElementById(prefix + 'ev-public-price').value;
+      const price = raw === '' ? null : Number(raw);
+      if (open && !(Number.isFinite(price) && price > 0)) {
+        return { error: 'Set a guest price per ticket (₦) to open this event to non-members.' };
+      }
+      if (price !== null && !(Number.isFinite(price) && price > 0)) {
+        return { error: 'Guest price must be a positive amount.' };
+      }
+      return { open_to_public: open, public_price: price };
+    }
+
+    // One-click switches on the events table.
+    window.toggleEventOption = async function(eventId, field, checkbox) {
+      const ev = (window.currentEventsList || []).find(e => e.id === eventId) || {};
+      const enabled = checkbox.checked;
+      const patch = { [field]: enabled, updated_at: new Date().toISOString() };
+
+      if (field === 'open_to_public' && enabled && !(Number(ev.public_price) > 0)) {
+        const { value: price, isConfirmed } = await Swal.fire({
+          title: 'Guest price per ticket',
+          text: 'Non-members will pay this amount per ticket.',
+          input: 'number',
+          inputAttributes: { min: '1', step: '0.01' },
+          inputValue: ev.payment_amount || '',
+          showCancelButton: true,
+          confirmButtonText: 'Open to non-members',
+          inputValidator: (v) => (Number(v) > 0 ? undefined : 'Enter an amount greater than 0')
+        });
+        if (!isConfirmed) { checkbox.checked = false; return; }
+        patch.public_price = Number(price);
+      }
+
+      checkbox.disabled = true;
+      try {
+        const res = await apiAdmin.update('events', eventId, patch);
+        if (res && res.success === false) throw new Error(res.error || 'Update failed');
+        Object.assign(ev, patch);
+        await logAdminAction('UPDATE', 'event', eventId, patch);
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', timer: 2200, showConfirmButton: false,
+          title: field === 'allow_repeat_orders'
+            ? (enabled ? 'Repeat purchases ON' : 'Repeat purchases OFF')
+            : (enabled ? 'Open to non-members' : 'Members only') });
+        filterAndDisplayEvents();
+      } catch (err) {
+        checkbox.checked = !enabled;
+        Swal.fire('Error', 'Could not update event: ' + (err.message || err), 'error');
+      } finally {
+        checkbox.disabled = false;
+      }
+    };
+
     async function loadEvents() {
       const { data, error } = await supabase
         .from('events')
@@ -2657,7 +2849,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         .order('date', { ascending: false });
       
       window.currentEventsList = data || []; const tbody = document.getElementById('events-table-body'); window.eventCountsMap = {}; try { let allP = []; if (Array.isArray(window.allPaymentsList) && window.allPaymentsList.length > 0) { allP = window.allPaymentsList; } else if (typeof api?.payments?.getAll === 'function') { const pr = await api.payments.getAll({ limit: 500 }); allP = pr?.data?.payments || []; window.allPaymentsList = allP; } (data || []).forEach(ev => { const evPays = allP.filter(p => p.event_id === ev.id && (p.status === 'verified' || !p.status)); /* seats are counted in tickets: current_attendees is synced server-side (free + paid); paid ticket sum is a fallback */ const paidTickets = evPays.reduce((sum, p) => sum + Math.max(1, parseInt(p.ticket_quantity, 10) || 1), 0); window.eventCountsMap[ev.id] = Math.max(Number(ev.current_attendees) || 0, paidTickets); }); } catch(cntErr){ console.warn('[loadEvents] count err:', cntErr); }
-      const colSpan = 6;
+      const colSpan = 7;
       
       if (isMissingTableError(error, 'events')) {
         console.error('[loadEvents] table missing:', error);
@@ -2707,7 +2899,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
 
         // Seats are counted in tickets (one order can hold several tickets).
         const qtyOf = (row) => Math.max(1, parseInt(row && row.ticket_quantity, 10) || 1);
-        const otherRegs = nonPaidRegs.filter(r => !evPays.some(p => p.user_id && p.user_id === r.user_id));
+        const otherRegs = nonPaidRegs.filter(r => !r.linked_payment_id || !evPays.some(p => p.id === r.linked_payment_id));
         const totalCount = evPays.length + otherRegs.length;
         const totalTickets = evPays.reduce((sum, p) => sum + qtyOf(p), 0) + otherRegs.reduce((sum, r) => sum + qtyOf(r), 0);
         document.getElementById('eventAttendeesModalSubtitle').textContent = totalCount + ' student(s) registered / paid · ' + totalTickets + ' ticket(s)';
@@ -2715,10 +2907,13 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         let rowsHtml = '';
         evPays.forEach(p => {
           const st = p.students || {};
-          const sName = st.name || 'Student';
+          const isGuestRow = !p.user_id && !!p.guest_email;
+          const sName = st.name || (isGuestRow ? (p.guest_name || 'Guest') : 'Student');
           const mNo = st.matric_no ? ('<code>' + escapeHtml(st.matric_no) + '</code>') : '<span class="text-muted">N/A</span>';
           const dpt = st.department ? escapeHtml(st.department) : '<span class="text-muted">N/A</span>';
-          const eml = st.email ? ('<br><small class="text-muted">' + escapeHtml(st.email) + '</small>') : '';
+          const emlVal = st.email || (isGuestRow ? p.guest_email : '');
+          const eml = (emlVal ? ('<br><small class="text-muted">' + escapeHtml(emlVal) + (isGuestRow && p.guest_phone ? ' · ' + escapeHtml(p.guest_phone) : '') + '</small>') : '') +
+            (isGuestRow ? ' <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">Guest</span>' : '');
           const pQty = qtyOf(p);
           const pBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid ' + formatCurrency(p.amount) + '</span>' +
             ' <span class="badge bg-light text-dark border">' + pQty + ' ticket' + (pQty > 1 ? 's' : '') + '</span>';
@@ -2813,6 +3008,9 @@ window.editEvent = async function(eventId) {
         document.getElementById('edit-ev-requires-payment').value = event.requires_payment ? 'true' : 'false';
         document.getElementById('edit-ev-amount').value = event.payment_amount || 0;
         document.getElementById('edit-ev-payment-details').value = event.payment_details || '';
+        document.getElementById('edit-ev-allow-repeat').value = event.allow_repeat_orders ? 'true' : 'false';
+        document.getElementById('edit-ev-open-public').value = event.open_to_public ? 'true' : 'false';
+        document.getElementById('edit-ev-public-price').value = event.public_price || '';
         document.getElementById('edit-ev-status').value = event.is_active ? 'true' : 'false';
         document.getElementById('edit-ev-image').value = event.image_url || '';
         
@@ -2832,6 +3030,11 @@ document.getElementById('editEventForm')?.addEventListener('submit', async (e) =
     const eventId = document.getElementById('edit-event-id').value;
     const requiresPayment = document.getElementById('edit-ev-requires-payment').value === 'true';
     const isActive = document.getElementById('edit-ev-status').value === 'true';
+    const guestOpts = readGuestOptions('edit-');
+    if (guestOpts.error) {
+        Swal.fire('Check guest settings', guestOpts.error, 'warning');
+        return;
+    }
     
     const updateData = {
         title: document.getElementById('edit-ev-title').value.trim(),
@@ -2844,6 +3047,9 @@ document.getElementById('editEventForm')?.addEventListener('submit', async (e) =
         requires_payment: requiresPayment,
         payment_amount: requiresPayment ? parseFloat(document.getElementById('edit-ev-amount').value) : null,
         payment_details: document.getElementById('edit-ev-payment-details').value.trim() || null,
+        allow_repeat_orders: document.getElementById('edit-ev-allow-repeat').value === 'true',
+        open_to_public: guestOpts.open_to_public,
+        public_price: guestOpts.public_price,
         is_active: isActive,
         image_url: document.getElementById('edit-ev-image').value.trim() || null,
         updated_at: new Date().toISOString()
@@ -2920,6 +3126,12 @@ window.deleteEvent = async function(id) {
       const amount = document.getElementById('ev-amount').value || 0;
       const paymentDetails = document.getElementById('ev-payment-details').value.trim();
       const imageFile = document.getElementById('ev-image').files[0];
+      const allowRepeat = document.getElementById('ev-allow-repeat').value === 'true';
+      const guestOpts = readGuestOptions('');
+      if (guestOpts.error) {
+        Swal.fire('Check guest settings', guestOpts.error, 'warning');
+        return;
+      }
       
       let imageUrl = null;
       const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -2942,15 +3154,20 @@ window.deleteEvent = async function(id) {
           .eq('user_id', session.user.id)
           .single();
         
+        const shouldSendEmail = document.getElementById('ev-send-email') ? document.getElementById('ev-send-email').checked : true;
         const insertRes = await apiAdmin.create('events', {
           title, description, event_type: eventType, date, time, location,
           max_attendees: maxAttendees ? parseInt(maxAttendees) : null,
           requires_payment: requiresPayment,
           payment_amount: requiresPayment ? parseFloat(amount) : null,
           payment_details: paymentDetails,
+          allow_repeat_orders: allowRepeat,
+          open_to_public: guestOpts.open_to_public,
+          public_price: guestOpts.public_price,
           image_url: imageUrl,
           created_by: adminData?.id,
-          is_active: true
+          is_active: true,
+          send_email: shouldSendEmail
         });
         
         if (insertRes && !insertRes.success) {
@@ -2977,36 +3194,42 @@ window.deleteEvent = async function(id) {
     // PAST QUESTIONS (with File Upload & Email Broadcast Toggle)
     // ============================================
 
-    const pqGlobalToggle = document.getElementById('pqGlobalEmailToggle');
-    const pqModalToggle = document.getElementById('q-send-email');
-    const storedPqEmailPref = localStorage.getItem('nacos_pq_send_email');
-    const initialPqEmailPref = storedPqEmailPref !== null ? storedPqEmailPref === 'true' : true;
+    // Unified Email Alert Toggle Synchronizer
+    function setupEmailBroadcastToggle({ storageKey, globalToggleId, modalToggleId, modalId }) {
+      const globalToggle = document.getElementById(globalToggleId);
+      const modalToggle = document.getElementById(modalToggleId);
+      const stored = localStorage.getItem(storageKey);
+      const initialPref = stored !== null ? stored === 'true' : true;
 
-    if (pqGlobalToggle) pqGlobalToggle.checked = initialPqEmailPref;
-    if (pqModalToggle) pqModalToggle.checked = initialPqEmailPref;
+      if (globalToggle) globalToggle.checked = initialPref;
+      if (modalToggle) modalToggle.checked = initialPref;
 
-    if (pqGlobalToggle) {
-      pqGlobalToggle.addEventListener('change', (e) => {
-        const val = e.target.checked;
-        localStorage.setItem('nacos_pq_send_email', String(val));
-        if (pqModalToggle) pqModalToggle.checked = val;
-      });
+      const update = (val) => {
+        localStorage.setItem(storageKey, String(val));
+        if (globalToggle) globalToggle.checked = val;
+        if (modalToggle) modalToggle.checked = val;
+      };
+
+      globalToggle?.addEventListener('change', (e) => update(e.target.checked));
+      modalToggle?.addEventListener('change', (e) => update(e.target.checked));
+
+      if (modalId) {
+        document.getElementById(modalId)?.addEventListener('show.bs.modal', () => {
+          const cur = localStorage.getItem(storageKey);
+          const shouldCheck = cur !== null ? cur === 'true' : true;
+          if (modalToggle) modalToggle.checked = shouldCheck;
+          if (globalToggle) globalToggle.checked = shouldCheck;
+        });
+      }
     }
 
-    if (pqModalToggle) {
-      pqModalToggle.addEventListener('change', (e) => {
-        const val = e.target.checked;
-        localStorage.setItem('nacos_pq_send_email', String(val));
-        if (pqGlobalToggle) pqGlobalToggle.checked = val;
-      });
-    }
-
-    document.getElementById('addQuestionModal')?.addEventListener('show.bs.modal', () => {
-      const curPref = localStorage.getItem('nacos_pq_send_email');
-      const shouldCheck = curPref !== null ? curPref === 'true' : true;
-      if (pqModalToggle) pqModalToggle.checked = shouldCheck;
-      if (pqGlobalToggle) pqGlobalToggle.checked = shouldCheck;
-    });
+    // Initialize email alert toggles across all content sections
+    setupEmailBroadcastToggle({ storageKey: 'nacos_pq_send_email', globalToggleId: 'pqGlobalEmailToggle', modalToggleId: 'q-send-email', modalId: 'addQuestionModal' });
+    setupEmailBroadcastToggle({ storageKey: 'nacos_tt_send_email', globalToggleId: 'ttGlobalEmailToggle', modalToggleId: 't-send-email', modalId: 'addTimetableModal' });
+    setupEmailBroadcastToggle({ storageKey: 'nacos_res_send_email', globalToggleId: 'arGlobalEmailToggle', modalToggleId: 'r-send-email', modalId: 'addResourceModal' });
+    setupEmailBroadcastToggle({ storageKey: 'nacos_ev_send_email', globalToggleId: 'evGlobalEmailToggle', modalToggleId: 'ev-send-email', modalId: 'addEventModal' });
+    setupEmailBroadcastToggle({ storageKey: 'nacos_cp_send_email', globalToggleId: 'cpGlobalEmailToggle', modalToggleId: 'cp-send-email', modalId: 'addCareerPathModal' });
+    setupEmailBroadcastToggle({ storageKey: 'nacos_hk_send_email', globalToggleId: 'hkGlobalEmailToggle', modalToggleId: 'hk-send-email', modalId: 'addHackathonModal' });
     // ============================================
 
     document.getElementById('addQuestionForm')?.addEventListener('submit', async (e) => {
@@ -3157,6 +3380,7 @@ window.deleteEvent = async function(id) {
         }
 
         // 4. Insert into Database
+        const shouldSendEmail = document.getElementById('t-send-email') ? document.getElementById('t-send-email').checked : true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving to database...';
         await apiAdmin.create('timetables', {
           title,
@@ -3169,10 +3393,11 @@ window.deleteEvent = async function(id) {
           file_url: fileUrl,
           file_name: fileName,
           is_current: isCurrent,
-          uploaded_by: adminData?.id
+          uploaded_by: adminData?.id,
+          send_email: shouldSendEmail
         });
 
-        await logAdminAction('CREATE', 'timetable', null, { title, department, version });
+        await logAdminAction('CREATE', 'timetable', null, { title, department, version, sendEmail: shouldSendEmail });
         
         Swal.fire('Success', 'Timetable uploaded successfully!', 'success').then(() => {
           bootstrap.Modal.getInstance(document.getElementById('addTimetableModal')).hide();
@@ -3240,16 +3465,18 @@ window.deleteEvent = async function(id) {
           .single();
 
         // 2. Insert into Database
+        const shouldSendEmail = document.getElementById('r-send-email') ? document.getElementById('r-send-email').checked : true;
         await apiAdmin.create('academic_resources', {
           title,
           resource_type: resourceType,
           file_url: url,  // Map url input to file_url column
           category,
           description,
-          uploaded_by: adminData?.id
+          uploaded_by: adminData?.id,
+          send_email: shouldSendEmail
         });
 
-        await logAdminAction('CREATE', 'academic_resource', null, { title });
+        await logAdminAction('CREATE', 'academic_resource', null, { title, sendEmail: shouldSendEmail });
         
         Swal.fire('Success', 'Resource added successfully!', 'success').then(() => {
           bootstrap.Modal.getInstance(document.getElementById('addResourceModal')).hide();
@@ -3367,6 +3594,7 @@ window.deleteEvent = async function(id) {
         });
 
         // Insert into Database via generic admin API
+        const shouldSendEmail = document.getElementById('cp-send-email') ? document.getElementById('cp-send-email').checked : true;
         await apiAdmin.create('career_paths', {
           title,
           description,
@@ -3375,10 +3603,11 @@ window.deleteEvent = async function(id) {
           tools,
           resources,
           required_education: 'Computer Science Degree or equivalent',
-          is_active: true
+          is_active: true,
+          send_email: shouldSendEmail
         });
 
-        await logAdminAction('CREATE', 'career_path', null, { title, category });
+        await logAdminAction('CREATE', 'career_path', null, { title, category, sendEmail: shouldSendEmail });
         
         Swal.fire('Success', 'Career path added successfully!', 'success').then(() => {
           bootstrap.Modal.getInstance(document.getElementById('addCareerPathModal')).hide();
@@ -4458,7 +4687,9 @@ window.deleteEvent = async function(id) {
       tbody.innerHTML = filtered.map(p => {
         const studentText = p.students 
           ? `${escapeHtml(p.students.name)}<br><small class="text-muted">${escapeHtml(p.students.matric_no || '')}</small>`
-          : '<span class="text-muted">Student</span>';
+          : (p.guest_email
+              ? `${escapeHtml(p.guest_name || 'Guest')} <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">Guest</span><br><small class="text-muted">${escapeHtml(p.guest_email)}${p.guest_phone ? ' · ' + escapeHtml(p.guest_phone) : ''}</small>`
+              : '<span class="text-muted">Student</span>');
         
         const eventInfo = p.event_id ? paymentsEventMap.get(p.event_id) : null;
         const eventTitle = eventInfo?.title ? escapeHtml(eventInfo.title) : (p.payment_type === 'event_registration' ? '<span class="text-muted">Event Registration</span>' : '<span class="text-muted">General Payment</span>');
@@ -4623,6 +4854,7 @@ window.deleteEvent = async function(id) {
 
       const headers = [
         'Transaction Ref',
+        'Buyer Type',
         'Student Name',
         'Matric No',
         'Student Email',
@@ -4638,9 +4870,10 @@ window.deleteEvent = async function(id) {
       ];
 
       const rows = paymentsToExport.map(p => {
-        const studentName = p.students?.name || 'Student';
+        const isGuest = !p.user_id && !!p.guest_email;
+        const studentName = p.students?.name || (isGuest ? (p.guest_name || 'Guest') : 'Student');
         const matricNo = p.students?.matric_no || '';
-        const email = p.students?.email || '';
+        const email = p.students?.email || (isGuest ? p.guest_email : '') || '';
         const department = p.students?.department || '';
         const ev = p.event_id && eventMap ? eventMap.get(p.event_id) : null;
         const purpose = ev?.title || p.description || (p.payment_type === 'event_registration' ? 'Event Registration' : 'Payment');
@@ -4652,6 +4885,7 @@ window.deleteEvent = async function(id) {
 
         return [
           escapeCsv(p.transaction_id || p.id || ''),
+          escapeCsv(isGuest ? 'Guest' : 'Member'),
           escapeCsv(studentName),
           escapeCsv(matricNo),
           escapeCsv(email),
@@ -4982,6 +5216,7 @@ window.deleteEvent = async function(id) {
           bannerUrl = up.fileUrl;
         }
 
+        const shouldSendEmail = document.getElementById('hk-send-email') ? document.getElementById('hk-send-email').checked : true;
         const payload = {
           title,
           eventType,
@@ -4997,7 +5232,9 @@ window.deleteEvent = async function(id) {
           bannerUrl,
           description,
           rules,
-          tracks
+          tracks,
+          sendEmail: shouldSendEmail,
+          send_email: shouldSendEmail
         };
 
         const slug = (title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'hackathon') + '-' + Date.now().toString(36);

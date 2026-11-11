@@ -1712,19 +1712,29 @@
         // Check if current student is already registered
         let isRegistered = false;
         if (currentUser) {
-          const { data: reg } = await supabase
+          // One row per order since repeat purchases: sum the tickets held.
+          const { data: regs } = await supabase
             .from('event_registrations')
-            .select('*')
+            .select('id, ticket_quantity, status')
             .eq('event_id', event.id)
-            .eq('user_id', currentUser.id)
-            .maybeSingle();
-          if (reg) isRegistered = reg;
+            .eq('user_id', currentUser.id);
+          const active = (regs || []).filter(r => (r.status || 'registered') !== 'cancelled');
+          if (active.length) {
+            isRegistered = { ticket_quantity: active.reduce((sum, r) => sum + Math.max(1, parseInt(r.ticket_quantity, 10) || 1), 0) };
+          }
         }
 
         // Show register button
         if (registerBtn) {
           registerBtn.style.display = 'inline-block';
-          if (isRegistered) {
+          const canBuyMore = isRegistered && event.allow_repeat_orders && event.requires_payment && Number(event.payment_amount) > 0;
+          if (canBuyMore) {
+            const held = isRegistered.ticket_quantity;
+            registerBtn.disabled = false;
+            registerBtn.className = 'btn btn-success';
+            registerBtn.innerHTML = `<i class="bi bi-plus-circle me-1"></i> Buy More (you have ${held})`;
+            registerBtn.onclick = () => { window.location.href = 'events.html?event_id=' + encodeURIComponent(event.id); };
+          } else if (isRegistered) {
             registerBtn.disabled = true;
             registerBtn.className = 'btn btn-success';
             const regQty = Math.max(1, parseInt(isRegistered.ticket_quantity, 10) || 1);
