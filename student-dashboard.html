@@ -1718,7 +1718,7 @@
             .eq('event_id', event.id)
             .eq('user_id', currentUser.id)
             .maybeSingle();
-          if (reg) isRegistered = true;
+          if (reg) isRegistered = reg;
         }
 
         // Show register button
@@ -1727,16 +1727,21 @@
           if (isRegistered) {
             registerBtn.disabled = true;
             registerBtn.className = 'btn btn-success';
-            registerBtn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Registered';
+            const regQty = Math.max(1, parseInt(isRegistered.ticket_quantity, 10) || 1);
+            registerBtn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Registered' + (regQty > 1 ? ' &middot; ' + regQty + ' tickets' : '');
             registerBtn.onclick = null;
           } else {
             registerBtn.disabled = false;
             registerBtn.className = 'btn btn-success';
             const isPaid = event.requires_payment && Number(event.payment_amount) > 0;
             registerBtn.innerHTML = isPaid 
-              ? `<i class="bi bi-credit-card me-1"></i> Register & Pay (${formatCurrency(event.payment_amount)})`
+              ? `<i class="bi bi-credit-card me-1"></i> Buy Tickets (${formatCurrency(event.payment_amount)} each)`
               : `<i class="bi bi-check2-circle me-1"></i> Register for Event`;
-            registerBtn.onclick = () => handleEventCheckout(event);
+            // Paid events go through the events page, which has the ticket
+            // quantity picker and the single checkout/recovery flow.
+            registerBtn.onclick = isPaid
+              ? () => { window.location.href = 'events.html?event_id=' + encodeURIComponent(event.id); }
+              : () => handleEventCheckout(event);
           }
         }
 
