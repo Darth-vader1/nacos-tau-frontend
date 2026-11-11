@@ -660,9 +660,15 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-calendar-week me-2"></i>Timetables</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addTimetableModal">
-              <i class="bi bi-plus"></i> Upload New
-            </button>
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0" title="Toggle automatic email alerts when uploading timetables">
+                <input class="form-check-input" type="checkbox" role="switch" id="ttGlobalEmailToggle" checked>
+                <label class="form-check-label small text-muted d-none d-sm-inline" for="ttGlobalEmailToggle">Email alerts</label>
+              </div>
+              <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addTimetableModal">
+                <i class="bi bi-plus"></i> Upload New
+              </button>
+            </div>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
@@ -690,9 +696,15 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-link-45deg me-2"></i>Academic Resources</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addResourceModal">
-                <i class="bi bi-plus"></i> Add New
-            </button>
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0" title="Toggle automatic email alerts when adding academic resources">
+                <input class="form-check-input" type="checkbox" role="switch" id="arGlobalEmailToggle" checked>
+                <label class="form-check-label small text-muted d-none d-sm-inline" for="arGlobalEmailToggle">Email alerts</label>
+              </div>
+              <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addResourceModal">
+                  <i class="bi bi-plus"></i> Add New
+              </button>
+            </div>
           </div>
 
           <!-- Search and Filter Bar -->
@@ -760,9 +772,15 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-graph-up me-2"></i>Career Paths</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addCareerPathModal">
-                <i class="bi bi-plus"></i> Add New
-            </button>
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0" title="Toggle automatic email alerts when adding career paths">
+                <input class="form-check-input" type="checkbox" role="switch" id="cpGlobalEmailToggle" checked>
+                <label class="form-check-label small text-muted d-none d-sm-inline" for="cpGlobalEmailToggle">Email alerts</label>
+              </div>
+              <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addCareerPathModal">
+                  <i class="bi bi-plus"></i> Add New
+              </button>
+            </div>
           </div>
 
           <!-- Search and Filter Bar -->
@@ -834,7 +852,13 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-calendar-event me-2"></i>Events</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addEventModal" id="addEventModalBtn"><i class="bi bi-plus"></i> Add Event</button>
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0" title="Toggle automatic email alerts when creating events">
+                <input class="form-check-input" type="checkbox" role="switch" id="evGlobalEmailToggle" checked>
+                <label class="form-check-label small text-muted d-none d-sm-inline" for="evGlobalEmailToggle">Email alerts</label>
+              </div>
+              <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addEventModal" id="addEventModalBtn"><i class="bi bi-plus"></i> Add Event</button>
+            </div>
           </div>
 
           <!-- Search and Filter Bar -->
@@ -911,7 +935,13 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="bi bi-trophy me-2"></i>Hackathons & Pitchathons</span>
-            <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addHackathonModal" id="addHackathonModalBtn"><i class="bi bi-plus"></i> Create Hackathon</button>
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0" title="Toggle automatic email alerts when publishing hackathons">
+                <input class="form-check-input" type="checkbox" role="switch" id="hkGlobalEmailToggle" checked>
+                <label class="form-check-label small text-muted d-none d-sm-inline" for="hkGlobalEmailToggle">Email alerts</label>
+              </div>
+              <button class="btn btn-admin btn-sm" data-bs-toggle="modal" data-bs-target="#addHackathonModal" id="addHackathonModalBtn"><i class="bi bi-plus"></i> Create Hackathon</button>
+            </div>
           </div>
 
           <!-- Search and Filter Bar -->
@@ -1369,6 +1399,15 @@
               <input type="file" class="form-control" id="ev-image" accept="image/jpeg,image/png,image/jpg,image/webp">
               <small class="text-muted">Max size: 2MB. Allowed: JPG, PNG, WebP</small>
             </div>
+            <div class="form-check form-switch mb-3 p-3 bg-light rounded border">
+              <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="ev-send-email" checked>
+              <label class="form-check-label fw-bold" for="ev-send-email">
+                <i class="bi bi-envelope-fill text-success me-1"></i> Send email announcement to students
+              </label>
+              <div class="form-text text-muted small mt-1 ms-1">
+                Broadcast an event announcement email to all active students. Turn off to publish silently.
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1628,6 +1667,15 @@
                 <textarea class="form-control" id="hk-rules" rows="2" placeholder="e.g. Must be TAU students. Projects must be built during the hackathon window."></textarea>
               </div>
             </div>
+            <div class="form-check form-switch mb-3 p-3 bg-light rounded border mt-3">
+              <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="hk-send-email" checked>
+              <label class="form-check-label fw-bold" for="hk-send-email">
+                <i class="bi bi-envelope-fill text-success me-1"></i> Broadcast hackathon announcement to students
+              </label>
+              <div class="form-text text-muted small mt-1 ms-1">
+                Send a competition alert email with registration dates and prizes to all active students. Turn off to publish silently.
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1856,6 +1904,15 @@
               <label class="form-label">File (PDF/Image) *</label>
               <input type="file" class="form-control" id="t-file" accept=".pdf,.jpg,.jpeg,.png" required>
             </div>
+            <div class="form-check form-switch mb-3 p-3 bg-light rounded border">
+              <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="t-send-email" checked>
+              <label class="form-check-label fw-bold" for="t-send-email">
+                <i class="bi bi-envelope-fill text-success me-1"></i> Send email alert to students
+              </label>
+              <div class="form-text text-muted small mt-1 ms-1">
+                Notify active students in this department & level via email upon upload. Turn off to upload silently.
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -1908,6 +1965,15 @@
             <div class="mb-3">
               <label class="form-label">Description</label>
               <textarea class="form-control" id="r-description" rows="2"></textarea>
+            </div>
+            <div class="form-check form-switch mb-3 p-3 bg-light rounded border">
+              <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="r-send-email" checked>
+              <label class="form-check-label fw-bold" for="r-send-email">
+                <i class="bi bi-envelope-fill text-success me-1"></i> Send email alert to students
+              </label>
+              <div class="form-text text-muted small mt-1 ms-1">
+                Notify active students about this new learning resource via email. Turn off to add silently.
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -1987,6 +2053,15 @@
               <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="add-resource-btn">
                 <i class="bi bi-plus"></i> Add Another Resource
               </button>
+            </div>
+            <div class="form-check form-switch mb-3 p-3 bg-light rounded border">
+              <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="cp-send-email" checked>
+              <label class="form-check-label fw-bold" for="cp-send-email">
+                <i class="bi bi-envelope-fill text-success me-1"></i> Send email alert to students
+              </label>
+              <div class="form-text text-muted small mt-1 ms-1">
+                Notify active students about this new career roadmap via email. Turn off to add silently.
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -3079,6 +3154,7 @@ window.deleteEvent = async function(id) {
           .eq('user_id', session.user.id)
           .single();
         
+        const shouldSendEmail = document.getElementById('ev-send-email') ? document.getElementById('ev-send-email').checked : true;
         const insertRes = await apiAdmin.create('events', {
           title, description, event_type: eventType, date, time, location,
           max_attendees: maxAttendees ? parseInt(maxAttendees) : null,
@@ -3090,7 +3166,8 @@ window.deleteEvent = async function(id) {
           public_price: guestOpts.public_price,
           image_url: imageUrl,
           created_by: adminData?.id,
-          is_active: true
+          is_active: true,
+          send_email: shouldSendEmail
         });
         
         if (insertRes && !insertRes.success) {
@@ -3117,36 +3194,42 @@ window.deleteEvent = async function(id) {
     // PAST QUESTIONS (with File Upload & Email Broadcast Toggle)
     // ============================================
 
-    const pqGlobalToggle = document.getElementById('pqGlobalEmailToggle');
-    const pqModalToggle = document.getElementById('q-send-email');
-    const storedPqEmailPref = localStorage.getItem('nacos_pq_send_email');
-    const initialPqEmailPref = storedPqEmailPref !== null ? storedPqEmailPref === 'true' : true;
+    // Unified Email Alert Toggle Synchronizer
+    function setupEmailBroadcastToggle({ storageKey, globalToggleId, modalToggleId, modalId }) {
+      const globalToggle = document.getElementById(globalToggleId);
+      const modalToggle = document.getElementById(modalToggleId);
+      const stored = localStorage.getItem(storageKey);
+      const initialPref = stored !== null ? stored === 'true' : true;
 
-    if (pqGlobalToggle) pqGlobalToggle.checked = initialPqEmailPref;
-    if (pqModalToggle) pqModalToggle.checked = initialPqEmailPref;
+      if (globalToggle) globalToggle.checked = initialPref;
+      if (modalToggle) modalToggle.checked = initialPref;
 
-    if (pqGlobalToggle) {
-      pqGlobalToggle.addEventListener('change', (e) => {
-        const val = e.target.checked;
-        localStorage.setItem('nacos_pq_send_email', String(val));
-        if (pqModalToggle) pqModalToggle.checked = val;
-      });
+      const update = (val) => {
+        localStorage.setItem(storageKey, String(val));
+        if (globalToggle) globalToggle.checked = val;
+        if (modalToggle) modalToggle.checked = val;
+      };
+
+      globalToggle?.addEventListener('change', (e) => update(e.target.checked));
+      modalToggle?.addEventListener('change', (e) => update(e.target.checked));
+
+      if (modalId) {
+        document.getElementById(modalId)?.addEventListener('show.bs.modal', () => {
+          const cur = localStorage.getItem(storageKey);
+          const shouldCheck = cur !== null ? cur === 'true' : true;
+          if (modalToggle) modalToggle.checked = shouldCheck;
+          if (globalToggle) globalToggle.checked = shouldCheck;
+        });
+      }
     }
 
-    if (pqModalToggle) {
-      pqModalToggle.addEventListener('change', (e) => {
-        const val = e.target.checked;
-        localStorage.setItem('nacos_pq_send_email', String(val));
-        if (pqGlobalToggle) pqGlobalToggle.checked = val;
-      });
-    }
-
-    document.getElementById('addQuestionModal')?.addEventListener('show.bs.modal', () => {
-      const curPref = localStorage.getItem('nacos_pq_send_email');
-      const shouldCheck = curPref !== null ? curPref === 'true' : true;
-      if (pqModalToggle) pqModalToggle.checked = shouldCheck;
-      if (pqGlobalToggle) pqGlobalToggle.checked = shouldCheck;
-    });
+    // Initialize email alert toggles across all content sections
+    setupEmailBroadcastToggle({ storageKey: 'nacos_pq_send_email', globalToggleId: 'pqGlobalEmailToggle', modalToggleId: 'q-send-email', modalId: 'addQuestionModal' });
+    setupEmailBroadcastToggle({ storageKey: 'nacos_tt_send_email', globalToggleId: 'ttGlobalEmailToggle', modalToggleId: 't-send-email', modalId: 'addTimetableModal' });
+    setupEmailBroadcastToggle({ storageKey: 'nacos_res_send_email', globalToggleId: 'arGlobalEmailToggle', modalToggleId: 'r-send-email', modalId: 'addResourceModal' });
+    setupEmailBroadcastToggle({ storageKey: 'nacos_ev_send_email', globalToggleId: 'evGlobalEmailToggle', modalToggleId: 'ev-send-email', modalId: 'addEventModal' });
+    setupEmailBroadcastToggle({ storageKey: 'nacos_cp_send_email', globalToggleId: 'cpGlobalEmailToggle', modalToggleId: 'cp-send-email', modalId: 'addCareerPathModal' });
+    setupEmailBroadcastToggle({ storageKey: 'nacos_hk_send_email', globalToggleId: 'hkGlobalEmailToggle', modalToggleId: 'hk-send-email', modalId: 'addHackathonModal' });
     // ============================================
 
     document.getElementById('addQuestionForm')?.addEventListener('submit', async (e) => {
@@ -3297,6 +3380,7 @@ window.deleteEvent = async function(id) {
         }
 
         // 4. Insert into Database
+        const shouldSendEmail = document.getElementById('t-send-email') ? document.getElementById('t-send-email').checked : true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving to database...';
         await apiAdmin.create('timetables', {
           title,
@@ -3309,10 +3393,11 @@ window.deleteEvent = async function(id) {
           file_url: fileUrl,
           file_name: fileName,
           is_current: isCurrent,
-          uploaded_by: adminData?.id
+          uploaded_by: adminData?.id,
+          send_email: shouldSendEmail
         });
 
-        await logAdminAction('CREATE', 'timetable', null, { title, department, version });
+        await logAdminAction('CREATE', 'timetable', null, { title, department, version, sendEmail: shouldSendEmail });
         
         Swal.fire('Success', 'Timetable uploaded successfully!', 'success').then(() => {
           bootstrap.Modal.getInstance(document.getElementById('addTimetableModal')).hide();
@@ -3380,16 +3465,18 @@ window.deleteEvent = async function(id) {
           .single();
 
         // 2. Insert into Database
+        const shouldSendEmail = document.getElementById('r-send-email') ? document.getElementById('r-send-email').checked : true;
         await apiAdmin.create('academic_resources', {
           title,
           resource_type: resourceType,
           file_url: url,  // Map url input to file_url column
           category,
           description,
-          uploaded_by: adminData?.id
+          uploaded_by: adminData?.id,
+          send_email: shouldSendEmail
         });
 
-        await logAdminAction('CREATE', 'academic_resource', null, { title });
+        await logAdminAction('CREATE', 'academic_resource', null, { title, sendEmail: shouldSendEmail });
         
         Swal.fire('Success', 'Resource added successfully!', 'success').then(() => {
           bootstrap.Modal.getInstance(document.getElementById('addResourceModal')).hide();
@@ -3507,6 +3594,7 @@ window.deleteEvent = async function(id) {
         });
 
         // Insert into Database via generic admin API
+        const shouldSendEmail = document.getElementById('cp-send-email') ? document.getElementById('cp-send-email').checked : true;
         await apiAdmin.create('career_paths', {
           title,
           description,
@@ -3515,10 +3603,11 @@ window.deleteEvent = async function(id) {
           tools,
           resources,
           required_education: 'Computer Science Degree or equivalent',
-          is_active: true
+          is_active: true,
+          send_email: shouldSendEmail
         });
 
-        await logAdminAction('CREATE', 'career_path', null, { title, category });
+        await logAdminAction('CREATE', 'career_path', null, { title, category, sendEmail: shouldSendEmail });
         
         Swal.fire('Success', 'Career path added successfully!', 'success').then(() => {
           bootstrap.Modal.getInstance(document.getElementById('addCareerPathModal')).hide();
@@ -5127,6 +5216,7 @@ window.deleteEvent = async function(id) {
           bannerUrl = up.fileUrl;
         }
 
+        const shouldSendEmail = document.getElementById('hk-send-email') ? document.getElementById('hk-send-email').checked : true;
         const payload = {
           title,
           eventType,
@@ -5142,7 +5232,9 @@ window.deleteEvent = async function(id) {
           bannerUrl,
           description,
           rules,
-          tracks
+          tracks,
+          sendEmail: shouldSendEmail,
+          send_email: shouldSendEmail
         };
 
         const slug = (title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'hackathon') + '-' + Date.now().toString(36);
