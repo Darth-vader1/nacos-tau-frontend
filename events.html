@@ -262,6 +262,55 @@
 
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+    // ---- Ticket quantity ------------------------------------------------------
+    // Must match MAX_TICKETS_PER_ORDER on the backend (utils/tickets.js); the
+    // server re-validates and always computes the price itself.
+    const MAX_TICKETS_PER_ORDER = 10;
+
+    // Seats are counted in TICKETS by the server (events.current_attendees).
+    // (event_registrations is only readable for your own rows, so it can't be counted here.)
+    function spotsLeftFor(event) {
+      const cap = Number(event?.max_attendees);
+      if (!Number.isFinite(cap) || cap <= 0) return null;
+      return Math.max(0, cap - (Number(event.current_attendees) || 0));
+    }
+
+    function clampQuantity(value, max) {
+      const n = parseInt(value, 10);
+      if (!Number.isFinite(n) || n < 1) return 1;
+      return Math.min(n, max);
+    }
+
+    function getSelectedQuantity() {
+      const input = document.getElementById('ticketQty');
+      if (!input) return 1;
+      return clampQuantity(input.value, parseInt(input.max, 10) || MAX_TICKETS_PER_ORDER);
+    }
+
+    function bindQuantityPicker(event) {
+      const input = document.getElementById('ticketQty');
+      if (!input) return;
+      const max = parseInt(input.max, 10) || 1;
+      const unit = Number(event.payment_amount) || 0;
+      const totalEl = document.getElementById('payTotal');
+      const minus = document.getElementById('qtyMinus');
+      const plus = document.getElementById('qtyPlus');
+
+      const render = () => {
+        const q = clampQuantity(input.value, max);
+        input.value = q;
+        if (totalEl) totalEl.textContent = formatCurrency(Math.round(unit * q * 100) / 100);
+        if (minus) minus.disabled = q <= 1;
+        if (plus) plus.disabled = q >= max;
+      };
+
+      minus?.addEventListener('click', () => { input.value = clampQuantity(input.value, max) - 1; render(); });
+      plus?.addEventListener('click', () => { input.value = clampQuantity(input.value, max) + 1; render(); });
+      input.addEventListener('change', render);
+      input.addEventListener('input', () => { if (input.value !== '') render(); });
+      render();
+    }
+
     document.addEventListener('DOMContentLoaded', async function() {
       const { data: { session } } = await supabase.auth.getSession();
       userSession = session;
@@ -320,7 +369,8 @@
         }
 
         // Run payment verification and generate ticket!
-        await processPaymentVerification(urlEventId, reference, student);
+        // Quantity is only a fallback here: the server uses the quantity it recorded when the checkout started.
+        await processPaymentVerification(urlEventId, reference, student, saved.eventId === urlEventId ? saved.quantity : undefined);
         return;
       }
 
@@ -389,22 +439,11 @@
         return;
       }
 
-      // Fetch actual registrations count
-      const { data: regList } = await supabase
-        .from('event_registrations')
-        .select('event_id');
-      
-      const countsMap = {};
-      (regList || []).forEach(r => {
-        countsMap[r.event_id] = (countsMap[r.event_id] || 0) + 1;
-      });
-
       container.innerHTML = data.map(event => {
         const eventDate = new Date(event.date);
         const day = eventDate.getDate();
         const month = monthNames[eventDate.getMonth()];
-        const registeredCount = countsMap[event.id] || 0;
-        const spotsLeft = event.max_attendees ? Math.max(0, Number(event.max_attendees) - registeredCount) : null;
+        const spotsLeft = spotsLeftFor(event);
 
         return `
           <div class="col-lg-6">
@@ -455,14 +494,7 @@
       const eventDate = new Date(event.date);
       const formattedDate = eventDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-      // Count actual registrations for this event
-      const { count: regCount } = await supabase
-        .from('event_registrations')
-        .select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId);
-
-      const registeredCount = regCount || 0;
-      const spotsLeft = event.max_attendees ? Math.max(0, Number(event.max_attendees) - registeredCount) : null;
+      const spotsLeft = spotsLeftFor(event);
 
       document.getElementById('eventModalTitle').textContent = event.title;
 
@@ -520,23 +552,38 @@
         }
 
         if (registration) {
+          const regQty = Math.max(1, parseInt(registration.ticket_quantity, 10) || 1);
           footerHtml += `
             <button class="btn btn-success" disabled>
-              <i class="bi bi-check-circle-fill me-1"></i>Registered
+              <i class="bi bi-check-circle-fill me-1"></i>Registered${regQty > 1 ? ` &middot; ${regQty} tickets` : ''}
             </button>
           `;
         } else if (spotsLeft === null || spotsLeft > 0) {
           const isPaid = event.requires_payment && Number(event.payment_amount) > 0;
-          const feeFormatted = formatCurrency(event.payment_amount);
-          const btnLabel = isPaid 
-            ? `<i class="bi bi-credit-card me-1"></i> Register & Pay (${feeFormatted})` 
-            : `<i class="bi bi-person-check me-1"></i> Register for Free`;
+          const maxQty = Math.max(1, Math.min(MAX_TICKETS_PER_ORDER, spotsLeft === null ? MAX_TICKETS_PER_ORDER : spotsLeft));
 
-          footerHtml += `
-            <button type="button" class="btn btn-register" onclick="registerForEvent('${eventId}')">
-              ${btnLabel}
-            </button>
-          `;
+          if (isPaid) {
+            footerHtml += `
+              <div class="d-flex align-items-center gap-2 me-auto flex-wrap">
+                <label for="ticketQty" class="small text-muted mb-0">Tickets</label>
+                <div class="input-group input-group-sm" style="width: 136px;">
+                  <button class="btn btn-outline-secondary" type="button" id="qtyMinus" aria-label="Fewer tickets" style="min-width: 40px;">&minus;</button>
+                  <input type="number" id="ticketQty" class="form-control text-center" value="1" min="1" max="${maxQty}" step="1" inputmode="numeric" aria-label="Number of tickets">
+                  <button class="btn btn-outline-secondary" type="button" id="qtyPlus" aria-label="More tickets" style="min-width: 40px;">+</button>
+                </div>
+                <small class="text-muted" id="qtyHint">${formatCurrency(event.payment_amount)} each &middot; max ${maxQty}</small>
+              </div>
+              <button type="button" class="btn btn-register" onclick="registerForEvent('${escapeJsString(eventId)}')">
+                <i class="bi bi-credit-card me-1"></i> Register &amp; Pay (<span id="payTotal">${formatCurrency(event.payment_amount)}</span>)
+              </button>
+            `;
+          } else {
+            footerHtml += `
+              <button type="button" class="btn btn-register" onclick="registerForEvent('${escapeJsString(eventId)}')">
+                <i class="bi bi-person-check me-1"></i> Register for Free
+              </button>
+            `;
+          }
         } else {
           footerHtml += `
             <button class="btn btn-danger" disabled>
@@ -554,6 +601,7 @@
       }
 
       document.getElementById('eventModalFooter').innerHTML = footerHtml;
+      bindQuantityPicker(event);
 
       new bootstrap.Modal(document.getElementById('eventModal')).show();
     };
@@ -578,6 +626,10 @@
 
       // Handle PAID Event with Paystack/Bachs
       if (isPaid) {
+        // Read the chosen quantity before the modal closes. The server
+        // re-validates it and computes the price (unit price × quantity) itself.
+        const quantity = getSelectedQuantity();
+
         // Close event modal cleanly to prevent aria-hidden focus blocking
         const eventModalEl = document.getElementById('eventModal');
         if (eventModalEl) {
@@ -594,9 +646,8 @@
 
         try {
           const sessionRes = await api.payments.createBachsSession({
-            amount: currentEvent.payment_amount,
             event_id: eventId,
-            title: currentEvent.title
+            quantity
           });
 
           if (!sessionRes.success) {
@@ -617,7 +668,7 @@
               title: 'Bachs Payment Simulation',
               html: `
                 ${reasonHtml}
-                <p class="mt-2">Fee to simulate: <strong>${formatCurrency(currentEvent.payment_amount)}</strong></p>
+                <p class="mt-2">Fee to simulate: <strong>${formatCurrency(Math.round(Number(currentEvent.payment_amount) * quantity * 100) / 100)}</strong> (${quantity} ticket${quantity > 1 ? 's' : ''})</p>
                 <p class="small text-muted">Click below to simulate server verification and ticket issuance.</p>
               `,
               icon: 'info',
@@ -629,7 +680,7 @@
 
             if (!devPrompt.isConfirmed) return;
             const testRef = 'NACOS-EVT-' + eventId.substring(0, 4).toUpperCase() + '-' + Date.now();
-            await processPaymentVerification(eventId, testRef, student);
+            await processPaymentVerification(eventId, testRef, student, quantity);
             return;
           }
 
@@ -642,6 +693,7 @@
               localStorage.setItem('pending_bachs_checkout', JSON.stringify({
                 eventId: eventId,
                 checkoutId: data.checkout_id || data.id,
+                quantity,
                 timestamp: Date.now()
               }));
             } catch (_) {}
@@ -654,7 +706,7 @@
             const handler = BachsCheckout.setup({
               sessionId: data.checkout_id,
               onSuccess: function(response) {
-                processPaymentVerification(eventId, response.reference || data.checkout_id, student);
+                processPaymentVerification(eventId, response.reference || data.checkout_id, student, quantity);
               },
               onClose: function() {
                 Swal.fire({
@@ -782,7 +834,7 @@
             <div class="d-flex justify-content-between align-items-start gap-2">
               <div>
                 <div class="fw-semibold">${escapeHtml(p.description || 'Event payment')}</div>
-                <div class="small text-muted">${formatCurrency(p.amount)} &middot; ${escapeHtml(when)}</div>
+                <div class="small text-muted">${formatCurrency(p.amount)}${(parseInt(p.ticket_quantity, 10) || 1) > 1 ? ` &middot; ${parseInt(p.ticket_quantity, 10)} tickets` : ''} &middot; ${escapeHtml(when)}</div>
               </div>
               ${badge(p.status)}
             </div>
@@ -828,7 +880,8 @@
           student,
           ticketNumber: res.data?.ticket_number,
           reference: res.data?.payment?.transaction_id || '',
-          amount: res.data?.payment?.amount ?? ev.payment_amount ?? 0,
+          amount: res.data?.total_amount ?? res.data?.payment?.amount ?? ev.payment_amount ?? 0,
+          quantity: res.data?.ticket_quantity,
           paymentType: 'Online payment (confirmed)'
         });
         await loadEvents();
@@ -837,7 +890,7 @@
       }
     }
 
-    async function processPaymentVerification(eventId, reference, student) {
+    async function processPaymentVerification(eventId, reference, student, quantity) {
       let attempts = 0;
       const maxAttempts = 6; // Check up to 6 times (18 seconds total)
 
@@ -860,7 +913,8 @@
         try {
           const verifyRes = await api.payments.verifyPaystack({
             reference: reference,
-            event_id: eventId
+            event_id: eventId,
+            ...(quantity ? { quantity } : {})
           });
 
           if (verifyRes.success) {
@@ -879,7 +933,8 @@
               student: student,
               ticketNumber: ticketNo,
               reference: reference,
-              amount: evToDisplay.payment_amount ?? (currentEvent?.payment_amount ?? 0),
+              amount: verifyRes.data?.total_amount ?? verifyRes.data?.payment?.amount ?? evToDisplay.payment_amount ?? 0,
+              quantity: verifyRes.data?.ticket_quantity,
               paymentType: 'Bachs Verified'
             });
 
@@ -914,7 +969,7 @@
               cancelButtonText: 'Check Receipt Page'
             }).then((result) => {
               if (result.isConfirmed) {
-                processPaymentVerification(eventId, reference, student);
+                processPaymentVerification(eventId, reference, student, quantity);
               } else if (result.dismiss === Swal.DismissReason.cancel) {
                 window.location.href = `receipt.html?reference=${encodeURIComponent(reference)}`;
               }
@@ -926,7 +981,8 @@
       attemptVerify();
     }
 
-    window.showTicketModal = function({ event, student, ticketNumber, reference, amount, paymentType }) {
+    window.showTicketModal = function({ event, student, ticketNumber, reference, amount, quantity, paymentType }) {
+      const qty = Math.max(1, parseInt(quantity, 10) || 1);
       const s = student || {};
       const ev = event || currentEvent || {};
       const studentName = s.name || `${s.first_name || ''} ${s.last_name || ''}`.trim() || userSession?.user?.email?.split('@')[0] || 'Student';
@@ -965,7 +1021,7 @@
             <table class="table table-sm table-borderless small mb-0">
               <tbody>
                 <tr>
-                  <td class="text-muted" style="width: 38%;">Attendee:</td>
+                  <td class="text-muted" style="width: 38%;">Ticket holder:</td>
                   <td><strong>${escapeHtml(studentName)}</strong></td>
                 </tr>
                 ${matricNo ? `
@@ -978,8 +1034,12 @@
                   <td>${escapeHtml(dateStr)} • ${escapeHtml(timeStr)}</td>
                 </tr>
                 <tr>
+                  <td class="text-muted">Tickets:</td>
+                  <td><strong>${qty}</strong> &mdash; admits ${qty} ${qty > 1 ? 'people' : 'person'}</td>
+                </tr>
+                <tr>
                   <td class="text-muted">Fee Paid:</td>
-                  <td><strong class="text-success">${feeFormatted}</strong></td>
+                  <td><strong class="text-success">${feeFormatted}</strong>${qty > 1 && amount > 0 ? ` <span class="text-muted">(${qty} × ${formatCurrency(Math.round((amount / qty) * 100) / 100)})</span>` : ''}</td>
                 </tr>
                 <tr>
                   <td class="text-muted">Reference:</td>

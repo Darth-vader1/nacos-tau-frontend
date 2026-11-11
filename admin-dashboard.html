@@ -2656,7 +2656,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         .select('*')
         .order('date', { ascending: false });
       
-      window.currentEventsList = data || []; const tbody = document.getElementById('events-table-body'); window.eventCountsMap = {}; try { let allP = []; if (Array.isArray(window.allPaymentsList) && window.allPaymentsList.length > 0) { allP = window.allPaymentsList; } else if (typeof api?.payments?.getAll === 'function') { const pr = await api.payments.getAll({ limit: 500 }); allP = pr?.data?.payments || []; window.allPaymentsList = allP; } (data || []).forEach(ev => { const evPays = allP.filter(p => p.event_id === ev.id && (p.status === 'verified' || !p.status)); window.eventCountsMap[ev.id] = evPays.length; }); } catch(cntErr){ console.warn('[loadEvents] count err:', cntErr); }
+      window.currentEventsList = data || []; const tbody = document.getElementById('events-table-body'); window.eventCountsMap = {}; try { let allP = []; if (Array.isArray(window.allPaymentsList) && window.allPaymentsList.length > 0) { allP = window.allPaymentsList; } else if (typeof api?.payments?.getAll === 'function') { const pr = await api.payments.getAll({ limit: 500 }); allP = pr?.data?.payments || []; window.allPaymentsList = allP; } (data || []).forEach(ev => { const evPays = allP.filter(p => p.event_id === ev.id && (p.status === 'verified' || !p.status)); /* seats are counted in tickets: current_attendees is synced server-side (free + paid); paid ticket sum is a fallback */ const paidTickets = evPays.reduce((sum, p) => sum + Math.max(1, parseInt(p.ticket_quantity, 10) || 1), 0); window.eventCountsMap[ev.id] = Math.max(Number(ev.current_attendees) || 0, paidTickets); }); } catch(cntErr){ console.warn('[loadEvents] count err:', cntErr); }
       const colSpan = 6;
       
       if (isMissingTableError(error, 'events')) {
@@ -2705,8 +2705,12 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
           return;
         }
 
-        const totalCount = evPays.length + nonPaidRegs.filter(r => !evPays.some(p => p.user_id && p.user_id === r.user_id)).length;
-        document.getElementById('eventAttendeesModalSubtitle').textContent = totalCount + ' student(s) registered / paid';
+        // Seats are counted in tickets (one order can hold several tickets).
+        const qtyOf = (row) => Math.max(1, parseInt(row && row.ticket_quantity, 10) || 1);
+        const otherRegs = nonPaidRegs.filter(r => !evPays.some(p => p.user_id && p.user_id === r.user_id));
+        const totalCount = evPays.length + otherRegs.length;
+        const totalTickets = evPays.reduce((sum, p) => sum + qtyOf(p), 0) + otherRegs.reduce((sum, r) => sum + qtyOf(r), 0);
+        document.getElementById('eventAttendeesModalSubtitle').textContent = totalCount + ' student(s) registered / paid · ' + totalTickets + ' ticket(s)';
 
         let rowsHtml = '';
         evPays.forEach(p => {
@@ -2715,7 +2719,9 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
           const mNo = st.matric_no ? ('<code>' + escapeHtml(st.matric_no) + '</code>') : '<span class="text-muted">N/A</span>';
           const dpt = st.department ? escapeHtml(st.department) : '<span class="text-muted">N/A</span>';
           const eml = st.email ? ('<br><small class="text-muted">' + escapeHtml(st.email) + '</small>') : '';
-          const pBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid ' + formatCurrency(p.amount) + '</span>';
+          const pQty = qtyOf(p);
+          const pBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid ' + formatCurrency(p.amount) + '</span>' +
+            ' <span class="badge bg-light text-dark border">' + pQty + ' ticket' + (pQty > 1 ? 's' : '') + '</span>';
           const rDate = p.verified_at || p.submitted_at || p.created_at || null;
           const dStr = rDate ? new Date(rDate).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
 
@@ -4468,7 +4474,7 @@ window.deleteEvent = async function(id) {
           <tr>
             <td>${studentText}</td>
             <td>${eventTitle}</td>
-            <td><strong class="text-success">${formatCurrency(p.amount)}</strong></td>
+            <td><strong class="text-success">${formatCurrency(p.amount)}</strong>${p.payment_type === 'event_registration' ? `<br><small class="text-muted">${Math.max(1, parseInt(p.ticket_quantity, 10) || 1)} ticket${(parseInt(p.ticket_quantity, 10) || 1) > 1 ? 's' : ''}</small>` : ''}</td>
             <td><code>${ref}</code></td>
             <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
             <td>
@@ -4574,7 +4580,7 @@ window.deleteEvent = async function(id) {
             <tr>
               <td>${studentText}</td>
               <td>${eventTitle}</td>
-              <td><strong class="text-success">${formatCurrency(p.amount)}</strong></td>
+              <td><strong class="text-success">${formatCurrency(p.amount)}</strong>${p.payment_type === 'event_registration' ? `<br><small class="text-muted">${Math.max(1, parseInt(p.ticket_quantity, 10) || 1)} ticket${(parseInt(p.ticket_quantity, 10) || 1) > 1 ? 's' : ''}</small>` : ''}</td>
               <td><code>${ref}</code></td>
               <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
               <td>
@@ -4623,6 +4629,8 @@ window.deleteEvent = async function(id) {
         'Department',
         'Purpose / Event',
         'Payment Type',
+        'Tickets',
+        'Unit Price (NGN)',
         'Amount (NGN)',
         'Status',
         'Date Submitted',
@@ -4637,6 +4645,8 @@ window.deleteEvent = async function(id) {
         const ev = p.event_id && eventMap ? eventMap.get(p.event_id) : null;
         const purpose = ev?.title || p.description || (p.payment_type === 'event_registration' ? 'Event Registration' : 'Payment');
         const amount = Number(p.amount) || 0;
+        const tickets = p.payment_type === 'event_registration' ? Math.max(1, parseInt(p.ticket_quantity, 10) || 1) : '';
+        const unitPrice = tickets ? Math.round((amount / tickets) * 100) / 100 : '';
         const dateSubmitted = p.submitted_at || p.created_at ? new Date(p.submitted_at || p.created_at).toISOString().split('T')[0] : '';
         const verifiedAt = p.verified_at ? new Date(p.verified_at).toISOString().split('T')[0] : '';
 
@@ -4648,6 +4658,8 @@ window.deleteEvent = async function(id) {
           escapeCsv(department),
           escapeCsv(purpose),
           escapeCsv(p.payment_type || 'event_registration'),
+          escapeCsv(tickets),
+          escapeCsv(unitPrice),
           escapeCsv(amount),
           escapeCsv(p.status || 'verified'),
           escapeCsv(dateSubmitted),
