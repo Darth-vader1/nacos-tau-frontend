@@ -1016,6 +1016,58 @@
 
       <!-- Payments Section -->
       <div id="payments-section" class="content-section" style="display: none;">
+        <div class="row g-3 mb-3">
+          <div class="col-lg-4">
+            <div class="card h-100">
+              <div class="card-header"><i class="bi bi-sliders me-2"></i>Ticket fees</div>
+              <div class="card-body">
+                <p class="small text-muted mb-3">Added on top of the ticket price for online purchases and shown to buyers before they pay. Only the super admin can change these.</p>
+                <div class="mb-2">
+                  <label class="form-label small mb-1" for="feeMember">Service fee per ticket: members (₦)</label>
+                  <input type="number" class="form-control form-control-sm" id="feeMember" min="0" step="0.01" value="0">
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small mb-1" for="feeGuest">Service fee per ticket: guests (₦)</label>
+                  <input type="number" class="form-control form-control-sm" id="feeGuest" min="0" step="0.01" value="0">
+                </div>
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" role="switch" id="feeCustomerBears" checked>
+                  <label class="form-check-label small" for="feeCustomerBears">Buyer pays the Bachs processing fee (added at checkout)</label>
+                </div>
+                <button class="btn btn-success btn-sm w-100" id="saveFeeSettingsBtn" onclick="saveFeeSettings()"><i class="bi bi-save me-1"></i>Save fee settings</button>
+                <div class="small text-muted mt-2" id="feeSettingsMeta"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-8">
+            <div class="card h-100">
+              <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span><i class="bi bi-graph-up-arrow me-2"></i>Revenue (confirmed ticket orders)</span>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                  <input type="date" class="form-control form-control-sm" id="revStart" aria-label="From date" style="width: 150px;">
+                  <input type="date" class="form-control form-control-sm" id="revEnd" aria-label="To date" style="width: 150px;">
+                  <button class="btn btn-outline-secondary btn-sm" onclick="loadRevenue()" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
+                  <button class="btn btn-outline-success btn-sm" onclick="exportRevenueStatement()"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Statement CSV</button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="row g-2 mb-3" id="revenueTotals">
+                  <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Ticket revenue (NACOS)</div><div class="fs-5 fw-bold" id="revTickets">-</div></div></div>
+                  <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Service fees</div><div class="fs-5 fw-bold text-success" id="revService">-</div></div></div>
+                  <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Bachs fees (paid by buyers)</div><div class="fs-5 fw-bold" id="revGateway">-</div></div></div>
+                  <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Orders · tickets</div><div class="fs-5 fw-bold" id="revOrders">-</div></div></div>
+                </div>
+                <div class="table-responsive" style="max-height: 260px;">
+                  <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Event</th><th class="text-end">Tickets</th><th class="text-end">Ticket revenue</th><th class="text-end">Service fees</th><th class="text-end">Bachs fees</th></tr></thead>
+                    <tbody id="revenueByEvent"><tr><td colspan="5" class="text-muted text-center py-3">Loading...</td></tr></tbody>
+                  </table>
+                </div>
+                <div class="small text-muted mt-2">Bachs fees appear when Bachs reports them on a payment. Older orders had no service fee.</div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="card">
           <div class="card-header">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -1391,6 +1443,10 @@
               </div>
             </div>
             <div class="mb-3">
+              <label class="form-label" for="ev-service-fee">Service fee per ticket for this event (₦)</label>
+              <input type="number" class="form-control" id="ev-service-fee" min="0" step="0.01" placeholder="Leave empty to use the default ticket fees; 0 = no service fee">
+            </div>
+            <div class="mb-3">
               <label class="form-label">Payment Details</label>
               <textarea class="form-control" id="ev-payment-details" rows="2" placeholder="Bank name, account number, etc."></textarea>
             </div>
@@ -1520,6 +1576,10 @@
                                 <input type="number" class="form-control" id="edit-ev-public-price" min="1" step="0.01">
                             </div>
                         </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="edit-ev-service-fee">Service fee per ticket for this event (₦)</label>
+                        <input type="number" class="form-control" id="edit-ev-service-fee" min="0" step="0.01" placeholder="Leave empty to use the default ticket fees; 0 = no service fee">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Payment Details</label>
@@ -3011,6 +3071,7 @@ window.editEvent = async function(eventId) {
         document.getElementById('edit-ev-allow-repeat').value = event.allow_repeat_orders ? 'true' : 'false';
         document.getElementById('edit-ev-open-public').value = event.open_to_public ? 'true' : 'false';
         document.getElementById('edit-ev-public-price').value = event.public_price || '';
+        document.getElementById('edit-ev-service-fee').value = (event.service_fee_override ?? '') === null ? '' : (event.service_fee_override ?? '');
         document.getElementById('edit-ev-status').value = event.is_active ? 'true' : 'false';
         document.getElementById('edit-ev-image').value = event.image_url || '';
         
@@ -3050,6 +3111,7 @@ document.getElementById('editEventForm')?.addEventListener('submit', async (e) =
         allow_repeat_orders: document.getElementById('edit-ev-allow-repeat').value === 'true',
         open_to_public: guestOpts.open_to_public,
         public_price: guestOpts.public_price,
+        service_fee_override: (() => { const v = document.getElementById('edit-ev-service-fee').value.trim(); return v === '' ? null : Math.max(0, Number(v)); })(),
         is_active: isActive,
         image_url: document.getElementById('edit-ev-image').value.trim() || null,
         updated_at: new Date().toISOString()
@@ -3164,6 +3226,7 @@ window.deleteEvent = async function(id) {
           allow_repeat_orders: allowRepeat,
           open_to_public: guestOpts.open_to_public,
           public_price: guestOpts.public_price,
+          service_fee_override: (() => { const v = document.getElementById('ev-service-fee').value.trim(); return v === '' ? null : Math.max(0, Number(v)); })(),
           image_url: imageUrl,
           created_by: adminData?.id,
           is_active: true,
@@ -4705,7 +4768,7 @@ window.deleteEvent = async function(id) {
           <tr>
             <td>${studentText}</td>
             <td>${eventTitle}</td>
-            <td><strong class="text-success">${formatCurrency(p.amount)}</strong>${p.payment_type === 'event_registration' ? `<br><small class="text-muted">${Math.max(1, parseInt(p.ticket_quantity, 10) || 1)} ticket${(parseInt(p.ticket_quantity, 10) || 1) > 1 ? 's' : ''}</small>` : ''}</td>
+            <td><strong class="text-success">${formatCurrency(p.amount)}</strong>${p.payment_type === 'event_registration' ? `<br><small class="text-muted">${Math.max(1, parseInt(p.ticket_quantity, 10) || 1)} ticket${(parseInt(p.ticket_quantity, 10) || 1) > 1 ? 's' : ''}${Number(p.service_fee || 0) > 0 ? ` · incl. ${formatCurrency(p.service_fee)} service fee` : ''}</small>` : ''}</td>
             <td><code>${ref}</code></td>
             <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
             <td>
@@ -4756,7 +4819,104 @@ window.deleteEvent = async function(id) {
       });
     }
 
+    // ---- Ticket fees & revenue ------------------------------------------------
+    async function loadFeeSettings() {
+      try {
+        const res = await api.payments.getFeeSettings();
+        if (!res || res.success === false) throw new Error(res?.error || 'Could not load fee settings');
+        const d = res.data || {};
+        document.getElementById('feeMember').value = d.member_service_fee ?? 0;
+        document.getElementById('feeGuest').value = d.guest_service_fee ?? 0;
+        document.getElementById('feeCustomerBears').checked = d.customer_bears_gateway_fee !== false;
+        document.getElementById('feeSettingsMeta').textContent = d.updated_at ? 'Last changed ' + new Date(d.updated_at).toLocaleString() : 'Using defaults (no service fee).';
+      } catch (err) {
+        console.warn('[fees] load failed:', err);
+        document.getElementById('feeSettingsMeta').textContent = 'Could not load fee settings (run migration 023?).';
+      }
+    }
+
+    window.saveFeeSettings = async function() {
+      const btn = document.getElementById('saveFeeSettingsBtn');
+      const member = Number(document.getElementById('feeMember').value || 0);
+      const guest = Number(document.getElementById('feeGuest').value || 0);
+      const bears = document.getElementById('feeCustomerBears').checked;
+      if (![member, guest].every(v => Number.isFinite(v) && v >= 0)) {
+        Swal.fire('Check the amounts', 'Service fees must be ₦0 or more.', 'warning');
+        return;
+      }
+      const confirm = await Swal.fire({
+        title: 'Save ticket fees?',
+        html: `Members: <strong>${formatCurrency(member)}</strong> per ticket<br>Guests: <strong>${formatCurrency(guest)}</strong> per ticket<br>Bachs fee paid by: <strong>${bears ? 'buyer (added at checkout)' : 'NACOS (taken from the payment)'}</strong><br><small class="text-muted">Applies to new checkouts only.</small>`,
+        icon: 'question', showCancelButton: true, confirmButtonText: 'Save', confirmButtonColor: '#157a09'
+      });
+      if (!confirm.isConfirmed) return;
+      btn.disabled = true;
+      try {
+        const res = await api.payments.updateFeeSettings({ member_service_fee: member, guest_service_fee: guest, customer_bears_gateway_fee: bears });
+        if (!res || res.success === false) throw new Error(res?.error || 'Update failed');
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Ticket fees saved', timer: 2200, showConfirmButton: false });
+        loadFeeSettings();
+      } catch (err) {
+        Swal.fire('Not saved', escapeHtml(err.message) + (/super admin/i.test(err.message) ? '' : '<br><small class="text-muted">Only the super admin can change ticket fees.</small>'), 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    let lastRevenue = null;
+    window.loadRevenue = async function() {
+      const body = document.getElementById('revenueByEvent');
+      try {
+        const res = await api.payments.getRevenue({
+          start_date: document.getElementById('revStart').value,
+          end_date: document.getElementById('revEnd').value
+        });
+        if (!res || res.success === false) throw new Error(res?.error || 'Could not load revenue');
+        const d = res.data || {};
+        lastRevenue = d;
+        const t = d.totals || {};
+        document.getElementById('revTickets').textContent = formatCurrency(t.ticket_revenue || 0);
+        document.getElementById('revService').textContent = formatCurrency(t.service_fees || 0);
+        document.getElementById('revGateway').textContent = formatCurrency(t.gateway_fees || 0);
+        document.getElementById('revOrders').textContent = `${(t.orders || 0).toLocaleString()} · ${(t.tickets || 0).toLocaleString()}`;
+        const rows = d.by_event || [];
+        body.innerHTML = rows.length ? rows.map(r => `
+          <tr>
+            <td>${escapeHtml(r.title)}${r.guest_orders ? ` <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">${r.guest_orders} guest</span>` : ''}</td>
+            <td class="text-end">${r.tickets}</td>
+            <td class="text-end">${formatCurrency(r.ticket_revenue)}</td>
+            <td class="text-end text-success">${formatCurrency(r.service_fees)}</td>
+            <td class="text-end">${formatCurrency(r.gateway_fees)}</td>
+          </tr>`).join('') : '<tr><td colspan="5" class="text-muted text-center py-3">No confirmed ticket orders in this period.</td></tr>';
+      } catch (err) {
+        console.warn('[revenue] load failed:', err);
+        body.innerHTML = '<tr><td colspan="5" class="text-muted text-center py-3">Could not load revenue.</td></tr>';
+      }
+    };
+
+    // Monthly statement (CSV): tickets, service fees and Bachs fees per month and per event
+    window.exportRevenueStatement = async function() {
+      if (!lastRevenue) await loadRevenue();
+      const d = lastRevenue || {};
+      const esc = (v) => { let x = String(v ?? ''); if (/^[=+\-@]/.test(x)) x = "'" + x; return `"${x.replace(/"/g, '""')}"`; };
+      const lines = [
+        ['Section', 'Month / Event', 'Orders', 'Tickets', 'Ticket revenue (NGN)', 'Service fees (NGN)', 'Bachs fees (NGN)', 'Collected (NGN)'].map(esc).join(','),
+        ...(d.by_month || []).map(m => ['Month', m.month, m.orders, m.tickets, m.ticket_revenue, m.service_fees, m.gateway_fees, m.collected].map(esc).join(',')),
+        ...(d.by_event || []).map(e => ['Event', e.title, e.orders, e.tickets, e.ticket_revenue, e.service_fees, e.gateway_fees, e.collected].map(esc).join(',')),
+        ['Total', '', d.totals?.orders, d.totals?.tickets, d.totals?.ticket_revenue, d.totals?.service_fees, d.totals?.gateway_fees, d.totals?.collected].map(esc).join(',')
+      ];
+      const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nacos_revenue_statement_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    let feeCardsLoaded = false;
     async function loadPayments() {
+      if (!feeCardsLoaded) { feeCardsLoaded = true; loadFeeSettings(); loadRevenue(); }
       const tbody = document.getElementById('payments-table-body');
       if (!tbody) return;
       const colSpan = 6;
@@ -4813,7 +4973,7 @@ window.deleteEvent = async function(id) {
             <tr>
               <td>${studentText}</td>
               <td>${eventTitle}</td>
-              <td><strong class="text-success">${formatCurrency(p.amount)}</strong>${p.payment_type === 'event_registration' ? `<br><small class="text-muted">${Math.max(1, parseInt(p.ticket_quantity, 10) || 1)} ticket${(parseInt(p.ticket_quantity, 10) || 1) > 1 ? 's' : ''}</small>` : ''}</td>
+              <td><strong class="text-success">${formatCurrency(p.amount)}</strong>${p.payment_type === 'event_registration' ? `<br><small class="text-muted">${Math.max(1, parseInt(p.ticket_quantity, 10) || 1)} ticket${(parseInt(p.ticket_quantity, 10) || 1) > 1 ? 's' : ''}${Number(p.service_fee || 0) > 0 ? ` · incl. ${formatCurrency(p.service_fee)} service fee` : ''}</small>` : ''}</td>
               <td><code>${ref}</code></td>
               <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
               <td>
@@ -4884,7 +5044,10 @@ window.deleteEvent = async function(id) {
         'Payment Type',
         'Tickets',
         'Unit Price (NGN)',
+        'Tickets Subtotal (NGN)',
+        'Service Fee (NGN)',
         'Amount (NGN)',
+        'Bachs Fee (NGN)',
         'Status',
         'Date Submitted',
         'Verified At'
@@ -4900,7 +5063,9 @@ window.deleteEvent = async function(id) {
         const purpose = ev?.title || p.description || (p.payment_type === 'event_registration' ? 'Event Registration' : 'Payment');
         const amount = Number(p.amount) || 0;
         const tickets = p.payment_type === 'event_registration' ? Math.max(1, parseInt(p.ticket_quantity, 10) || 1) : '';
-        const unitPrice = tickets ? Math.round((amount / tickets) * 100) / 100 : '';
+        const subtotal = Number(p.subtotal_amount ?? amount) || 0;
+        const serviceFee = Number(p.service_fee || 0);
+        const unitPrice = tickets ? Math.round((subtotal / tickets) * 100) / 100 : '';
         const dateSubmitted = p.submitted_at || p.created_at ? new Date(p.submitted_at || p.created_at).toISOString().split('T')[0] : '';
         const verifiedAt = p.verified_at ? new Date(p.verified_at).toISOString().split('T')[0] : '';
 
@@ -4915,7 +5080,10 @@ window.deleteEvent = async function(id) {
           escapeCsv(p.payment_type || 'event_registration'),
           escapeCsv(tickets),
           escapeCsv(unitPrice),
+          escapeCsv(subtotal),
+          escapeCsv(serviceFee),
           escapeCsv(amount),
+          escapeCsv(p.gateway_fee != null ? Number(p.gateway_fee) : ''),
           escapeCsv(p.status || 'verified'),
           escapeCsv(dateSubmitted),
           escapeCsv(verifiedAt)

@@ -369,6 +369,7 @@
             <div>
               <div class="info-label">Amount Paid</div>
               <div class="info-value text-success fs-5 fw-bold" id="rcAmount">₦0.00</div>
+              <div class="small text-muted" id="rcBreakdown"></div>
             </div>
             <div>
               <div class="info-label">Payment Channel</div>
@@ -561,8 +562,16 @@
 
       // Payment info
       document.getElementById('rcTickets').textContent = `${ticketQty} (admits ${ticketQty} ${ticketQty > 1 ? 'people' : 'person'})`;
-      document.getElementById('rcAmount').textContent = formatCurrency(payment.amount) +
-        (ticketQty > 1 && Number(payment.amount) > 0 ? ` (${ticketQty} × ${formatCurrency(Math.round((Number(payment.amount) / ticketQty) * 100) / 100)})` : '');
+      // Breakdown: tickets (+ service fee) (+ Bachs processing fee paid at checkout)
+      const ticketsPart = Number(data.subtotal_amount ?? payment.subtotal_amount ?? payment.amount) || 0;
+      const servicePart = Number(data.service_fee ?? payment.service_fee ?? 0) || 0;
+      const gatewayPart = Number(data.gateway_fee ?? payment.gateway_fee ?? 0) || 0;
+      const perTicket = ticketQty > 1 && ticketsPart > 0 ? ` (${ticketQty} × ${formatCurrency(Math.round((ticketsPart / ticketQty) * 100) / 100)})` : '';
+      document.getElementById('rcAmount').textContent = formatCurrency(payment.amount) + (servicePart > 0 ? '' : perTicket);
+      const breakdownParts = [];
+      if (servicePart > 0) breakdownParts.push(`Tickets ${formatCurrency(ticketsPart)}${perTicket} + service fee ${formatCurrency(servicePart)}`);
+      if (gatewayPart > 0) breakdownParts.push(`+ Bachs processing fee ${formatCurrency(gatewayPart)} paid at checkout`);
+      document.getElementById('rcBreakdown').textContent = breakdownParts.join(' ');
       document.getElementById('rcReference').textContent = payment.transaction_id || 'N/A';
       document.getElementById('rcChannel').textContent = payment.notes || 'Bachs Verified Checkout';
 
