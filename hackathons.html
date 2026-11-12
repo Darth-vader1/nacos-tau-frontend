@@ -864,6 +864,7 @@
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script>
   <script src="assets/js/main.js"></script>
+  <script src="assets/js/prize-format.js"></script>
   <script type="module" src="assets/js/nav-auth.js"></script>
   <script type="module" src="assets/js/supabase-config.js"></script>
   <script type="module" src="assets/js/api-config.js"></script>
@@ -887,13 +888,11 @@
       return div.innerHTML;
     }
 
+    // Shared with the emails (assets/js/prize-format.js): formats every naira
+    // amount inside the prize text, e.g. "N300,000 (1st: 150k)" -> "₦300,000 (1st: ₦150,000)".
     function formatPrizePool(prize) {
-      if (!prize) return '';
-      const str = String(prize).trim();
-      if (/^\d+(\.\d+)?$/.test(str)) {
-        return '₦' + Number(str).toLocaleString('en-NG');
-      }
-      return str;
+      if (window.NacosFormat && window.NacosFormat.prizePool) return window.NacosFormat.prizePool(prize);
+      return prize ? String(prize).trim() : '';
     }
 
     function toggleLookingForFields(isChecked) {
