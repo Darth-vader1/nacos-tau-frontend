@@ -58,6 +58,36 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
+    },
+    {
+      "source": "/(admin-.*|student-dashboard|student-verify|receipt|reset-password|forgot-password|404)(.html)?",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/(sitemap.xml|robots.txt)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/past-events",
+      "destination": "/events-archive",
+      "permanent": true
+    },
+    {
+      "source": "/past-events.html",
+      "destination": "/events-archive",
+      "permanent": true
     }
   ]
 }

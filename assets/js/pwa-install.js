@@ -101,7 +101,7 @@
         left: 50%;
         transform: translateX(-50%);
         z-index: 999999;
-        background: linear-gradient(135deg, #0b4506 0%, #1b8c0c 100%);
+        background: linear-gradient(135deg, #0b4506 0%, #157a09 100%);
         color: white;
         padding: 14px 20px;
         border-radius: 16px;
@@ -230,7 +230,7 @@
           <div style="font-size: 12px; color: #9ca3af;">Add to Home Screen for fast, app-like access</div>
         </div>
         <button id="pwaInstallBtn" style="
-          background: #1b8c0c;
+          background: #157a09;
           color: white;
           border: none;
           padding: 8px 14px;

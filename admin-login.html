@@ -5,6 +5,8 @@
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Admin Login - NACOS</title>
+  <!-- SEO: canonical + social previews -->
+  <meta name="robots" content="noindex, nofollow">
     <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
@@ -101,7 +103,7 @@
         }
         
         .login-header {
-            background: linear-gradient(135deg, #1b8c0c 0%, #0d5c08 100%);
+            background: linear-gradient(135deg, #157a09 0%, #0d5c08 100%);
             padding: 30px;
             text-align: center;
         }
@@ -154,7 +156,7 @@
         
         .form-control:focus {
             outline: none;
-            border-color: #1b8c0c;
+            border-color: #157a09;
             box-shadow: 0 0 0 4px rgba(27,140,12,0.1);
         }
         
@@ -177,7 +179,7 @@
         .btn-login {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #1b8c0c 0%, #0d5c08 100%);
+            background: linear-gradient(135deg, #157a09 0%, #0d5c08 100%);
             color: white;
             border: none;
             border-radius: 12px;
@@ -237,7 +239,7 @@
             border-radius: 12px;
             padding: 15px;
             margin: 20px 0;
-            border-left: 4px solid #1b8c0c;
+            border-left: 4px solid #157a09;
         }
         
         .admin-info small {
@@ -246,7 +248,7 @@
         }
         
         .admin-info .key {
-            color: #1b8c0c;
+            color: #157a09;
             font-weight: 600;
         }
         
@@ -258,7 +260,7 @@
         }
         
         .footer-links a {
-            color: #1b8c0c;
+            color: #157a09;
             text-decoration: none;
             font-size: 14px;
             margin: 0 10px;
@@ -340,7 +342,7 @@
                     <input type="checkbox" class="form-check-input" id="rememberAdmin">
                     <label class="form-check-label" for="rememberAdmin">Remember me</label>
                 </div>
-                <a href="forgot-password.html" style="color: #1b8c0c; font-size: 14px;">Forgot Password?</a>
+                <a href="forgot-password.html" style="color: #157a09; font-size: 14px;">Forgot Password?</a>
             </div>
             
             <button type="submit" class="btn-login" id="loginBtn">
@@ -430,7 +432,7 @@
                 title: 'Missing Information',
                 text: 'Please enter both email and password.',
                 icon: 'warning',
-                confirmButtonColor: '#1b8c0c'
+                confirmButtonColor: '#157a09'
             });
             return;
         }
@@ -442,7 +444,7 @@
                 title: 'Invalid Email',
                 text: 'Please use a valid @tau.edu.ng or @st.tau.edu.ng email',
                 icon: 'warning',
-                confirmButtonColor: '#1b8c0c'
+                confirmButtonColor: '#157a09'
             });
             return;
         }
@@ -526,7 +528,7 @@
                 title: 'Access Denied',
                 text: errorMessage,
                 icon: 'error',
-                confirmButtonColor: '#1b8c0c',
+                confirmButtonColor: '#157a09',
                 confirmButtonText: 'Try Again'
             });
             
