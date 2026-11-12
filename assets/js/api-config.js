@@ -300,6 +300,19 @@ export const api = {
             return response.json();
         },
 
+        // Admin: ask the gateway whether an online checkout was paid, and issue tickets if so
+        async gatewayRecheck(id) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/payments/${encodeURIComponent(id)}/gateway-recheck`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({})
+            });
+            return response.json();
+        },
+
         async verifyAdmin(id, data) {
             const { data: { session } } = await supabase.auth.getSession();
             const response = await secureRequest('PUT', `${API_URL}/payments/${id}/verify`, {
