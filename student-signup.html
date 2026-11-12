@@ -5,6 +5,19 @@
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Student Sign Up | NACOS - Thomas Adewumi University</title>
+  <!-- SEO: canonical + social previews -->
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://nacosportal.vercel.app/student-signup">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NACOS TAU Chapter">
+  <meta property="og:url" content="https://nacosportal.vercel.app/student-signup">
+  <meta property="og:title" content="Student Sign Up | NACOS - Thomas Adewumi University">
+  <meta property="og:description" content="Register for your NACOS student account to access academic resources, past questions, and career materials.">
+  <meta property="og:image" content="https://nacosportal.vercel.app/assets/img/social-preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Student Sign Up | NACOS - Thomas Adewumi University">
+  <meta name="twitter:description" content="Register for your NACOS student account to access academic resources, past questions, and career materials.">
+  <meta name="twitter:image" content="https://nacosportal.vercel.app/assets/img/social-preview.png">
     <meta name="description"
         content="Register for your NACOS student account to access academic resources, past questions, and career materials.">
     <meta name="keywords" content="NACOS, TAU, student registration, computing students, Nigeria">
@@ -82,7 +95,7 @@
 
         .form-control:focus {
             outline: none;
-            border-color: #1b8c0c;
+            border-color: #157a09;
             box-shadow: 0 0 5px rgba(27, 140, 12, 0.3);
         }
 
@@ -183,7 +196,7 @@
             style="width: 100%;display: flex;justify-content: space-around;">
             <a href="index.html" class="logo d-flex align-items-center me-auto">
                 <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
-                <h1 class="sitename"><span style="color: #1b8c0c;" id="nacos-text">Nigerian Association of Computing
+                <h1 class="sitename"><span style="color: #157a09;" id="nacos-text">Nigeria Association of Computing
                         Students</span><br id="br"> <strong id="tau-text">Thomas Adewumi University</strong></h1>
             </a>
         </div>
@@ -289,9 +302,9 @@
 
                         <div style="display: flex; justify-content: center; margin-top: 20px;">
                             <button type="submit" class="btn btn-primary" id="signupButton"
-                                style="background-color: #1b8c0c; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease-in-out; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);"
+                                style="background-color: #157a09; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease-in-out; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);"
                                 onmouseover="this.style.backgroundColor='#166a0a'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 10px rgba(0, 0, 0, 0.3)';"
-                                onmouseout="this.style.backgroundColor='#1b8c0c'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.2)';"
+                                onmouseout="this.style.backgroundColor='#157a09'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px rgba(0, 0, 0, 0.2)';"
                                 onmousedown="this.style.transform='translateY(1px)'; this.style.boxShadow='0 3px 6px rgba(0, 0, 0, 0.2)';"
                                 onmouseup="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 10px rgba(0, 0, 0, 0.3)';">
                                 Sign Up
@@ -597,7 +610,7 @@
                     title: 'Validation Error',
                     text: 'Please check all fields and try again.',
                     icon: 'warning',
-                    confirmButtonColor: '#1b8c0c'
+                    confirmButtonColor: '#157a09'
                 });
                 return;
             }
@@ -659,7 +672,7 @@
                             title: '⏳ Too Many Attempts',
                             text: 'Please wait 10-15 minutes before trying again.',
                             icon: 'warning',
-                            confirmButtonColor: '#1b8c0c',
+                            confirmButtonColor: '#157a09',
                             confirmButtonText: 'OK'
                         });
                         return;
@@ -692,7 +705,7 @@
                     title: 'Registration Successful! 🎉',
                     text: `Welcome ${fullName}! We've sent a 6-digit verification code to ${email}. Please check your inbox.`,
                     icon: 'success',
-                    confirmButtonColor: '#1b8c0c',
+                    confirmButtonColor: '#157a09',
                     confirmButtonText: 'Verify Email'
                 });
 
@@ -716,7 +729,7 @@
                     title: 'Registration Failed',
                     text: errorMessage,
                     icon: 'error',
-                    confirmButtonColor: '#1b8c0c',
+                    confirmButtonColor: '#157a09',
                     confirmButtonText: 'Try Again'
                 });
 

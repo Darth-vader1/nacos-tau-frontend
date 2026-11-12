@@ -86,7 +86,7 @@
 
   <style>
     :root {
-      --admin-primary: #1b8c0c;
+      --admin-primary: #157a09;
       --admin-secondary: #2d9b0f;
       --admin-danger: #dc3545;
       --admin-warning: #ffc107;
@@ -98,7 +98,7 @@
       left: 0;
       height: 100vh;
       width: 260px;
-      background: linear-gradient(180deg, #1b8c0c 0%, #0d5c08 100%);
+      background: linear-gradient(180deg, #157a09 0%, #0d5c08 100%);
       padding: 20px;
       z-index: 1000;
       overflow-y: auto;
@@ -191,16 +191,16 @@
     }
 
     .modal .nav-tabs .nav-link:hover {
-      color: #1b8c0c !important;
+      color: #157a09 !important;
       background: #e8f5e9 !important;
       border-color: #a7f3d0 !important;
     }
 
     .modal .nav-tabs .nav-link.active {
-      color: #1b8c0c !important;
+      color: #157a09 !important;
       background: #ffffff !important;
       border-color: #cbd5e1 #cbd5e1 #ffffff !important;
-      border-bottom: 3px solid #1b8c0c !important;
+      border-bottom: 3px solid #157a09 !important;
       font-weight: 700 !important;
       box-shadow: 0 -2px 6px rgba(0,0,0,0.03) !important;
     }
@@ -221,8 +221,8 @@
     }
     
     .btn-admin {
-      background: #1b8c0c;
-      border-color: #1b8c0c;
+      background: #157a09;
+      border-color: #157a09;
       color: white;
     }
     
@@ -311,7 +311,7 @@
     
     .badge-category {
       background: #e8f5e9;
-      color: #1b8c0c;
+      color: #157a09;
       padding: 5px 12px;
       border-radius: 20px;
       font-size: 12px;
@@ -512,7 +512,7 @@
                   <p class="text-muted mb-1 small">Past Questions</p>
                   <h3 class="mb-0" id="stat-questions">0</h3>
                 </div>
-                <div class="stat-icon" style="background: #e8f5e9; color: #1b8c0c;">
+                <div class="stat-icon" style="background: #e8f5e9; color: #157a09;">
                   <i class="bi bi-file-earmark-pdf"></i>
                 </div>
               </div>
@@ -3851,7 +3851,7 @@ window.deleteEvent = async function(id) {
           icon: 'info',
           title: escapeHtml(fullName),
           text: 'No profile picture uploaded by this student.',
-          confirmButtonColor: '#1b8c0c'
+          confirmButtonColor: '#157a09'
         });
         return;
       }
@@ -3890,7 +3890,7 @@ window.deleteEvent = async function(id) {
           text: 'This will activate the student account.',
           icon: 'question',
           showCancelButton: true,
-          confirmButtonColor: '#1b8c0c',
+          confirmButtonColor: '#157a09',
           confirmButtonText: 'Approve & Activate'
         });
         if (!result.isConfirmed) return;
@@ -5438,7 +5438,7 @@ window.deleteEvent = async function(id) {
         `,
         showCancelButton: true,
         confirmButtonText: 'Update Status',
-        confirmButtonColor: '#1b8c0c',
+        confirmButtonColor: '#157a09',
         preConfirm: () => {
           const selected = document.querySelector('input[name="swal-status"]:checked');
           return selected ? selected.value : null;
@@ -5595,7 +5595,7 @@ window.deleteEvent = async function(id) {
         `,
         showCancelButton: true,
         confirmButtonText: 'Save Award & Details',
-        confirmButtonColor: '#1b8c0c',
+        confirmButtonColor: '#157a09',
         preConfirm: () => {
           const teamName = document.getElementById('manual-team-name').value.trim();
           const projectTitle = document.getElementById('manual-project-title').value.trim();
@@ -6219,7 +6219,7 @@ window.deleteEvent = async function(id) {
           </div>
         `,
         confirmButtonText: 'Close',
-        confirmButtonColor: '#1b8c0c'
+        confirmButtonColor: '#157a09'
       });
     };
 
@@ -6316,7 +6316,7 @@ window.deleteEvent = async function(id) {
         focusConfirm: false,
         showCancelButton: true,
         confirmButtonText: 'Save Award & Position',
-        confirmButtonColor: '#1b8c0c',
+        confirmButtonColor: '#157a09',
         preConfirm: () => {
           return {
             isWinner: document.getElementById('swal-winner').checked,
@@ -6602,7 +6602,7 @@ window.deleteEvent = async function(id) {
         text: 'This will send an email to ALL active students. Proceed?',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#1b8c0c',
+        confirmButtonColor: '#157a09',
         confirmButtonText: 'Yes, Send It'
       });
 

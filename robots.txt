@@ -1,0 +1,13 @@
+# NACOS TAU Chapter portal
+User-agent: *
+Allow: /
+
+# Private, account and admin areas (also sent as X-Robots-Tag: noindex)
+Disallow: /admin-
+Disallow: /student-dashboard
+Disallow: /student-verify
+Disallow: /receipt
+Disallow: /reset-password
+Disallow: /forgot-password
+
+Sitemap: https://nacosportal.vercel.app/sitemap.xml

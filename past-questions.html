@@ -5,6 +5,19 @@
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <title>Past Questions - NACOS | Thomas Adewumi University</title>
+  <!-- SEO: canonical + social previews -->
+  <meta name="robots" content="noindex, follow">
+  <link rel="canonical" href="https://nacosportal.vercel.app/past-questions">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NACOS TAU Chapter">
+  <meta property="og:url" content="https://nacosportal.vercel.app/past-questions">
+  <meta property="og:title" content="Past Questions - NACOS | Thomas Adewumi University">
+  <meta property="og:description" content="Access past examination questions for all courses and levels at Thomas Adewumi University">
+  <meta property="og:image" content="https://nacosportal.vercel.app/assets/img/social-preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Past Questions - NACOS | Thomas Adewumi University">
+  <meta name="twitter:description" content="Access past examination questions for all courses and levels at Thomas Adewumi University">
+  <meta name="twitter:image" content="https://nacosportal.vercel.app/assets/img/social-preview.png">
   <meta name="description" content="Access past examination questions for all courses and levels at Thomas Adewumi University">
   <meta name="keywords" content="past questions, exams, NACOS, TAU, computer science, software engineering">
 
@@ -47,9 +60,9 @@
       transition: all 0.3s;
     }
     .filter-btn:hover, .filter-btn.active {
-      background: #1b8c0c;
+      background: #157a09;
       color: white;
-      border-color: #1b8c0c;
+      border-color: #157a09;
     }
     .file-icon {
       font-size: 48px;
@@ -57,7 +70,7 @@
     }
     .badge-level {
       background: #e8f5e9;
-      color: #1b8c0c;
+      color: #157a09;
       padding: 5px 12px;
       border-radius: 20px;
       font-size: 12px;
@@ -69,7 +82,7 @@
       border: 1px solid #ddd;
     }
     .search-box:focus {
-      border-color: #1b8c0c;
+      border-color: #157a09;
       box-shadow: 0 0 0 3px rgba(27, 140, 12, 0.1);
       outline: none;
     }
@@ -91,11 +104,11 @@
       margin-top: 30px;
     }
     .pagination .page-link {
-      color: #1b8c0c;
+      color: #157a09;
     }
     .pagination .active .page-link {
-      background-color: #1b8c0c;
-      border-color: #1b8c0c;
+      background-color: #157a09;
+      border-color: #157a09;
       color: white;
     }
     .loading-skeleton {
@@ -124,7 +137,7 @@
     <div class="container-fluid container-xl position-relative d-flex align-items-center" style="width: 100%; display: flex; justify-content: space-around;">
       <a href="index.html" class="logo d-flex align-items-center me-auto">
         <img src="assets/img/nacos logo.jpg" alt="NACOS Logo">
-        <h1 class="sitename"><span style="color: #1b8c0c;">NACOS</span><br><strong style="font-size: 12px;">Thomas Adewumi University</strong></h1>
+        <h1 class="sitename"><span style="color: #157a09;">NACOS</span><br><strong style="font-size: 12px;">Thomas Adewumi University</strong></h1>
       </a>
 
       <nav id="navmenu" class="navmenu">
@@ -308,7 +321,7 @@
             <i class="bi bi-exclamation-triangle" style="font-size: 64px; color: #dc3545;"></i>
             <h4 class="mt-3 text-danger">Failed to Load Questions</h4>
             <p class="text-muted">Please check your internet connection and try again.</p>
-            <button class="btn btn-primary mt-3" onclick="location.reload()" style="background-color: #1b8c0c; border-color: #1b8c0c;">
+            <button class="btn btn-primary mt-3" onclick="location.reload()" style="background-color: #157a09; border-color: #157a09;">
               <i class="bi bi-arrow-repeat me-2"></i>Retry
             </button>
           </div>
@@ -400,7 +413,7 @@
                 <span class="badge bg-secondary ms-2">${escapeHtml(q.semester)}</span>
               </div>
               <p class="small text-muted mb-3">${escapeHtml(q.title)}</p>
-              <a href="${escapeHtml(q.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background-color: #1b8c0c; border-color: #1b8c0c; color: white;" onclick="event.stopPropagation(); trackDownload('${escapeHtml(q.id)}', '${escapeHtml(q.course_code)}', '${escapeHtml(q.title || q.course_name)}')">
+              <a href="${escapeHtml(q.file_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="background-color: #157a09; border-color: #157a09; color: white;" onclick="event.stopPropagation(); trackDownload('${escapeHtml(q.id)}', '${escapeHtml(q.course_code)}', '${escapeHtml(q.title || q.course_name)}')">
                 <i class="bi bi-download me-1"></i> Download PDF
               </a>
             </div>

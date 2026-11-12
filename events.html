@@ -5,13 +5,26 @@
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
   <title>Events - NACOS</title>
+  <!-- SEO: canonical + social previews -->
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://nacosportal.vercel.app/events">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NACOS TAU Chapter">
+  <meta property="og:url" content="https://nacosportal.vercel.app/events">
+  <meta property="og:title" content="Events - NACOS">
+  <meta property="og:description" content="View and register for NACOS events">
+  <meta property="og:image" content="https://nacosportal.vercel.app/assets/img/social-preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Events - NACOS">
+  <meta name="twitter:description" content="View and register for NACOS events">
+  <meta name="twitter:image" content="https://nacosportal.vercel.app/assets/img/social-preview.png">
   <meta name="description" content="View and register for NACOS events">
   <meta name="keywords" content="">
 
   <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
   <link href="assets/img/tau_logo-removebg-preview.png" rel="apple-touch-icon">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1b8c0c">
+  <meta name="theme-color" content="#157a09">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -52,7 +65,7 @@
       position: absolute;
       top: 15px;
       right: 15px;
-      background: #1b8c0c;
+      background: #157a09;
       color: white;
       padding: 8px 15px;
       border-radius: 8px;
@@ -70,8 +83,8 @@
       text-transform: uppercase;
     }
     .btn-register {
-      background: #1b8c0c;
-      border-color: #1b8c0c;
+      background: #157a09;
+      border-color: #157a09;
       color: white;
     }
     .btn-register:hover {
@@ -81,7 +94,7 @@
     }
     .spots-badge {
       background: #e8f5e9;
-      color: #1b8c0c;
+      color: #157a09;
       padding: 5px 12px;
       border-radius: 20px;
       font-size: 12px;
@@ -97,7 +110,7 @@
     /* Ticket Card Styles */
     .ticket-container {
       background: #ffffff;
-      border: 2px dashed #1b8c0c;
+      border: 2px dashed #157a09;
       border-radius: 12px;
       padding: 20px;
       position: relative;
@@ -114,7 +127,7 @@
       font-family: 'Courier New', Courier, monospace;
       font-size: 20px;
       font-weight: 700;
-      color: #1b8c0c;
+      color: #157a09;
       letter-spacing: 2px;
     }
 
@@ -146,7 +159,7 @@
     <div class="container-fluid container-xl position-relative d-flex align-items-center" style="width: 100%; display: flex; justify-content: space-around;">
       <a href="index.html" class="logo d-flex align-items-center me-auto">
         <img src="assets/img/nacos logo.jpg" alt="">
-        <h1 class="sitename"><span style="color: #1b8c0c;">NACOS</span><br><strong style="font-size: 12px;">Thomas Adewumi University</strong></h1>
+        <h1 class="sitename"><span style="color: #157a09;">NACOS</span><br><strong style="font-size: 12px;">Thomas Adewumi University</strong></h1>
       </a>
 
       <nav id="navmenu" class="navmenu">
@@ -206,7 +219,7 @@
   <div class="modal fade" id="ticketModal" tabindex="-1" aria-labelledby="ticketModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
-        <div class="modal-header text-white" style="background: linear-gradient(135deg, #1b8c0c 0%, #136308 100%);">
+        <div class="modal-header text-white" style="background: linear-gradient(135deg, #157a09 0%, #136308 100%);">
           <h5 class="modal-title d-flex align-items-center" id="ticketModalLabel">
             <i class="bi bi-ticket-perforated-fill me-2 fs-4"></i> Event Ticket Confirmed
           </h5>
@@ -472,7 +485,7 @@
           <div class="col-lg-6">
             <div class="card event-card position-relative">
               ${event.image_url ? `<img src="${escapeHtml(event.image_url)}" class="event-image" alt="${escapeHtml(event.title)}">` : `
-                <div class="event-image d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #1b8c0c 0%, #2d9b0f 100%);">
+                <div class="event-image d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #157a09 0%, #2d9b0f 100%);">
                   <i class="bi bi-calendar-event" style="font-size: 64px; color: white;"></i>
                 </div>
               `}
@@ -503,6 +516,61 @@
           </div>
         `;
       }).join('');
+
+      updateEventsStructuredData(data);
+    }
+
+    // ---- Structured data (schema.org Event) for search engines -----------------
+    // Rebuilt after every load so it always matches the events shown.
+    function updateEventsStructuredData(events) {
+      try {
+        const SITE = 'https://nacosportal.vercel.app';
+        const toIso = (date, time) => {
+          if (!date) return undefined;
+          const t = /^\d{2}:\d{2}/.test(time || '') ? String(time).slice(0, 5) + ':00' : '09:00:00';
+          return `${date}T${t}+01:00`; // West Africa Time
+        };
+        const items = (events || []).filter(e => e && e.title && e.date).map(e => {
+          const isPaid = e.requires_payment && Number(e.payment_amount) > 0;
+          const spots = spotsLeftFor(e);
+          const node = {
+            '@type': 'Event',
+            name: e.title,
+            startDate: toIso(e.date, e.time),
+            eventStatus: 'https://schema.org/EventScheduled',
+            eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+            location: {
+              '@type': 'Place',
+              name: e.location || 'Thomas Adewumi University',
+              address: { '@type': 'PostalAddress', addressLocality: 'Oko-Irese', addressRegion: 'Kwara State', addressCountry: 'NG' }
+            },
+            organizer: { '@type': 'Organization', name: 'NACOS Thomas Adewumi University Chapter', url: SITE + '/' },
+            url: `${SITE}/events?event_id=${encodeURIComponent(e.id)}`,
+            offers: {
+              '@type': 'Offer',
+              price: isPaid ? Number(e.payment_amount) : 0,
+              priceCurrency: 'NGN',
+              availability: spots === 0 ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
+              url: `${SITE}/events?event_id=${encodeURIComponent(e.id)}`
+            }
+          };
+          if (e.description) node.description = String(e.description).slice(0, 500);
+          if (e.image_url && /^https:\/\//.test(e.image_url)) node.image = [e.image_url];
+          return node;
+        });
+
+        let tag = document.getElementById('events-jsonld');
+        if (!items.length) { if (tag) tag.remove(); return; }
+        if (!tag) {
+          tag = document.createElement('script');
+          tag.type = 'application/ld+json';
+          tag.id = 'events-jsonld';
+          document.head.appendChild(tag);
+        }
+        tag.textContent = JSON.stringify({ '@context': 'https://schema.org', '@graph': items });
+      } catch (err) {
+        console.warn('[events] structured data skipped:', err);
+      }
     }
 
     window.showEventDetails = async function(eventId) {
@@ -784,7 +852,7 @@
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Retry Checkout',
-            confirmButtonColor: '#1b8c0c',
+            confirmButtonColor: '#157a09',
             cancelButtonText: 'Cancel'
           }).then((res) => {
             if (res.isConfirmed) {
@@ -1150,7 +1218,7 @@
               icon: 'info',
               showCancelButton: true,
               confirmButtonText: 'Retry Verification',
-              confirmButtonColor: '#1b8c0c',
+              confirmButtonColor: '#157a09',
               cancelButtonText: 'Check Receipt Page'
             }).then((result) => {
               if (result.isConfirmed) {
