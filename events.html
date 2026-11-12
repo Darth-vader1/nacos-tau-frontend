@@ -308,19 +308,55 @@
       return clampQuantity(input.value, parseInt(input.max, 10) || MAX_TICKETS_PER_ORDER);
     }
 
-    function bindQuantityPicker(event, unitPrice) {
+    // ---- Ticket fees (shown before checkout) ----------------------------------
+    // The server always prices the order itself; these are for display only.
+    let ticketFees = { member_service_fee: 0, guest_service_fee: 0, gateway_fee_added_at_checkout: true };
+    let ticketFeesLoaded = null;
+    function loadTicketFees() {
+      if (!ticketFeesLoaded) {
+        ticketFeesLoaded = fetch(`${window.API_URL}/payments/fees`)
+          .then(r => (r.ok ? r.json() : null))
+          .then(j => { if (j && j.data) ticketFees = { ...ticketFees, ...j.data }; })
+          .catch(() => {});
+      }
+      return ticketFeesLoaded;
+    }
+
+    function serviceFeeFor(event, { guest = false } = {}) {
+      const o = event?.service_fee_override;
+      if (o !== null && o !== undefined && o !== '' && Number.isFinite(Number(o))) return Math.max(0, Number(o));
+      return Number(guest ? ticketFees.guest_service_fee : ticketFees.member_service_fee) || 0;
+    }
+
+    const roundNaira = (n) => Math.round(Number(n || 0) * 100) / 100;
+
+    function priceBreakdownText(unit, fee, q) {
+      const tickets = roundNaira(unit * q);
+      const service = roundNaira(fee * q);
+      const parts = [`Tickets ${formatCurrency(tickets)}`];
+      if (service > 0) parts.push(`service fee ${formatCurrency(service)}`);
+      let text = parts.join(' + ');
+      if (service > 0) text += ` = ${formatCurrency(tickets + service)}`;
+      if (ticketFees.gateway_fee_added_at_checkout) text += ' · Bachs processing fee added at checkout';
+      return text;
+    }
+
+    function bindQuantityPicker(event, unitPrice, feePerTicket = 0) {
       const input = document.getElementById('ticketQty');
       if (!input) return;
       const max = parseInt(input.max, 10) || 1;
       const unit = Number(unitPrice ?? event.payment_amount) || 0;
+      const fee = Number(feePerTicket) || 0;
       const totalEl = document.getElementById('payTotal');
+      const breakdownEl = document.getElementById('priceBreakdown');
       const minus = document.getElementById('qtyMinus');
       const plus = document.getElementById('qtyPlus');
 
       const render = () => {
         const q = clampQuantity(input.value, max);
         input.value = q;
-        if (totalEl) totalEl.textContent = formatCurrency(Math.round(unit * q * 100) / 100);
+        if (totalEl) totalEl.textContent = formatCurrency(roundNaira((unit + fee) * q));
+        if (breakdownEl) breakdownEl.textContent = priceBreakdownText(unit, fee, q);
         if (minus) minus.disabled = q <= 1;
         if (plus) plus.disabled = q >= max;
       };
@@ -641,8 +677,10 @@
 
       document.getElementById('eventModalBody').innerHTML = bodyHtml;
 
+      await loadTicketFees();
       let footerHtml = '';
       let pickerUnitPrice = Number(event.payment_amount) || 0;
+      let pickerFee = serviceFeeFor(event, { guest: !userSession });
       const isPaid = event.requires_payment && Number(event.payment_amount) > 0;
       const maxQty = Math.max(1, Math.min(MAX_TICKETS_PER_ORDER, spotsLeft === null ? MAX_TICKETS_PER_ORDER : spotsLeft));
       const hasSeats = spotsLeft === null || spotsLeft > 0;
@@ -656,6 +694,7 @@
             <button class="btn btn-outline-secondary" type="button" id="qtyPlus" aria-label="More tickets" style="min-width: 40px;">+</button>
           </div>
           <small class="text-muted" id="qtyHint">${formatCurrency(unitPrice)} each &middot; max ${maxQty}</small>
+          <div class="w-100 small text-muted" id="priceBreakdown" aria-live="polite"></div>
         </div>`;
 
       if (userSession) {
@@ -729,7 +768,7 @@
       }
 
       document.getElementById('eventModalFooter').innerHTML = footerHtml;
-      bindQuantityPicker(event, pickerUnitPrice);
+      bindQuantityPicker(event, pickerUnitPrice, pickerFee);
 
       new bootstrap.Modal(document.getElementById('eventModal')).show();
     };
@@ -926,7 +965,8 @@
       if (!event || event.id !== eventId) return;
       const quantity = getSelectedQuantity();
       const unit = Number(event.public_price) || 0;
-      const total = Math.round(unit * quantity * 100) / 100;
+      const fee = serviceFeeFor(event, { guest: true });
+      const total = roundNaira((unit + fee) * quantity);
 
       const evModal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
       if (evModal) evModal.hide();
@@ -934,7 +974,7 @@
       const { value: form, isConfirmed } = await Swal.fire({
         title: 'Buy as a guest',
         html: `
-          <p class="small text-muted mb-2">${quantity} ticket${quantity > 1 ? 's' : ''} &times; ${formatCurrency(unit)} = <strong>${formatCurrency(total)}</strong>. Your ticket will be emailed to you.</p>
+          <p class="small text-muted mb-2">${quantity} ticket${quantity > 1 ? 's' : ''}: ${escapeHtml(priceBreakdownText(unit, fee, quantity))}. <strong>Total ${formatCurrency(total)}</strong>. Your ticket will be emailed to you.</p>
           <input id="guestName" class="swal2-input" placeholder="Full name" autocomplete="name" maxlength="100">
           <input id="guestEmail" class="swal2-input" type="email" placeholder="Email address" autocomplete="email" maxlength="254">
           <input id="guestPhone" class="swal2-input" type="tel" placeholder="Phone number" autocomplete="tel" maxlength="20">
@@ -997,6 +1037,7 @@
             reference: d.payment?.transaction_id || reference,
             amount: d.total_amount ?? 0,
             quantity: d.ticket_quantity,
+            subtotal: d.subtotal_amount, serviceFee: d.service_fee, gatewayFee: d.gateway_fee,
             paymentType: 'Guest ticket (confirmed)'
           });
           await loadEvents();
@@ -1146,6 +1187,7 @@
           reference: res.data?.payment?.transaction_id || '',
           amount: res.data?.total_amount ?? res.data?.payment?.amount ?? ev.payment_amount ?? 0,
           quantity: res.data?.ticket_quantity,
+          subtotal: res.data?.subtotal_amount, serviceFee: res.data?.service_fee, gatewayFee: res.data?.gateway_fee,
           paymentType: 'Online payment (confirmed)'
         });
         await loadEvents();
@@ -1199,6 +1241,7 @@
               reference: reference,
               amount: verifyRes.data?.total_amount ?? verifyRes.data?.payment?.amount ?? evToDisplay.payment_amount ?? 0,
               quantity: verifyRes.data?.ticket_quantity,
+              subtotal: verifyRes.data?.subtotal_amount, serviceFee: verifyRes.data?.service_fee, gatewayFee: verifyRes.data?.gateway_fee,
               paymentType: 'Bachs Verified'
             });
 
@@ -1245,8 +1288,11 @@
       attemptVerify();
     }
 
-    window.showTicketModal = function({ event, student, ticketNumber, reference, amount, quantity, paymentType }) {
+    window.showTicketModal = function({ event, student, ticketNumber, reference, amount, quantity, paymentType, subtotal, serviceFee, gatewayFee }) {
       const qty = Math.max(1, parseInt(quantity, 10) || 1);
+      const ticketsPart = Number(subtotal ?? amount) || 0;
+      const servicePart = Number(serviceFee) || 0;
+      const gatewayPart = Number(gatewayFee) || 0;
       const s = student || {};
       const ev = event || currentEvent || {};
       const studentName = s.name || `${s.first_name || ''} ${s.last_name || ''}`.trim() || userSession?.user?.email?.split('@')[0] || 'Student';
@@ -1302,8 +1348,10 @@
                   <td><strong>${qty}</strong> &mdash; admits ${qty} ${qty > 1 ? 'people' : 'person'}</td>
                 </tr>
                 <tr>
-                  <td class="text-muted">Fee Paid:</td>
-                  <td><strong class="text-success">${feeFormatted}</strong>${qty > 1 && amount > 0 ? ` <span class="text-muted">(${qty} × ${formatCurrency(Math.round((amount / qty) * 100) / 100)})</span>` : ''}</td>
+                  <td class="text-muted">${servicePart > 0 ? 'Total Paid:' : 'Fee Paid:'}</td>
+                  <td><strong class="text-success">${feeFormatted}</strong>${servicePart > 0
+                    ? ` <span class="text-muted">(tickets ${formatCurrency(ticketsPart)}${qty > 1 ? ` = ${qty} × ${formatCurrency(roundNaira(ticketsPart / qty))}` : ''} + service fee ${formatCurrency(servicePart)})</span>`
+                    : (qty > 1 && ticketsPart > 0 ? ` <span class="text-muted">(${qty} × ${formatCurrency(roundNaira(ticketsPart / qty))})</span>` : '')}${gatewayPart > 0 ? `<div class="small text-muted">+ Bachs processing fee ${formatCurrency(gatewayPart)} paid at checkout</div>` : ''}</td>
                 </tr>
                 <tr>
                   <td class="text-muted">Reference:</td>

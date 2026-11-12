@@ -1152,6 +1152,7 @@
                 <div class="alert alert-info mt-3 mb-0">
                   <i class="bi bi-cash"></i> <strong>Members:</strong> ₦${Number(event.payment_amount || 0).toLocaleString()} per ticket
                   ${guestOpen ? `<br><i class="bi bi-people"></i> <strong>Non-members:</strong> ₦${Number(event.public_price).toLocaleString()} per ticket. No account needed.` : '<br><small>NACOS members only. Sign in to buy.</small>'}
+                  <br><small class="text-muted">Any service or processing fees are shown before you pay.</small>
                 </div>
               ` : ''}
             </div>

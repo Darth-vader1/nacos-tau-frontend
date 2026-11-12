@@ -300,6 +300,37 @@ export const api = {
             return response.json();
         },
 
+        // Admin: ticket fee settings (read: any admin; change: super admin)
+        async getFeeSettings() {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('GET', `${API_URL}/payments/fee-settings`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            return response.json();
+        },
+
+        async updateFeeSettings(data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('PUT', `${API_URL}/payments/fee-settings`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+
+        // Admin: revenue split into tickets, service fees and Bachs fees
+        async getRevenue(params = {}) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+            const response = await secureRequest('GET', `${API_URL}/payments/revenue${qs ? '?' + qs : ''}`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            return response.json();
+        },
+
         // Admin: ask the gateway whether an online checkout was paid, and issue tickets if so
         async gatewayRecheck(id) {
             const { data: { session } } = await supabase.auth.getSession();
