@@ -133,6 +133,7 @@
     .action-auto { background-color: #d4edda; color: #155724; }
     .action-student { background-color: #cce5ff; color: #004085; }
     .action-default { background-color: #e2e3e5; color: #383d41; }
+    .action-payment { background-color: #fff3cd; color: #664d03; }
 
     .details-btn {
       padding: 0.25rem 0.5rem;
@@ -299,14 +300,14 @@
         <div class="stats-card">
           <div class="stat-label">Total Events</div>
           <div class="stat-value" id="totalLogs">-</div>
-          <div class="text-muted small mt-1">Total audit entries recorded.</div>
+          <div class="text-muted small mt-1">All matching audit events (exact count).</div>
         </div>
       </div>
       <div class="col-lg-3 col-md-6 mb-3">
         <div class="stats-card">
-          <div class="stat-label">Unique Actors</div>
+          <div class="stat-label">Unique People</div>
           <div class="stat-value" id="uniqueUsers">-</div>
-          <div class="text-muted small mt-1">Distinct users or services involved.</div>
+          <div class="text-muted small mt-1">Signed-in people active in the period.</div>
         </div>
       </div>
       <div class="col-lg-3 col-md-6 mb-3">
@@ -331,7 +332,7 @@
           <div class="d-flex justify-content-between align-items-center mb-2">
             <div>
               <div class="stat-label">Top Actions</div>
-              <div class="text-muted">Most frequent audit events in the selected period</div>
+              <div class="text-muted" id="topActionsPeriod">Most frequent actions in the last 30 days</div>
             </div>
           </div>
           <div id="topActionsContainer" class="d-flex flex-wrap gap-2"></div>
@@ -396,7 +397,11 @@
           </select>
         </div>
         
-        <div class="col-md-3 d-flex align-items-end">
+        <div class="col-md-3 d-flex flex-column justify-content-end gap-2">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="includeSystem" onchange="toggleSystemTraffic()">
+            <label class="form-check-label small" for="includeSystem">Show system traffic (pings, background checks)</label>
+          </div>
           <button class="btn btn-export w-100" onclick="applyFilters()">
             <i class="bi bi-search"></i> Apply Filters
           </button>
@@ -418,21 +423,22 @@
         <p>Try adjusting your filters or search criteria</p>
       </div>
 
+      <div class="text-muted small px-1 pb-2" id="resultsSummary"></div>
       <div id="tableContainer" class="table-responsive">
         <table class="table table-hover">
           <thead>
             <tr>
               <th class="sortable" onclick="sortBy('timestamp')">
-                Timestamp <i class="bi bi-arrow-down-up sort-icon"></i>
+                When <i class="bi bi-arrow-down-up sort-icon"></i>
               </th>
               <th class="sortable" onclick="sortBy('action')">
-                Event <i class="bi bi-arrow-down-up sort-icon"></i>
+                Action <i class="bi bi-arrow-down-up sort-icon"></i>
               </th>
               <th class="sortable" onclick="sortBy('user')">
-                Actor <i class="bi bi-arrow-down-up sort-icon"></i>
+                Who <i class="bi bi-arrow-down-up sort-icon"></i>
               </th>
-              <th>Endpoint</th>
-              <th>Status</th>
+              <th>Target</th>
+              <th>Outcome</th>
               <th>Details</th>
             </tr>
           </thead>
@@ -547,31 +553,195 @@
       }
     }
 
-    // Load statistics
+    // ================================================================
+    // Presentation helpers
+    // ================================================================
+
+    // Everything stored in the audit log can contain user-controlled text
+    // (emails, paths, user-agents, request bodies): always escape it.
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // Plain-English names for known actions; anything else is humanised.
+    const ACTION_LABELS = {
+      user_login: 'Signed in',
+      admin_login: 'Admin signed in',
+      user_logout: 'Signed out',
+      logout: 'Signed out',
+      student_registration: 'New student registered',
+      password_reset_requested: 'Password reset requested',
+      profile_update: 'Updated own profile',
+      profile_picture_update: 'Updated profile picture',
+      student_approve: 'Approved student',
+      student_reject: 'Rejected student',
+      student_deleted: 'Deleted student',
+      payment_submitted: 'Submitted payment proof',
+      payment_verified: 'Approved payment',
+      payment_rejected: 'Rejected payment',
+      bachs_payment_verified: 'Online payment confirmed',
+      webhook_payment_verified: 'Payment confirmed by gateway webhook',
+      guest_payment_verified: 'Guest payment confirmed',
+      payment_gateway_rechecked: 'Re-checked payment with gateway',
+      event_registration_auto_created: 'Ticket issued after approval',
+      event_ticket_email_sent: 'Ticket emailed',
+      resource_created: 'Created resource', resource_updated: 'Updated resource', resource_deleted: 'Deleted resource',
+      timetable_created: 'Created timetable', timetable_updated: 'Updated timetable', timetable_deleted: 'Deleted timetable',
+      career_path_created: 'Created career path', career_path_updated: 'Updated career path', career_path_deleted: 'Deleted career path',
+      post_api_events_id_register: 'Registered for event',
+      post_api_hackathons_id_register: 'Registered for hackathon',
+      post_api_hackathons_id_submit: 'Submitted hackathon project',
+      post_api_voting_vote: 'Cast a vote',
+      get_api_students_export_csv: 'Exported student list (CSV)',
+      get_api_payments_export_csv: 'Exported payments (CSV)',
+      get_api_hackathons_admin_id_participants: 'Viewed hackathon participants',
+      auto_HEAD_root: 'Server ping',
+      // Names used by entries recorded before the audit-log clean-up
+      auto_POST_table: 'Created admin record',
+      auto_PUT_table_id: 'Updated admin record',
+      auto_DELETE_table_id: 'Deleted admin record',
+      'auto_POST_table_batch-update': 'Bulk-updated admin records',
+      'auto_POST_ensure-buckets': 'Storage check',
+      'auto_POST_ensure-one': 'Storage check',
+      'auto_GET_session-status': 'Session check',
+      auto_POST_refresh: 'Session refreshed',
+      'auto_GET_*': 'Unknown page requested',
+      auto_PUT_me: 'Updated own profile',
+      auto_POST_id_register: 'Registered for an event',
+      auto_POST_register: 'Registered for an event'
+    };
+
+    // Admin table names in the singular, for "Updated event", "Deleted past question", ...
+    const TABLE_NAMES = {
+      events: 'event', past_questions: 'past question', timetables: 'timetable',
+      academic_resources: 'academic resource', career_paths: 'career path',
+      payment_verification: 'payment verification', hackathons: 'hackathon',
+      hackathon_registrations: 'hackathon registration', hackathon_submissions: 'hackathon submission',
+      past_executives: 'past executive', executives: 'executive'
+    };
+
+    function formatActionLabel(action) {
+      const a = String(action || '');
+      if (ACTION_LABELS[a]) return ACTION_LABELS[a];
+      const adminWrite = a.match(/^admin_(create|update|delete|batch_update)_(.+)$/);
+      if (adminWrite) {
+        const verb = { create: 'Created', update: 'Updated', delete: 'Deleted', batch_update: 'Bulk-updated' }[adminWrite[1]];
+        return `${verb} ${TABLE_NAMES[adminWrite[2]] || adminWrite[2].replace(/_/g, ' ')}`;
+      }
+      return a
+        .replace(/^auto_/, '')
+        .replace(/^(get|post|put|patch|delete|head)_(?!api_)/i, (m, v) => ({ get: 'Viewed ', post: '', put: 'Updated ', patch: 'Updated ', delete: 'Deleted ', head: '' }[v.toLowerCase()]))
+        .replace(/^(get|post|put|patch|delete|head)_api_/i, (m, v) => ({ get: 'Viewed ', post: '', put: 'Updated ', patch: 'Updated ', delete: 'Deleted ', head: '' }[v.toLowerCase()]))
+        .replace(/[_-]+/g, ' ')
+        .replace(/\b(id|idorslug|subid)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/^\w/, c => c.toUpperCase());
+    }
+
+    function categoryOf(action) {
+      const a = String(action || '');
+      if (/^auto_(head|options)|ensure|session-status|refresh/i.test(a)) return { label: 'System', cls: 'action-auto' };
+      if (/login|logout|password|student_registration/.test(a)) return { label: 'Account', cls: 'action-login' };
+      if (/payment|ticket|webhook/.test(a)) return { label: 'Payments', cls: 'action-payment' };
+      if (/export/.test(a)) return { label: 'Data export', cls: 'action-admin' };
+      if (/^admin_|^auto_(post|put|delete)_table|approve|reject|deleted|_created|_updated|_deleted/i.test(a)) return { label: 'Admin change', cls: 'action-admin' };
+      if (/event|hackathon|vot/.test(a)) return { label: 'Events', cls: 'action-student' };
+      if (/student|profile/.test(a)) return { label: 'Student', cls: 'action-student' };
+      return { label: 'Activity', cls: 'action-default' };
+    }
+
+    function actorOf(log) {
+      const d = log.details || {};
+      const type = d.actor_type
+        || (/^admin_/.test(log.action) ? 'admin' : null)
+        || (log.user_id || log.user_email ? 'user' : null)
+        || (/guest/.test(log.action) ? 'guest' : null)
+        || (/webhook|auto_(head|options)/i.test(log.action) ? 'system' : 'guest');
+      const badge = {
+        admin: '<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">Admin</span>',
+        student: '<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">Student</span>',
+        user: '<span class="badge bg-secondary-subtle text-secondary-emphasis border">User</span>',
+        guest: '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Guest</span>',
+        system: '<span class="badge bg-light text-dark border">System</span>'
+      }[type] || '';
+      const who = log.user_email
+        ? `<strong>${escapeHtml(log.user_email)}</strong>`
+        : `<span class="text-muted">${type === 'system' ? 'Automated' : 'Not signed in'}</span>`;
+      const ip = log.ip_address ? `<div class="text-muted small">${escapeHtml(log.ip_address)}</div>` : '';
+      return `${who} ${badge}${ip}`;
+    }
+
+    function targetOf(log) {
+      const d = log.details || {};
+      if (d.target) return escapeHtml(d.target);
+      const parts = [];
+      if (d.event_title) parts.push(`Event "${d.event_title}"`);
+      if (d.reference) parts.push(`Payment ${d.reference}`);
+      else if (d.payment_id) parts.push(`Payment #${String(d.payment_id).slice(0, 8)}`);
+      if (d.ticket_number) parts.push(`Ticket ${d.ticket_number}`);
+      if (d.ticket_quantity && d.ticket_quantity > 1) parts.push(`${d.ticket_quantity} tickets`);
+      if (d.student) parts.push(`Student ${d.student}`);
+      if (!parts.length && d.path) {
+        const path = String(d.path).split('?')[0];
+        return `<span class="text-muted small">${escapeHtml((d.method ? d.method + ' ' : '') + path)}</span>`;
+      }
+      return parts.length ? escapeHtml(parts.join(' · ')) : '<span class="text-muted">-</span>';
+    }
+
+    function outcomeOf(log) {
+      const d = log.details || {};
+      const code = Number(d.statusCode);
+      const failed = d.outcome === 'failure' || (code >= 400) || /failed|error|denied|blocked/.test(log.action);
+      const label = failed ? 'Failed' : 'Success';
+      const cls = failed ? 'bg-danger' : 'bg-success';
+      return `<span class="badge ${cls}">${label}</span>${code ? ` <small class="text-muted">${code}</small>` : ''}`;
+    }
+
+    // Query-string parameters shared by list, stats, actions and export.
+    function currentFilterParams() {
+      const params = new URLSearchParams();
+      const search = document.getElementById('searchInput').value.trim();
+      if (search) params.append('search', search);
+      const action = document.getElementById('actionFilter').value;
+      if (action !== 'all') params.append('action', action);
+      const userEmail = document.getElementById('userEmailFilter').value.trim();
+      if (userEmail) params.append('user_email', userEmail);
+      const ipAddress = document.getElementById('ipFilter').value.trim();
+      if (ipAddress) params.append('ip_address', ipAddress);
+      const startDate = document.getElementById('startDate').value;
+      if (startDate) params.append('start_date', startDate);
+      const endDate = document.getElementById('endDate').value;
+      if (endDate) params.append('end_date', endDate);
+      if (document.getElementById('includeSystem')?.checked) params.append('include_system', 'true');
+      return params;
+    }
+
+    // Load statistics (exact counts from the server)
     async function loadStats() {
       try {
-        const response = await fetch(`${API_URL}/api/audit-logs/stats`, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
+        const response = await fetch(`${API_URL}/api/audit-logs/stats?${currentFilterParams()}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
-
-        if (!response.ok) {
-          const text = await response.text();
-          const errorDetail = text.startsWith('{') ? JSON.parse(text) : text;
-          throw new Error(`Failed to load stats: ${response.status} ${response.statusText} - ${typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail)}`);
-        }
+        if (!response.ok) throw new Error(`Failed to load stats: ${response.status}`);
 
         const result = await response.json();
         const stats = result.data || {};
-        const topActions = stats.topActions || [];
+        const fmt = (n) => (n != null ? Number(n).toLocaleString() : '-');
 
-        document.getElementById('totalLogs').textContent = (stats.totalLogs != null ? stats.totalLogs : '-').toLocaleString();
-        document.getElementById('uniqueUsers').textContent = (stats.uniqueUsers != null ? stats.uniqueUsers : '-').toLocaleString();
-        document.getElementById('todayLogs').textContent = stats.last24 != null ? stats.last24.toLocaleString() : '-';
-        document.getElementById('weekLogs').textContent = stats.last7 != null ? stats.last7.toLocaleString() : '-';
+        document.getElementById('totalLogs').textContent = fmt(stats.totalLogs);
+        document.getElementById('uniqueUsers').textContent = fmt(stats.uniqueUsers);
+        document.getElementById('todayLogs').textContent = fmt(stats.last24);
+        document.getElementById('weekLogs').textContent = fmt(stats.last7);
+        const periodEl = document.getElementById('topActionsPeriod');
+        if (periodEl) {
+          periodEl.textContent = (stats.period === 'selected_dates' ? 'Most frequent actions in the selected dates' : 'Most frequent actions in the last 30 days')
+            + (stats.includesSystemTraffic ? ' (including system traffic)' : '');
+        }
 
-        renderTopActions(topActions);
+        renderTopActions(stats.topActions || []);
       } catch (error) {
         console.error('Failed to load stats:', error);
         document.getElementById('topActionsContainer').innerHTML = '<span class="text-muted">Unable to load top actions.</span>';
@@ -580,26 +750,28 @@
 
     async function loadActionOptions() {
       try {
-        const response = await fetch(`${API_URL}/api/audit-logs/actions`, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
+        const params = new URLSearchParams();
+        if (document.getElementById('includeSystem')?.checked) params.append('include_system', 'true');
+        const response = await fetch(`${API_URL}/api/audit-logs/actions?${params}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
-
         if (!response.ok) return;
 
         const result = await response.json();
         const actions = result.data || [];
         const select = document.getElementById('actionFilter');
-
-        actions.forEach(action => {
-          const option = document.createElement('option');
-          option.value = action;
-          option.textContent = action
-            .replace(/_/g, ' ')
-            .replace(/\b\w/g, char => char.toUpperCase());
-          select.appendChild(option);
-        });
+        const previous = select.value;
+        select.innerHTML = '<option value="all">All Actions</option>';
+        actions
+          .map(action => ({ action, label: formatActionLabel(action) }))
+          .sort((a, b) => a.label.localeCompare(b.label))
+          .forEach(({ action, label }) => {
+            const option = document.createElement('option');
+            option.value = action;
+            option.textContent = label;
+            select.appendChild(option);
+          });
+        if ([...select.options].some(o => o.value === previous)) select.value = previous;
       } catch (error) {
         console.error('Failed to load action options:', error);
       }
@@ -608,77 +780,79 @@
     function renderTopActions(topActions) {
       const container = document.getElementById('topActionsContainer');
       if (!topActions.length) {
-        container.innerHTML = '<span class="text-muted">No action summary available.</span>';
+        container.innerHTML = '<span class="text-muted">No activity in this period.</span>';
         return;
       }
-
-      container.innerHTML = topActions.map(action => `
-        <div class="stats-card" style="min-width: 180px; flex: 1 1 180px;">
-          <div class="stat-label">${formatActionLabel(action.action)}</div>
-          <div class="stat-value">${action.count.toLocaleString()}</div>
+      lastTopActions = topActions;
+      container.innerHTML = topActions.map((item, i) => `
+        <div class="stats-card" role="button" tabindex="0" style="min-width: 180px; flex: 1 1 180px; cursor: pointer;" title="Show only this action"
+             onclick="filterByTopAction(${i})">
+          <div class="stat-label">${escapeHtml(formatActionLabel(item.action))}</div>
+          <div class="stat-value">${Number(item.count).toLocaleString()}</div>
         </div>
       `).join('');
+    }
+
+    let lastTopActions = [];
+    window.filterByTopAction = function(i) {
+      const item = lastTopActions[i];
+      if (item) filterByAction(item.action);
+    };
+
+    function filterByAction(action) {
+      const select = document.getElementById('actionFilter');
+      if (![...select.options].some(o => o.value === action)) {
+        const option = document.createElement('option');
+        option.value = action;
+        option.textContent = formatActionLabel(action);
+        select.appendChild(option);
+      }
+      select.value = action;
+      applyFilters();
     }
 
     // Load logs
     async function loadLogs(page = 1) {
       currentPage = page;
-      
+
       const loadingContainer = document.getElementById('loadingContainer');
       const emptyState = document.getElementById('emptyState');
       const tableContainer = document.getElementById('tableContainer');
-      
+      const paginationContainer = document.getElementById('paginationContainer');
+
       loadingContainer.style.display = 'flex';
       emptyState.style.display = 'none';
       tableContainer.style.display = 'none';
 
       try {
-        // Build query parameters
-        const params = new URLSearchParams({
-          page: page,
-          limit: document.getElementById('limitSelect').value,
-          sort: currentSort
-        });
-
-        const search = document.getElementById('searchInput').value.trim();
-        if (search) params.append('search', search);
-
-        const action = document.getElementById('actionFilter').value;
-        if (action !== 'all') params.append('action', action);
-
-        const userEmail = document.getElementById('userEmailFilter').value.trim();
-        if (userEmail) params.append('user_email', userEmail);
-
-        const ipAddress = document.getElementById('ipFilter').value.trim();
-        if (ipAddress) params.append('ip_address', ipAddress);
-
-        const startDate = document.getElementById('startDate').value;
-        if (startDate) params.append('start_date', startDate);
-
-        const endDate = document.getElementById('endDate').value;
-        if (endDate) params.append('end_date', endDate);
+        const params = currentFilterParams();
+        params.append('page', page);
+        params.append('limit', document.getElementById('limitSelect').value);
+        params.append('sort', currentSort);
 
         const response = await fetch(`${API_URL}/api/audit-logs?${params}`, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
+          headers: { 'Authorization': `Bearer ${authToken}` }
         });
-
         if (!response.ok) throw new Error('Failed to fetch logs');
 
         const result = await response.json();
-        logsData = result.data.logs;
-        
+        logsData = result.data.logs || [];
+
         loadingContainer.style.display = 'none';
+        const summary = document.getElementById('resultsSummary');
+        if (summary) {
+          const total = result.data.pagination?.total || 0;
+          summary.textContent = `${total.toLocaleString()} matching event${total === 1 ? '' : 's'}`;
+        }
 
         if (logsData.length === 0) {
           emptyState.style.display = 'block';
+          if (paginationContainer) paginationContainer.style.display = 'none';
         } else {
           tableContainer.style.display = 'block';
           renderLogs(logsData);
           renderPagination(result.data.pagination);
         }
-
       } catch (error) {
         console.error('Failed to load logs:', error);
         loadingContainer.style.display = 'none';
@@ -686,29 +860,27 @@
       }
     }
 
-    // Render logs table
+    // Render logs table (every value escaped)
     function renderLogs(logs) {
       const tbody = document.getElementById('logsTableBody');
-      tbody.innerHTML = logs.map(log => {
-        const timestamp = new Date(log.timestamp).toLocaleString();
-        const actionClass = getActionClass(log.action);
-        const userEmail = log.user_email ? `<strong>${log.user_email}</strong>` : '<em>System</em>';
-        const endpoint = log.details?.path || log.details?.url || '-';
-        const method = log.details?.method || '';
-        const statusCode = log.details?.statusCode ? `<span class="badge bg-secondary">${log.details.statusCode}</span>` : '<span class="text-muted">-</span>';
-        const endpointLabel = [method, endpoint].filter(Boolean).join(' ');
-
+      tbody.innerHTML = logs.map((log, index) => {
+        const when = new Date(log.timestamp);
+        const category = categoryOf(log.action);
         return `
           <tr>
-            <td>${timestamp}</td>
-            <td>
-              <div><span class="action-badge ${actionClass}">${formatActionLabel(log.action)}</span></div>
+            <td class="text-nowrap">
+              ${escapeHtml(when.toLocaleDateString())}
+              <div class="text-muted small">${escapeHtml(when.toLocaleTimeString())}</div>
             </td>
-            <td>${userEmail}${log.user_id ? `<div class="text-muted small mt-1">${log.user_id}</div>` : ''}</td>
-            <td><div class="text-muted small">${endpointLabel}</div></td>
-            <td>${statusCode}</td>
             <td>
-              <button class="btn btn-sm btn-outline-primary details-btn" onclick='showDetails(${JSON.stringify(log).replace(/'/g, "&#39;").replace(/</g, '\u003c')})'>
+              <div class="fw-semibold">${escapeHtml(formatActionLabel(log.action))}</div>
+              <span class="action-badge ${category.cls}">${category.label}</span>
+            </td>
+            <td>${actorOf(log)}</td>
+            <td>${targetOf(log)}</td>
+            <td class="text-nowrap">${outcomeOf(log)}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary details-btn" onclick="showDetails(${index})">
                 <i class="bi bi-eye"></i> View
               </button>
             </td>
@@ -717,51 +889,33 @@
       }).join('');
     }
 
-    function formatActionLabel(action) {
-      return action
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, char => char.toUpperCase());
-    }
-
-    // Get action badge class
+    // Kept for any external callers; badge colour now comes from categoryOf().
     function getActionClass(action) {
-      if (action.includes('login')) return 'action-login';
-      if (action.includes('logout')) return 'action-logout';
-      if (action.includes('admin')) return 'action-admin';
-      if (action.includes('auto_')) return 'action-auto';
-      if (action.includes('student')) return 'action-student';
-      return 'action-default';
+      return categoryOf(action).cls;
     }
 
     // Render pagination
     function renderPagination(pagination) {
       const container = document.getElementById('paginationContainer');
       const list = document.getElementById('paginationList');
-      
+
       if (pagination.totalPages <= 1) {
         container.style.display = 'none';
         return;
       }
 
       container.style.display = 'block';
-      
-      let html = '';
-      
-      // Previous button
-      html += `
+
+      let html = `
         <li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
           <a class="page-link" href="#" onclick="loadLogs(${pagination.page - 1}); return false;">Previous</a>
         </li>
       `;
 
-      // Page numbers
       const maxPages = 5;
       let startPage = Math.max(1, pagination.page - Math.floor(maxPages / 2));
       let endPage = Math.min(pagination.totalPages, startPage + maxPages - 1);
-      
-      if (endPage - startPage < maxPages - 1) {
-        startPage = Math.max(1, endPage - maxPages + 1);
-      }
+      if (endPage - startPage < maxPages - 1) startPage = Math.max(1, endPage - maxPages + 1);
 
       for (let i = startPage; i <= endPage; i++) {
         html += `
@@ -771,7 +925,6 @@
         `;
       }
 
-      // Next button
       html += `
         <li class="page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}">
           <a class="page-link" href="#" onclick="loadLogs(${pagination.page + 1}); return false;">Next</a>
@@ -781,39 +934,43 @@
       list.innerHTML = html;
     }
 
-    // Show log details modal
-    function showDetails(log) {
+    // Show log details modal (by row index; every value escaped)
+    function showDetails(index) {
+      const log = logsData[index];
+      if (!log) return;
       const content = document.getElementById('logDetailsContent');
-      
+      const category = categoryOf(log.action);
+
       let detailsHtml = `
         <table class="table table-bordered">
-          <tr><th style="width: 200px;">ID</th><td><code>${log.id}</code></td></tr>
-          <tr><th>Action</th><td><span class="action-badge ${getActionClass(log.action)}">${log.action}</span></td></tr>
-          <tr><th>Timestamp</th><td>${new Date(log.timestamp).toLocaleString()}</td></tr>
-          <tr><th>User ID</th><td>${log.user_id ? `<code>${log.user_id}</code>` : '-'}</td></tr>
-          <tr><th>User Email</th><td>${log.user_email || '-'}</td></tr>
-          <tr><th>IP Address</th><td><code>${log.ip_address || '-'}</code></td></tr>
-          <tr><th>User Agent</th><td><small>${log.user_agent || '-'}</small></td></tr>
+          <tr><th style="width: 200px;">Action</th><td>${escapeHtml(formatActionLabel(log.action))} <span class="action-badge ${category.cls}">${category.label}</span><div class="text-muted small"><code>${escapeHtml(log.action)}</code></div></td></tr>
+          <tr><th>When</th><td>${escapeHtml(new Date(log.timestamp).toLocaleString())}</td></tr>
+          <tr><th>Actor</th><td>${actorOf(log)}</td></tr>
+          <tr><th>Target</th><td>${targetOf(log)}</td></tr>
+          <tr><th>Outcome</th><td>${outcomeOf(log)}</td></tr>
+          <tr><th>User ID</th><td>${log.user_id ? `<code>${escapeHtml(log.user_id)}</code>` : '-'}</td></tr>
+          <tr><th>IP Address</th><td><code>${escapeHtml(log.ip_address || '-')}</code></td></tr>
+          <tr><th>Device</th><td><small>${escapeHtml(log.user_agent || '-')}</small></td></tr>
+          <tr><th>Log ID</th><td><code>${escapeHtml(log.id)}</code></td></tr>
         </table>
       `;
 
       if (log.details && Object.keys(log.details).length > 0) {
         detailsHtml += `
-          <h6 class="mt-3">Additional Details:</h6>
-          <pre class="bg-light p-3 rounded"><code>${JSON.stringify(log.details, null, 2)}</code></pre>
+          <h6 class="mt-3">Technical details</h6>
+          <pre class="bg-light p-3 rounded" style="white-space: pre-wrap; word-break: break-word;"><code>${escapeHtml(JSON.stringify(log.details, null, 2))}</code></pre>
         `;
       }
 
       content.innerHTML = detailsHtml;
-      
-      const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
-      modal.show();
+      new bootstrap.Modal(document.getElementById('detailsModal')).show();
     }
 
-    // Apply filters
+    // Apply filters (list + stats follow the same filters)
     function applyFilters() {
       currentPage = 1;
       loadLogs(1);
+      loadStats();
     }
 
     // Reset filters
@@ -825,78 +982,79 @@
       document.getElementById('startDate').value = '';
       document.getElementById('endDate').value = '';
       document.getElementById('limitSelect').value = '50';
+      const includeSystem = document.getElementById('includeSystem');
+      if (includeSystem && includeSystem.checked) {
+        includeSystem.checked = false;
+        loadActionOptions();
+      }
       currentSort = 'timestamp-desc';
       applyFilters();
     }
 
+    window.toggleSystemTraffic = async function() {
+      await loadActionOptions();
+      applyFilters();
+    };
+
     // Sort by column
     function sortBy(field) {
       const [currentField, currentOrder] = currentSort.split('-');
-      
-      if (currentField === field) {
-        // Toggle order
-        currentSort = `${field}-${currentOrder === 'asc' ? 'desc' : 'asc'}`;
-      } else {
-        // New field, default to desc
-        currentSort = `${field}-desc`;
-      }
-      
+      currentSort = currentField === field
+        ? `${field}-${currentOrder === 'asc' ? 'desc' : 'asc'}`
+        : `${field}-desc`;
       loadLogs(currentPage);
     }
 
-    // Export logs to CSV
+    // Export logs to CSV (all matching rows, up to 10,000)
     async function exportLogs() {
       try {
-        // Build query parameters (same as current filters)
-        const params = new URLSearchParams({
-          limit: 1000, // Export up to 1000 logs
-          sort: currentSort
-        });
+        Swal.fire({ title: 'Preparing export...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        const PAGE = 500;
+        const MAX = 10000;
+        const logs = [];
+        for (let page = 1; logs.length < MAX; page++) {
+          const params = currentFilterParams();
+          params.append('page', page);
+          params.append('limit', PAGE);
+          params.append('sort', currentSort);
+          const response = await fetch(`${API_URL}/api/audit-logs?${params}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (!response.ok) throw new Error('Failed to fetch logs');
+          const result = await response.json();
+          const batch = result.data.logs || [];
+          logs.push(...batch);
+          if (!result.data.pagination?.hasMore || batch.length < PAGE) break;
+        }
 
-        const search = document.getElementById('searchInput').value.trim();
-        if (search) params.append('search', search);
-
-        const action = document.getElementById('actionFilter').value;
-        if (action !== 'all') params.append('action', action);
-
-        const userEmail = document.getElementById('userEmailFilter').value.trim();
-        if (userEmail) params.append('user_email', userEmail);
-
-        const ipAddress = document.getElementById('ipFilter').value.trim();
-        if (ipAddress) params.append('ip_address', ipAddress);
-
-        const startDate = document.getElementById('startDate').value;
-        if (startDate) params.append('start_date', startDate);
-
-        const endDate = document.getElementById('endDate').value;
-        if (endDate) params.append('end_date', endDate);
-
-        const response = await fetch(`${API_URL}/api/audit-logs?${params}`, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch logs');
-
-        const result = await response.json();
-        const logs = result.data.logs;
-
-        // Convert to CSV
+        const plain = (html) => { const d = document.createElement('div'); d.innerHTML = html; return d.textContent.trim().replace(/\s+/g, ' '); };
         const csvContent = [
-          ['Timestamp', 'Action', 'User Email', 'User ID', 'IP Address', 'Details'],
-          ...logs.map(log => [
-            new Date(log.timestamp).toISOString(),
-            log.action,
-            log.user_email || '',
-            log.user_id || '',
-            log.ip_address || '',
-            JSON.stringify(log.details || {})
-          ])
-        ].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+          ['Timestamp', 'Action', 'Action code', 'Category', 'Actor', 'Actor type', 'User ID', 'Target', 'Outcome', 'Status code', 'IP Address', 'Path', 'Details'],
+          ...logs.map(log => {
+            const d = log.details || {};
+            return [
+              new Date(log.timestamp).toISOString(),
+              formatActionLabel(log.action),
+              log.action,
+              categoryOf(log.action).label,
+              log.user_email || '',
+              d.actor_type || '',
+              log.user_id || '',
+              plain(targetOf(log)),
+              plain(outcomeOf(log)).split(' ')[0],
+              d.statusCode || '',
+              log.ip_address || '',
+              d.path || '',
+              JSON.stringify(d)
+            ];
+          })
+        ].map(row => row.map(cell => {
+          let v = String(cell ?? '');
+          if (/^[=+\-@]/.test(v)) v = "'" + v; // stop spreadsheet formula injection
+          return `"${v.replace(/"/g, '""')}"`;
+        }).join(',')).join('\n');
 
-        // Download
-        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -904,8 +1062,7 @@
         a.click();
         window.URL.revokeObjectURL(url);
 
-        Swal.fire('Success', 'Logs exported successfully', 'success');
-
+        Swal.fire('Exported', `${logs.length.toLocaleString()} audit events exported${logs.length >= MAX ? ' (limit reached; narrow the dates for more)' : ''}.`, 'success');
       } catch (error) {
         console.error('Export failed:', error);
         Swal.fire('Error', 'Failed to export logs', 'error');
