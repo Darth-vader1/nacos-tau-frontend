@@ -363,8 +363,10 @@
         if (params.get('guest') === '1' || !userSession) {
           let savedGuest = {};
           try { savedGuest = JSON.parse(localStorage.getItem('pending_bachs_checkout') || '{}') || {}; } catch (_) {}
-          const guestRef = params.get('reference') || params.get('checkout_id') || params.get('session_id') ||
-            (savedGuest.eventId === urlEventId ? savedGuest.checkoutId : null);
+          // Prefer the checkout ID saved when checkout started: it is the one our
+          // server recorded. Bachs may add other IDs (e.g. a charge ID) to the URL.
+          const guestRef = (savedGuest.eventId === urlEventId ? savedGuest.checkoutId : null) ||
+            params.get('checkout_id') || params.get('session_id') || params.get('reference');
           const guestEmail = savedGuest.eventId === urlEventId ? savedGuest.guestEmail : null;
           if (guestRef && guestEmail) {
             await confirmGuestTicket(guestRef, guestEmail);
@@ -378,15 +380,19 @@
         // checkout, then the checkout the server recorded when it was started.
         let saved = {};
         try { saved = JSON.parse(localStorage.getItem('pending_bachs_checkout') || '{}') || {}; } catch (_) {}
-        let reference = params.get('reference') ||
-                        params.get('checkout_id') ||
-                        params.get('session_id') ||
-                        params.get('id') ||
-                        (saved.eventId === urlEventId ? saved.checkoutId : null);
+        // Prefer the checkout ID saved when checkout started (the one our server
+        // recorded); Bachs may append other IDs, such as a charge ID, to the URL.
+        let reference = saved.eventId === urlEventId ? saved.checkoutId : null;
 
+        // Next best: the checkout the server recorded for this event.
         if (!reference) {
           const pending = await findPendingCheckout(urlEventId);
           if (pending) reference = pending.transaction_id;
+        }
+
+        // Last resort: an ID Bachs added to the redirect URL.
+        if (!reference) {
+          reference = params.get('checkout_id') || params.get('session_id') || params.get('reference') || params.get('id');
         }
 
         try { localStorage.removeItem('pending_bachs_checkout'); } catch (_) {}

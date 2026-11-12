@@ -4709,7 +4709,9 @@ window.deleteEvent = async function(id) {
             <td><code>${ref}</code></td>
             <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
             <td>
-              ${p.status === 'pending' ? `<button class="btn btn-sm btn-success me-1" onclick="verifyPayment('${p.id}', true)">Approve</button>` : ''}
+              ${p.status === 'pending' ? (String(p.notes || '').includes('[online-checkout]')
+                ? `<button class="btn btn-sm btn-primary me-1" onclick="recheckGatewayPayment('${p.id}', this)" title="Ask Bachs whether this online checkout was paid"><i class="bi bi-arrow-repeat me-1"></i>Re-check gateway</button>`
+                : `<button class="btn btn-sm btn-success me-1" onclick="verifyPayment('${p.id}', true)">Approve</button>`) : ''}
               ${validReceiptUrl ? `<a href="${escapeHtml(validReceiptUrl)}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Paystack Receipt"><i class="bi bi-box-arrow-up-right me-1"></i>Receipt</a>` : ''}
             </td>
           </tr>
@@ -4815,7 +4817,9 @@ window.deleteEvent = async function(id) {
               <td><code>${ref}</code></td>
               <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
               <td>
-                ${p.status === 'pending' ? `<button class="btn btn-sm btn-success me-1" onclick="verifyPayment('${p.id}', true)">Approve</button>` : ''}
+                ${p.status === 'pending' ? (String(p.notes || '').includes('[online-checkout]')
+                ? `<button class="btn btn-sm btn-primary me-1" onclick="recheckGatewayPayment('${p.id}', this)" title="Ask Bachs whether this online checkout was paid"><i class="bi bi-arrow-repeat me-1"></i>Re-check gateway</button>`
+                : `<button class="btn btn-sm btn-success me-1" onclick="verifyPayment('${p.id}', true)">Approve</button>`) : ''}
                 ${validReceiptUrl ? `<a href="${escapeHtml(validReceiptUrl)}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" title="Paystack Receipt"><i class="bi bi-box-arrow-up-right me-1"></i>Receipt</a>` : ''}
               </td>
             </tr>
@@ -4827,6 +4831,23 @@ window.deleteEvent = async function(id) {
       }
     }
     
+    // Online checkouts are confirmed by the payment gateway, not by hand.
+    window.recheckGatewayPayment = async function(id, btn) {
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Checking...'; }
+      try {
+        const response = await api.payments.gatewayRecheck(id);
+        if (!response.success) throw new Error(response.error || 'The gateway has not confirmed this payment.');
+        const d = response.data || {};
+        Swal.fire('Payment confirmed', `${escapeHtml(response.message || 'Confirmed by the gateway.')}<br><small>Ticket: <code>${escapeHtml(d.ticket_number || '')}</code> · ${escapeHtml(String(d.ticket_quantity || 1))} ticket(s)</small>`, 'success');
+        loadPayments(); loadDashboardStats();
+      } catch (error) {
+        console.error('Error in recheckGatewayPayment:', error);
+        Swal.fire('Not confirmed', escapeHtml(error.message) + '<br><small class="text-muted">If Bachs shows this payment as received, send the server log lines starting with [Bachs] to your developer.</small>', 'info');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Re-check gateway'; }
+      }
+    };
+
     window.verifyPayment = async function(id, approved) {
       const status = approved ? 'verified' : 'rejected';
       try {
