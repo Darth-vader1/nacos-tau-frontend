@@ -1567,6 +1567,32 @@
       }
     }
 
+    // Remembers teammate searches for a minute, shared by every teammate row.
+    // When a search came back with every match (`complete`), longer searches
+    // that start with it are answered from memory by narrowing that list.
+    const teammateSearchCache = (() => {
+      const TTL = 60 * 1000;
+      const store = new Map(); // key -> { at, h, q, results, complete }
+      const key = (h, q) => h + '|' + q.toLowerCase();
+      const fresh = (e) => e && Date.now() - e.at < TTL;
+      return {
+        put(h, q, results, complete) { store.set(key(h, q), { at: Date.now(), h, q: q.toLowerCase(), results, complete }); },
+        lookup(h, q) {
+          const ql = q.toLowerCase();
+          const exact = store.get(key(h, q));
+          if (fresh(exact)) return exact.results;
+          if (/[,()*%\\":.]/.test(ql)) return null; // server cleans these; let it decide
+          let best = null;
+          for (const e of store.values()) {
+            if (e.h !== h || !fresh(e) || !e.complete || !ql.startsWith(e.q)) continue;
+            if (!best || e.q.length > best.q.length) best = e;
+          }
+          if (!best) return null;
+          return best.results.filter(s => String(s.name || '').toLowerCase().includes(ql));
+        }
+      };
+    })();
+
     function createTeammateRow(member = {}) {
       const n = ++teammateRowSeq;
       const row = document.createElement('div');
@@ -1648,6 +1674,20 @@
         active = -1;
       };
 
+      const showSearching = () => {
+        options = [];
+        list.innerHTML = '<li class="list-group-item small text-muted"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Searching…</li>';
+        list.hidden = false;
+        nameInput.setAttribute('aria-expanded', 'true');
+        active = -1;
+      };
+
+      const show = (all, q) => {
+        const pickedElsewhere = new Set([...document.querySelectorAll('#teammatesContainer .teammate-row')]
+          .filter(r => r !== row && r.dataset.userId).map(r => r.dataset.userId));
+        render(all.filter(s => !pickedElsewhere.has(s.user_id)).slice(0, 8), q);
+      };
+
       const search = async (q) => {
         const hackathonId = document.getElementById('regHackathonId').value;
         if (!hackathonId) return;
@@ -1655,11 +1695,10 @@
         controller = new AbortController();
         try {
           const res = await api.hackathons.teammateSearch(hackathonId, q, { signal: controller.signal });
+          const data = (res && res.data) || {};
+          teammateSearchCache.put(hackathonId, q, data.results || [], data.complete === true);
           if (nameInput.value.trim() !== q) return; // a newer search is on its way
-          const pickedElsewhere = new Set([...document.querySelectorAll('#teammatesContainer .teammate-row')]
-            .filter(r => r !== row && r.dataset.userId).map(r => r.dataset.userId));
-          const results = ((res && res.data && res.data.results) || []).filter(s => !pickedElsewhere.has(s.user_id));
-          render(results, q);
+          show(data.results || [], q);
         } catch (err) {
           if (err.name !== 'AbortError') close(); // offline / server error: manual entry still works
         }
@@ -1669,8 +1708,13 @@
         if (row.dataset.userId) setRowLinked(row, null); // editing the name unlinks the account
         const q = nameInput.value.trim();
         clearTimeout(timer);
-        if (q.length < 3) { close(); return; }
-        timer = setTimeout(() => search(q), 300);
+        if (q.length < 3) { if (controller) controller.abort(); close(); return; }
+        // Already know the answer (same search before, or a shorter search
+        // that returned every match)? Show it at once, no request.
+        const known = teammateSearchCache.lookup(document.getElementById('regHackathonId').value, q);
+        if (known) { if (controller) controller.abort(); show(known, q); return; }
+        showSearching();
+        timer = setTimeout(() => search(q), 200);
       });
 
       nameInput.addEventListener('keydown', (ev) => {
