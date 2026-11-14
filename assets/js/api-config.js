@@ -446,6 +446,15 @@ export const api = {
             const response = await fetch(`${API_URL}/hackathons/past`);
             return response.json();
         },
+        // Search students to add as teammates (3+ letters; name, department and level only)
+        async teammateSearch(hackathonId, q, { signal } = {}) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`${API_URL}/hackathons/${encodeURIComponent(hackathonId)}/teammate-search?q=${encodeURIComponent(q)}`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` },
+                signal
+            });
+            return response.json();
+        },
         async openTeams(hackathonId = '') {
             const qs = hackathonId ? `?hackathon_id=${encodeURIComponent(hackathonId)}` : '';
             const response = await fetch(`${API_URL}/hackathons/open-teams${qs}`);

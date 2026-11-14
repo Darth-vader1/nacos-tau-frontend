@@ -36,6 +36,24 @@
   <link href="assets/css/main.css" rel="stylesheet">
 
   <style>
+    /* Teammate picker suggestions */
+    .tm-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 1065;
+      max-height: 260px;
+      overflow-y: auto;
+      margin-top: 2px;
+      padding: 0;
+      border-radius: 8px;
+    }
+    .tm-suggestions .tm-option { cursor: pointer; padding: 8px 12px; min-height: 44px; }
+    .tm-suggestions .tm-option.active,
+    .tm-suggestions .tm-option:hover { background: #e8f5e9; color: #0f5132; }
+    .tm-suggestions .tm-option.active .text-muted { color: #2f6f43 !important; }
+
     :root {
       --brand-green: #157a09;
       --brand-green-hover: #15730a;
@@ -1507,30 +1525,164 @@
 
       const container = document.getElementById('teammatesContainer');
       container.innerHTML = '';
-      actualMembers.forEach(m => {
-        const div = document.createElement('div');
-        div.className = 'input-group mb-2';
-        div.innerHTML = `
-          <input type="text" class="form-control rounded-start" placeholder="Teammate Name" value="${escapeHtml(m.name || '')}" required>
-          <input type="email" class="form-control" placeholder="Student Email" value="${escapeHtml(m.email || '')}" required>
-          <input type="text" class="form-control" placeholder="Role (e.g. Backend)" value="${escapeHtml(m.role || '')}">
-          <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()"><i class="bi bi-trash"></i></button>`;
-        container.appendChild(div);
-      });
+      actualMembers.forEach(m => container.appendChild(createTeammateRow(m)));
 
       new bootstrap.Modal(document.getElementById('registerModal')).show();
     }
 
     function addTeammateField() {
-      const c = document.getElementById('teammatesContainer');
-      const div = document.createElement('div');
-      div.className = 'input-group mb-2';
-      div.innerHTML = `
-        <input type="text" class="form-control rounded-start" placeholder="Teammate Name" required>
-        <input type="email" class="form-control" placeholder="Student Email" required>
-        <input type="text" class="form-control" placeholder="Role (e.g. Backend)">
-        <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()"><i class="bi bi-trash"></i></button>`;
-      c.appendChild(div);
+      const row = createTeammateRow();
+      document.getElementById('teammatesContainer').appendChild(row);
+      row.querySelector('.tm-name').focus();
+    }
+
+    // ---- Teammate picker: type 3+ letters of a classmate's name, pick them ----
+    // Picking links the row to their account (the server fills in their exact
+    // name and email). Typing a name + email without picking still works for
+    // teammates who don't have a portal account.
+    let teammateRowSeq = 0;
+
+    function setRowLinked(row, student) {
+      const nameInput = row.querySelector('.tm-name');
+      const emailInput = row.querySelector('.tm-email');
+      const badge = row.querySelector('.tm-linked');
+      if (student) {
+        row.dataset.userId = student.user_id;
+        nameInput.value = student.name;
+        nameInput.classList.add('is-valid');
+        emailInput.value = student.email || '';
+        emailInput.readOnly = true;
+        emailInput.required = false;
+        emailInput.placeholder = 'Linked to their NACOS account';
+        badge.hidden = false;
+        badge.textContent = [student.department, student.level ? `${student.level} Level` : ''].filter(Boolean).join(' · ') || 'NACOS member';
+      } else {
+        delete row.dataset.userId;
+        nameInput.classList.remove('is-valid');
+        if (emailInput.readOnly) emailInput.value = '';
+        emailInput.readOnly = false;
+        emailInput.required = true;
+        emailInput.placeholder = 'Student Email';
+        badge.hidden = true;
+      }
+    }
+
+    function createTeammateRow(member = {}) {
+      const n = ++teammateRowSeq;
+      const row = document.createElement('div');
+      row.className = 'teammate-row mb-2';
+      row.innerHTML = `
+        <div class="d-flex flex-wrap flex-md-nowrap gap-2 align-items-start">
+          <div class="tm-name-wrap position-relative flex-grow-1" style="min-width: 200px;">
+            <input type="text" class="form-control tm-name" placeholder="Type 3+ letters of their name" autocomplete="off"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="tm-list-${n}" aria-label="Teammate name" required>
+            <ul class="tm-suggestions list-group shadow-sm" id="tm-list-${n}" role="listbox" hidden></ul>
+            <small class="tm-linked text-success d-block mt-1" hidden></small>
+          </div>
+          <input type="email" class="form-control tm-email" placeholder="Student Email" aria-label="Teammate email" style="min-width: 180px;" required>
+          <input type="text" class="form-control tm-role" placeholder="Role (e.g. Backend)" aria-label="Teammate role" style="max-width: 200px;">
+          <button class="btn btn-outline-danger" type="button" aria-label="Remove teammate" onclick="this.closest('.teammate-row').remove()"><i class="bi bi-trash"></i></button>
+        </div>`;
+
+      const nameInput = row.querySelector('.tm-name');
+      const emailInput = row.querySelector('.tm-email');
+      const roleInput = row.querySelector('.tm-role');
+      const list = row.querySelector('.tm-suggestions');
+
+      nameInput.value = member.name || '';
+      emailInput.value = member.email || '';
+      roleInput.value = member.role || '';
+      if (member.user_id) {
+        setRowLinked(row, { user_id: member.user_id, name: member.name || '', email: member.email || '' });
+      }
+
+      let timer = null;
+      let controller = null;
+      let options = [];
+      let active = -1;
+
+      const close = () => {
+        list.hidden = true;
+        list.innerHTML = '';
+        nameInput.setAttribute('aria-expanded', 'false');
+        nameInput.removeAttribute('aria-activedescendant');
+        active = -1;
+      };
+
+      const highlight = (i) => {
+        const items = list.querySelectorAll('[role="option"]');
+        items.forEach((el, idx) => {
+          const on = idx === i;
+          el.classList.toggle('active', on);
+          el.setAttribute('aria-selected', on ? 'true' : 'false');
+          if (on) { nameInput.setAttribute('aria-activedescendant', el.id); el.scrollIntoView({ block: 'nearest' }); }
+        });
+        active = i;
+      };
+
+      const choose = (i) => {
+        const s = options[i];
+        if (!s) return;
+        setRowLinked(row, s);
+        close();
+        roleInput.focus();
+      };
+
+      const render = (results, q) => {
+        options = results;
+        if (!results.length) {
+          list.innerHTML = `<li class="list-group-item small text-muted">No matching student for "${escapeHtml(q)}". Keep typing, or enter their email to add them manually.</li>`;
+        } else {
+          list.innerHTML = results.map((s, i) => `
+            <li class="list-group-item list-group-item-action tm-option" role="option" id="tm-opt-${n}-${i}" aria-selected="false" data-i="${i}">
+              <div class="fw-semibold">${escapeHtml(s.name)}</div>
+              <div class="small text-muted">${escapeHtml([s.department, s.level ? `${s.level} Level` : ''].filter(Boolean).join(' · ') || 'NACOS member')}</div>
+            </li>`).join('');
+          list.querySelectorAll('.tm-option').forEach(li => {
+            // mousedown fires before the input loses focus, so the pick isn't lost
+            li.addEventListener('mousedown', (ev) => { ev.preventDefault(); choose(Number(li.dataset.i)); });
+          });
+        }
+        list.hidden = false;
+        nameInput.setAttribute('aria-expanded', 'true');
+        active = -1;
+      };
+
+      const search = async (q) => {
+        const hackathonId = document.getElementById('regHackathonId').value;
+        if (!hackathonId) return;
+        if (controller) controller.abort();
+        controller = new AbortController();
+        try {
+          const res = await api.hackathons.teammateSearch(hackathonId, q, { signal: controller.signal });
+          if (nameInput.value.trim() !== q) return; // a newer search is on its way
+          const pickedElsewhere = new Set([...document.querySelectorAll('#teammatesContainer .teammate-row')]
+            .filter(r => r !== row && r.dataset.userId).map(r => r.dataset.userId));
+          const results = ((res && res.data && res.data.results) || []).filter(s => !pickedElsewhere.has(s.user_id));
+          render(results, q);
+        } catch (err) {
+          if (err.name !== 'AbortError') close(); // offline / server error: manual entry still works
+        }
+      };
+
+      nameInput.addEventListener('input', () => {
+        if (row.dataset.userId) setRowLinked(row, null); // editing the name unlinks the account
+        const q = nameInput.value.trim();
+        clearTimeout(timer);
+        if (q.length < 3) { close(); return; }
+        timer = setTimeout(() => search(q), 300);
+      });
+
+      nameInput.addEventListener('keydown', (ev) => {
+        if (list.hidden || !options.length) return;
+        if (ev.key === 'ArrowDown') { ev.preventDefault(); highlight(Math.min(active + 1, options.length - 1)); }
+        else if (ev.key === 'ArrowUp') { ev.preventDefault(); highlight(Math.max(active - 1, 0)); }
+        else if (ev.key === 'Enter' && active >= 0) { ev.preventDefault(); choose(active); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); close(); }
+      });
+
+      nameInput.addEventListener('blur', () => setTimeout(close, 150));
+      return row;
     }
 
     async function handleRegistration(e) {
@@ -1604,17 +1756,19 @@
       const myEmail = String(session?.user?.email || '').trim().toLowerCase();
       let skippedSelf = false;
       for (let r of rows) {
-        const inputs = r.querySelectorAll('input');
-        if (inputs.length >= 2 && inputs[0].value.trim()) {
-          const memberEmail = inputs[1].value.trim();
-          // You are already the team leader: listing yourself again would count you twice.
-          if (myEmail && memberEmail.toLowerCase() === myEmail) { skippedSelf = true; continue; }
-          teamMembers.push({
-            name: inputs[0].value.trim(),
-            email: memberEmail,
-            role: inputs[2] ? inputs[2].value.trim() : ''
-          });
-        }
+        const nameVal = (r.querySelector('.tm-name') || r.querySelectorAll('input')[0])?.value.trim();
+        if (!nameVal) continue;
+        const memberEmail = (r.querySelector('.tm-email') || r.querySelectorAll('input')[1])?.value.trim() || '';
+        const roleVal = (r.querySelector('.tm-role') || r.querySelectorAll('input')[2])?.value.trim() || '';
+        const linkedId = r.dataset.userId || '';
+        // You are already the team leader: listing yourself again would count you twice.
+        if ((linkedId && linkedId === session.user.id) || (myEmail && memberEmail.toLowerCase() === myEmail)) { skippedSelf = true; continue; }
+        teamMembers.push({
+          name: nameVal,
+          email: memberEmail,
+          role: roleVal,
+          ...(linkedId ? { user_id: linkedId } : {}) // picked from the search: the server fills in their account details
+        });
       }
       if (skippedSelf && window.Swal) {
         Swal.fire({ toast: true, position: 'top-end', icon: 'info', timer: 4500, showConfirmButton: false,
