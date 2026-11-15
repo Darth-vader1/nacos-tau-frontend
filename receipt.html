@@ -364,6 +364,12 @@
             </div>
           </div>
 
+          <!-- Game plays (game tickets only): plays left and when each was used -->
+          <div id="rcPlaysSection" hidden>
+            <div class="section-title">Your Plays</div>
+            <div id="rcPlays" class="mb-3"></div>
+          </div>
+
           <!-- Transaction Information -->
           <div class="section-title">Payment Summary</div>
           <div class="info-grid">
@@ -567,6 +573,31 @@
 
       // Payment info
       const games = Array.isArray(data.games) && data.games.length ? data.games : null;
+      function renderPlays(list) {
+        const wrap = document.getElementById('rcPlays');
+        const section = document.getElementById('rcPlaysSection');
+        if (!wrap || !section) return;
+        const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const t = (d) => new Date(d).toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const hasUsage = list.some(g => typeof g.used === 'number');
+        wrap.innerHTML = list.map(g => {
+          const used = Number(g.used) || 0;
+          const left = typeof g.left === 'number' ? g.left : Math.max(0, g.plays - used);
+          const times = Array.isArray(g.used_at) ? g.used_at : [];
+          const badge = left === 0 && hasUsage
+            ? '<span class="badge bg-secondary">All used</span>'
+            : `<span class="badge bg-success">${left} of ${g.plays} left</span>`;
+          return `
+            <div class="d-flex justify-content-between align-items-start border rounded-3 px-3 py-2 mb-2">
+              <div>
+                <div class="fw-semibold">${esc(g.name)}</div>
+                <div class="small text-muted">${used ? `Used ${used}: ${times.map(t).join(', ')}` : 'Not used yet'}</div>
+              </div>
+              ${badge}
+            </div>`;
+        }).join('') + '<div class="small text-muted non-printable">A game marshal marks each play at the game area. Refresh this page to see the latest.</div>';
+        section.hidden = false;
+      }
       if (games && typeof QRCode !== 'undefined' && /^NACOS-[0-9A-F]{4}-[0-9A-F]{6}$/.test(ticketNumber)) {
         try {
           document.getElementById('rcQr').innerHTML = '';
@@ -575,6 +606,7 @@
         } catch (_) {}
       }
       if (games) {
+        renderPlays(games);
         document.getElementById('rcTicketsLabel').textContent = 'Plays';
         document.getElementById('rcTickets').textContent = `${ticketQty} play${ticketQty > 1 ? 's' : ''}: ${games.map(g => `${g.name} × ${g.plays}`).join(', ')}`;
       } else {
