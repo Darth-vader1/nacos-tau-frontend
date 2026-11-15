@@ -1370,6 +1370,9 @@
                 </div>
               </div>
             </div>
+            <div class="alert alert-success py-2 small games-note" id="ev-games-note" hidden>
+              <i class="bi bi-controller me-1"></i><strong>Game Night:</strong> save the event, then click the green <i class="bi bi-controller"></i> button in the events table to add games and their price per play. Payment switches on automatically. Leave <em>Max Attendees</em> empty: every play counts as one attendee, so use each game's play limit instead. The service fee below is charged per play.
+            </div>
             <div class="mb-3">
               <label class="form-label">Description</label>
               <textarea class="form-control" id="ev-description" rows="2" placeholder="Event description"></textarea>
@@ -1401,7 +1404,7 @@
                   <input type="number" class="form-control" id="ev-max" placeholder="Unlimited if empty">
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 non-games">
                 <div class="mb-3">
                   <label class="form-label">Requires Payment</label>
                   <select class="form-select" id="ev-requires-payment">
@@ -1410,7 +1413,7 @@
                   </select>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 non-games">
                 <div class="mb-3">
                   <label class="form-label">Amount (₦)</label>
                   <input type="number" class="form-control" id="ev-amount" placeholder="0">
@@ -1418,7 +1421,7 @@
               </div>
             </div>
             <div class="row">
-              <div class="col-md-4">
+              <div class="col-md-4 non-games">
                 <div class="mb-3">
                   <label class="form-label" for="ev-allow-repeat">Allow repeat purchases</label>
                   <select class="form-select" id="ev-allow-repeat">
@@ -1436,7 +1439,7 @@
                   </select>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 non-games">
                 <div class="mb-3">
                   <label class="form-label" for="ev-public-price">Guest price per ticket (₦)</label>
                   <input type="number" class="form-control" id="ev-public-price" min="1" step="0.01" placeholder="Required if open to non-members">
@@ -1506,6 +1509,9 @@
                             </div>
                         </div>
                     </div>
+                    <div class="alert alert-success py-2 small games-note" id="edit-ev-games-note" hidden>
+                      <i class="bi bi-controller me-1"></i><strong>Game Night:</strong> save the event, then click the green <i class="bi bi-controller"></i> button in the events table to add games and their price per play. Payment switches on automatically. Leave <em>Max Attendees</em> empty: every play counts as one attendee, so use each game's play limit instead. The service fee below is charged per play.
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Description</label>
                         <textarea class="form-control" id="edit-ev-description" rows="2"></textarea>
@@ -1537,7 +1543,7 @@
                                 <input type="number" class="form-control" id="edit-ev-max">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 non-games">
                             <div class="mb-3">
                                 <label class="form-label">Requires Payment</label>
                                 <select class="form-select" id="edit-ev-requires-payment">
@@ -1546,7 +1552,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 non-games">
                             <div class="mb-3">
                                 <label class="form-label">Amount (₦)</label>
                                 <input type="number" class="form-control" id="edit-ev-amount" value="0">
@@ -1554,7 +1560,7 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-4 non-games">
                             <div class="mb-3">
                                 <label class="form-label" for="edit-ev-allow-repeat">Allow repeat purchases</label>
                                 <select class="form-select" id="edit-ev-allow-repeat">
@@ -1572,7 +1578,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 non-games">
                             <div class="mb-3">
                                 <label class="form-label" for="edit-ev-public-price">Guest price per ticket (₦)</label>
                                 <input type="number" class="form-control" id="edit-ev-public-price" min="1" step="0.01">
@@ -2857,6 +2863,8 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
     function readGuestOptions(prefix) {
       const open = document.getElementById(prefix + 'ev-open-public').value === 'true';
       const raw = document.getElementById(prefix + 'ev-public-price').value;
+      // Game nights take guest prices from each game, not this field.
+      if (document.getElementById(prefix + 'ev-type')?.value === 'games') return { open_to_public: open, public_price: undefined };
       const price = raw === '' ? null : Number(raw);
       if (open && !(Number.isFinite(price) && price > 0)) {
         return { error: 'Set a guest price per ticket (₦) to open this event to non-members.' };
@@ -2866,6 +2874,26 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       }
       return { open_to_public: open, public_price: price };
     }
+
+    // Game Night: prices come from the games (green controller button), so the
+    // ticket price, repeat-purchase and per-ticket guest price fields are hidden.
+    const isGameNight = (prefix) => document.getElementById(prefix + 'ev-type')?.value === 'games';
+    function applyGameNightMode(prefix) {
+      const on = isGameNight(prefix);
+      const form = document.getElementById(prefix ? 'editEventForm' : 'addEventForm');
+      if (!form) return;
+      form.querySelectorAll('.non-games').forEach(el => { el.hidden = on; });
+      const note = document.getElementById(prefix + 'ev-games-note');
+      if (note) note.hidden = !on;
+      const fee = document.querySelector(`label[for="${prefix}ev-service-fee"]`);
+      if (fee) fee.textContent = on ? 'Service fee per play for this event (₦)' : 'Service fee per ticket for this event (₦)';
+    }
+    window.applyGameNightMode = applyGameNightMode;
+    ['', 'edit-'].forEach(prefix => {
+      document.getElementById(prefix + 'ev-type')?.addEventListener('change', () => applyGameNightMode(prefix));
+    });
+    document.getElementById('addEventModal')?.addEventListener('show.bs.modal', () => applyGameNightMode(''));
+    document.getElementById('addEventForm')?.addEventListener('reset', () => setTimeout(() => applyGameNightMode(''), 0));
 
     // One-click switches on the events table.
     window.toggleEventOption = async function(eventId, field, checkbox) {
@@ -3079,7 +3107,8 @@ window.editEvent = async function(eventId) {
         document.getElementById('edit-ev-service-fee').value = (event.service_fee_override ?? '') === null ? '' : (event.service_fee_override ?? '');
         document.getElementById('edit-ev-status').value = event.is_active ? 'true' : 'false';
         document.getElementById('edit-ev-image').value = event.image_url || '';
-        
+        if (typeof window.applyGameNightMode === 'function') window.applyGameNightMode('edit-');
+
         // Show modal
         new bootstrap.Modal(document.getElementById('editEventModal')).show();
         
@@ -3121,6 +3150,14 @@ document.getElementById('editEventForm')?.addEventListener('submit', async (e) =
         image_url: document.getElementById('edit-ev-image').value.trim() || null,
         updated_at: new Date().toISOString()
     };
+    // Game nights: the games set the price, payment switch and guest price,
+    // so the (hidden) ticket fields must not overwrite them.
+    if (updateData.event_type === 'games') {
+        delete updateData.requires_payment;
+        delete updateData.payment_amount;
+        delete updateData.allow_repeat_orders;
+        delete updateData.public_price;
+    }
     
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
@@ -3328,12 +3365,18 @@ window.deleteEvent = async function(id) {
       const time = document.getElementById('ev-time').value;
       const location = document.getElementById('ev-location').value.trim();
       const maxAttendees = document.getElementById('ev-max').value;
-      const requiresPayment = document.getElementById('ev-requires-payment').value === 'true';
+      let requiresPayment = document.getElementById('ev-requires-payment').value === 'true';
       const amount = document.getElementById('ev-amount').value || 0;
       const paymentDetails = document.getElementById('ev-payment-details').value.trim();
       const imageFile = document.getElementById('ev-image').files[0];
-      const allowRepeat = document.getElementById('ev-allow-repeat').value === 'true';
+      const gameNight = eventType === 'games';
+      const allowRepeat = !gameNight && document.getElementById('ev-allow-repeat').value === 'true';
       const guestOpts = readGuestOptions('');
+      if (gameNight) {
+        // Free until games are added; saving games switches payment on.
+        requiresPayment = false;
+        guestOpts.public_price = null;
+      }
       if (guestOpts.error) {
         Swal.fire('Check guest settings', guestOpts.error, 'warning');
         return;
@@ -3382,7 +3425,7 @@ window.deleteEvent = async function(id) {
         }
         
         await logAdminAction('CREATE', 'event', null, { title });
-        Swal.fire('Success', 'Event created', 'success').then(() => {
+        Swal.fire(gameNight ? { icon: 'success', title: 'Game night created', html: 'Now click the green <i class="bi bi-controller"></i> button on this event to add games and their price per play.' } : { icon: 'success', title: 'Success', text: 'Event created' }).then(() => {
           bootstrap.Modal.getInstance(document.getElementById('addEventModal')).hide();
           document.getElementById('addEventForm').reset();
           loadEvents();
