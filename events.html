@@ -267,6 +267,7 @@
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="assets/vendor/aos/aos.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script> 
   <script type="module" src="assets/js/supabase-config.js"></script>
@@ -1208,6 +1209,7 @@
             amount: d.total_amount ?? 0,
             quantity: d.ticket_quantity,
             subtotal: d.subtotal_amount, serviceFee: d.service_fee, gatewayFee: d.gateway_fee,
+            games: d.games,
             paymentType: 'Guest ticket (confirmed)'
           });
           await loadEvents();
@@ -1358,6 +1360,7 @@
           amount: res.data?.total_amount ?? res.data?.payment?.amount ?? ev.payment_amount ?? 0,
           quantity: res.data?.ticket_quantity,
           subtotal: res.data?.subtotal_amount, serviceFee: res.data?.service_fee, gatewayFee: res.data?.gateway_fee,
+          games: res.data?.games,
           paymentType: 'Online payment (confirmed)'
         });
         await loadEvents();
@@ -1413,6 +1416,7 @@
               amount: verifyRes.data?.total_amount ?? verifyRes.data?.payment?.amount ?? evToDisplay.payment_amount ?? 0,
               quantity: verifyRes.data?.ticket_quantity,
               subtotal: verifyRes.data?.subtotal_amount, serviceFee: verifyRes.data?.service_fee, gatewayFee: verifyRes.data?.gateway_fee,
+              games: verifyRes.data?.games,
               paymentType: 'Bachs Verified'
             });
 
@@ -1459,8 +1463,12 @@
       attemptVerify();
     }
 
-    window.showTicketModal = function({ event, student, ticketNumber, reference, amount, quantity, paymentType, subtotal, serviceFee, gatewayFee }) {
+    window.showTicketModal = function({ event, student, ticketNumber, reference, amount, quantity, paymentType, subtotal, serviceFee, gatewayFee, games }) {
       const qty = Math.max(1, parseInt(quantity, 10) || 1);
+      // Game orders: plays of each game, not people admitted.
+      const gameList = Array.isArray(games) && games.length ? games : null;
+      const gamesText = gameList ? gameList.map(g => `${g.name} × ${g.plays}`).join(', ') : '';
+      const unitWord = gameList ? 'plays' : 'tickets';
       const ticketsPart = Number(subtotal ?? amount) || 0;
       const servicePart = Number(serviceFee) || 0;
       const gatewayPart = Number(gatewayFee) || 0;
@@ -1498,6 +1506,12 @@
             </div>
           </div>
 
+          ${gameList && ticketNumber ? `
+          <div class="text-center mt-3">
+            <div id="ticketQr" class="d-inline-block p-2 bg-white border rounded" aria-label="QR code for ticket ${escapeHtml(ticketNumber)}"></div>
+            <div class="small text-muted mt-1">Show this QR code at the game area</div>
+          </div>` : ''}
+
           <div class="table-responsive mt-3">
             <table class="table table-sm table-borderless small mb-0">
               <tbody>
@@ -1514,15 +1528,24 @@
                   <td class="text-muted">Date & Time:</td>
                   <td>${escapeHtml(dateStr)} • ${escapeHtml(timeStr)}</td>
                 </tr>
+                ${gameList ? `
+                <tr>
+                  <td class="text-muted">Games:</td>
+                  <td>${escapeHtml(gamesText)}</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Plays:</td>
+                  <td><strong>${qty}</strong> play${qty > 1 ? 's' : ''} in total</td>
+                </tr>` : `
                 <tr>
                   <td class="text-muted">Tickets:</td>
                   <td><strong>${qty}</strong> &mdash; admits ${qty} ${qty > 1 ? 'people' : 'person'}</td>
-                </tr>
+                </tr>`}
                 <tr>
                   <td class="text-muted">${servicePart > 0 ? 'Total Paid:' : 'Fee Paid:'}</td>
                   <td><strong class="text-success">${feeFormatted}</strong>${servicePart > 0
-                    ? ` <span class="text-muted">(tickets ${formatCurrency(ticketsPart)}${qty > 1 ? ` = ${qty} × ${formatCurrency(roundNaira(ticketsPart / qty))}` : ''} + service fee ${formatCurrency(servicePart)})</span>`
-                    : (qty > 1 && ticketsPart > 0 ? ` <span class="text-muted">(${qty} × ${formatCurrency(roundNaira(ticketsPart / qty))})</span>` : '')}${gatewayPart > 0 ? `<div class="small text-muted">+ Bachs processing fee ${formatCurrency(gatewayPart)} paid at checkout</div>` : ''}</td>
+                    ? ` <span class="text-muted">(${unitWord} ${formatCurrency(ticketsPart)}${qty > 1 && !gameList ? ` = ${qty} × ${formatCurrency(roundNaira(ticketsPart / qty))}` : ''} + service fee ${formatCurrency(servicePart)})</span>`
+                    : (qty > 1 && ticketsPart > 0 && !gameList ? ` <span class="text-muted">(${qty} × ${formatCurrency(roundNaira(ticketsPart / qty))})</span>` : '')}${gatewayPart > 0 ? `<div class="small text-muted">+ Bachs processing fee ${formatCurrency(gatewayPart)} paid at checkout</div>` : ''}</td>
                 </tr>
                 <tr>
                   <td class="text-muted">Reference:</td>
@@ -1533,12 +1556,18 @@
           </div>
 
           <div class="alert alert-light border mt-3 mb-0 text-center small text-muted">
-            <i class="bi bi-envelope-check text-success me-1"></i> A confirmation receipt and ticket details have been sent to <strong>${escapeHtml(studentEmail)}</strong>. Present this pass at venue entrance.
+            <i class="bi bi-envelope-check text-success me-1"></i> A confirmation receipt and ticket details have been sent to <strong>${escapeHtml(studentEmail)}</strong>. ${gameList ? 'Show this pass or your ticket number at the game area.' : 'Present this pass at venue entrance.'}
           </div>
         </div>
       `;
 
       document.getElementById('ticketModalBody').innerHTML = bodyHtml;
+      const qrEl = document.getElementById('ticketQr');
+      if (qrEl && typeof QRCode !== 'undefined') {
+        try { new QRCode(qrEl, { text: String(ticketNumber), width: 150, height: 150, correctLevel: QRCode.CorrectLevel.M }); } catch (_) { qrEl.remove(); }
+      } else if (qrEl) {
+        qrEl.parentElement.remove();
+      }
       const modal = new bootstrap.Modal(document.getElementById('ticketModal'));
       modal.show();
     };

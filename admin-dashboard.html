@@ -2814,7 +2814,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
             </div>
           </td>
           <td>
-            <button class="btn btn-sm btn-outline-info me-1" onclick="viewEventAttendees('${ev.id}')" title="View Attendees"><i class="bi bi-people"></i></button><button class="btn btn-sm btn-outline-success me-1" onclick="manageEventGames('${ev.id}')" title="Games (pay per play)"><i class="bi bi-controller"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-info me-1" onclick="viewEventAttendees('${ev.id}')" title="View Attendees"><i class="bi bi-people"></i></button><button class="btn btn-sm btn-outline-success me-1" onclick="manageEventGames('${ev.id}')" title="Games (pay per play)"><i class="bi bi-controller"></i></button><button class="btn btn-sm btn-outline-dark me-1" onclick="manageEventMarshals('${ev.id}')" title="Game marshals &amp; plays played"><i class="bi bi-person-badge"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
             <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${ev.id}')"><i class="bi bi-trash"></i></button>
           </td>
         </tr>
@@ -3320,6 +3320,146 @@ window.manageEventGames = async function(eventId) {
     } catch (err) {
         Swal.fire('Could not save games', escapeHtml(err.message), 'error');
     }
+};
+
+// ============================================
+// GAME MARSHALS & PLAYS PLAYED
+// ============================================
+// Admins appoint marshals by school email for a set time. Marshals mark plays
+// at the game stations; this shows plays sold vs played and every buyer.
+async function marshalsApi(method, path, body) {
+    const token = await fetchSessionToken();
+    if (!token) throw new Error('Not signed in. Please log in again.');
+    const root = window.__CONFIG?.apiUrl || window.API_URL || '/api';
+    const resp = await fetch(`${root}/game-marshals${path}`, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        credentials: 'include',
+        body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    let json = null;
+    try { const t = await resp.text(); if (t) json = JSON.parse(t); } catch {}
+    if (!resp.ok) throw new Error(json?.error || json?.message || `HTTP ${resp.status}`);
+    return json || { success: true };
+}
+
+const toLocalInput = (d) => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); };
+const fmtWhen = (d) => new Date(d).toLocaleString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+
+function marshalReportCsv(ev, report) {
+    const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [['Ticket', 'Buyer', 'Email', 'Matric', 'Guest', 'Game', 'Bought', 'Played', 'Left'].map(q).join(',')];
+    report.buyers.forEach(b => b.games.forEach(g => lines.push([b.ticket_number, b.name, b.email, b.matric_no, b.guest ? 'yes' : 'no', g.name, g.bought, g.used, g.left].map(q).join(','))));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(ev.title || 'event').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-plays.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+window.manageEventMarshals = async function(eventId) {
+    const ev = (window.currentEventsList || []).find(e => e.id === eventId) || {};
+    let report;
+    try {
+        Swal.fire({ title: 'Loading marshals…', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        report = (await marshalsApi('GET', `/admin/event/${encodeURIComponent(eventId)}`)).data;
+    } catch (err) {
+        Swal.fire('Could not load marshals', escapeHtml(err.message) + '<br><small>Has migration 026 been run?</small>', 'error');
+        return;
+    }
+
+    const statusBadge = (s) => ({ active: 'bg-success', upcoming: 'bg-info text-dark', ended: 'bg-secondary', removed: 'bg-light text-muted border' }[s] || 'bg-light');
+    const evStart = ev.date ? new Date(`${ev.date}T${(ev.time || '16:00').slice(0, 5)}`) : new Date();
+    const defStart = isNaN(evStart) || evStart < new Date() ? new Date() : evStart;
+    const defEnd = new Date(defStart.getTime() + 6 * 3600000);
+    const totals = report.games.reduce((t, g) => ({ sold: t.sold + g.sold, played: t.played + g.played }), { sold: 0, played: 0 });
+
+    const html = `
+      <div class="text-start small">
+        <h6 class="fw-bold mt-1">Appoint a marshal</h6>
+        <div class="row g-2 align-items-end mb-1">
+          <div class="col-12 col-md-5"><label class="form-label mb-0">School email</label><input id="mEmail" type="email" class="form-control form-control-sm" placeholder="name@st.tau.edu.ng" maxlength="254"></div>
+          <div class="col-6 col-md-3"><label class="form-label mb-0">From</label><input id="mFrom" type="datetime-local" class="form-control form-control-sm" value="${toLocalInput(defStart)}"></div>
+          <div class="col-6 col-md-3"><label class="form-label mb-0">Until</label><input id="mUntil" type="datetime-local" class="form-control form-control-sm" value="${toLocalInput(defEnd)}"></div>
+          <div class="col-12 col-md-1 d-grid"><button type="button" id="mAppoint" class="btn btn-sm btn-success" title="Appoint and email invitation"><i class="bi bi-send"></i></button></div>
+        </div>
+        <p class="text-muted mb-3">They must already have a portal account. They get an email, and a Game Marshal section appears on their dashboard only between these times.</p>
+
+        <h6 class="fw-bold">Marshals</h6>
+        ${report.marshals.length ? `<div class="table-responsive mb-3"><table class="table table-sm align-middle mb-0">
+          <thead><tr><th>Marshal</th><th>Time</th><th>Status</th><th></th></tr></thead><tbody>
+          ${report.marshals.map(m => `<tr>
+            <td>${escapeHtml(m.name || '')}<br><span class="text-muted">${escapeHtml(m.email)}</span></td>
+            <td>${escapeHtml(fmtWhen(m.starts_at))} &rarr; ${escapeHtml(fmtWhen(m.ends_at))}</td>
+            <td><span class="badge ${statusBadge(m.status)}">${escapeHtml(m.status)}</span></td>
+            <td>${m.status === 'active' || m.status === 'upcoming' ? `<button type="button" class="btn btn-sm btn-outline-danger m-remove" data-id="${escapeHtml(m.id)}" title="Remove now"><i class="bi bi-x-lg"></i></button>` : ''}</td>
+          </tr>`).join('')}</tbody></table></div>` : '<p class="text-muted">No marshals yet.</p>'}
+
+        <h6 class="fw-bold">Plays sold vs played</h6>
+        ${report.games.length ? `<div class="table-responsive mb-3"><table class="table table-sm mb-0">
+          <thead><tr><th>Game</th><th class="text-end">Sold</th><th class="text-end">Played</th><th class="text-end">Unused</th></tr></thead><tbody>
+          ${report.games.map(g => `<tr><td>${escapeHtml(g.name)}${g.active ? '' : ' <span class="text-muted">(hidden)</span>'}</td><td class="text-end">${g.sold}</td><td class="text-end">${g.played}</td><td class="text-end">${g.unused}</td></tr>`).join('')}
+          <tr class="fw-bold"><td>Total</td><td class="text-end">${totals.sold}</td><td class="text-end">${totals.played}</td><td class="text-end">${Math.max(0, totals.sold - totals.played)}</td></tr>
+          </tbody></table></div>` : '<p class="text-muted">This event has no games yet.</p>'}
+
+        <div class="d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-1">Buyers (${report.buyers.length})</h6>
+          ${report.buyers.length ? '<button type="button" id="mCsv" class="btn btn-sm btn-outline-secondary mb-1"><i class="bi bi-download me-1"></i>CSV</button>' : ''}
+        </div>
+        ${report.buyers.length ? `<div class="table-responsive" style="max-height: 260px;"><table class="table table-sm mb-0">
+          <thead><tr><th>Buyer</th><th>Ticket</th><th>Games (played / bought)</th></tr></thead><tbody>
+          ${report.buyers.map(b => `<tr>
+            <td>${escapeHtml(b.name)}${b.guest ? ' <span class="badge bg-warning-subtle text-warning-emphasis border">Guest</span>' : ''}<br><span class="text-muted">${escapeHtml(b.matric_no || b.email || '')}</span></td>
+            <td><code>${escapeHtml(b.ticket_number)}</code></td>
+            <td>${b.games.map(g => `${escapeHtml(g.name)} ${g.used}/${g.bought}`).join('<br>')}</td>
+          </tr>`).join('')}</tbody></table></div>` : '<p class="text-muted">No game tickets sold yet.</p>'}
+      </div>`;
+
+    await Swal.fire({
+        title: `Marshals: ${escapeHtml(ev.title || 'Event')}`,
+        width: 900,
+        html,
+        showConfirmButton: false,
+        showCloseButton: true,
+        didOpen: (popup) => {
+            popup.querySelector('#mCsv')?.addEventListener('click', () => marshalReportCsv(ev, report));
+            popup.querySelector('#mAppoint').addEventListener('click', async () => {
+                const email = popup.querySelector('#mEmail').value.trim();
+                const from = popup.querySelector('#mFrom').value;
+                const until = popup.querySelector('#mUntil').value;
+                if (!email || !from || !until) { Swal.showValidationMessage('Enter an email, a start time and an end time.'); return; }
+                const btn = popup.querySelector('#mAppoint');
+                btn.disabled = true;
+                try {
+                    const res = await marshalsApi('POST', `/admin/event/${encodeURIComponent(eventId)}`, {
+                        email, starts_at: new Date(from).toISOString(), ends_at: new Date(until).toISOString()
+                    });
+                    await logAdminAction('CREATE', 'game_marshal', eventId, { email, from, until });
+                    await Swal.fire({
+                        icon: res.data?.emailed ? 'success' : 'warning',
+                        title: res.data?.updated ? 'Marshal times updated' : 'Marshal appointed',
+                        html: res.data?.emailed ? `An invitation was emailed to <strong>${escapeHtml(res.data.email)}</strong>.` : 'They were appointed, but the invitation email could not be sent. Let them know directly.'
+                    });
+                } catch (err) {
+                    await Swal.fire('Could not appoint', escapeHtml(err.message), 'error');
+                }
+                window.manageEventMarshals(eventId);
+            });
+            popup.querySelectorAll('.m-remove').forEach(btn => btn.addEventListener('click', async () => {
+                const ok = await Swal.fire({ title: 'Remove this marshal now?', text: 'They lose access straight away.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Remove', confirmButtonColor: '#dc3545' });
+                if (ok.isConfirmed) {
+                    try {
+                        await marshalsApi('DELETE', `/admin/${encodeURIComponent(btn.dataset.id)}`);
+                        await logAdminAction('DELETE', 'game_marshal', eventId, { marshal_id: btn.dataset.id });
+                    } catch (err) {
+                        await Swal.fire('Could not remove', escapeHtml(err.message), 'error');
+                    }
+                }
+                window.manageEventMarshals(eventId);
+            }));
+        }
+    });
 };
 
 window.deleteEvent = async function(id) {

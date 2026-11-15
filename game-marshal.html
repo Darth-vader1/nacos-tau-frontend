@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Game Marshal Station | NACOS TAU</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#157a09">
+  <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root { --nacos: #157a09; }
+    body { background: #f3f7f2; min-height: 100vh; }
+    .station { max-width: 560px; margin: 0 auto; padding: 16px; }
+    .top-bar { background: var(--nacos); color: #fff; border-radius: 16px; padding: 14px 16px; }
+    .top-bar .small { color: #d9f2d4; }
+    .panel { background: #fff; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.06); padding: 16px; }
+    #reader { width: 100%; border-radius: 12px; overflow: hidden; }
+    #reader video { border-radius: 12px; }
+    .ticket-input { font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; text-transform: uppercase; }
+    .game-row { border: 1px solid #e3eae1; border-radius: 12px; padding: 12px; }
+    .game-row.done { background: #f7f7f7; color: #888; }
+    .btn-mark { min-height: 48px; min-width: 132px; font-weight: 600; }
+    .left-badge { font-size: .95rem; }
+    .log-item { font-size: .85rem; border-bottom: 1px dashed #e3eae1; padding: 6px 0; }
+  </style>
+</head>
+
+<body>
+  <main class="station">
+    <div class="top-bar mb-3 d-flex align-items-center justify-content-between gap-2">
+      <div>
+        <div class="fw-bold"><i class="bi bi-controller me-1"></i><span id="eventTitle">Game Marshal Station</span></div>
+        <div class="small" id="windowText">Checking your appointment…</div>
+      </div>
+      <a href="student-dashboard.html" class="btn btn-sm btn-light"><i class="bi bi-house"></i><span class="visually-hidden">Dashboard</span></a>
+    </div>
+
+    <div id="notMarshal" class="panel text-center" hidden>
+      <i class="bi bi-shield-lock fs-1 text-secondary"></i>
+      <p class="mt-2 mb-1 fw-semibold" id="notMarshalTitle">You're not a game marshal right now.</p>
+      <p class="small text-muted mb-3" id="notMarshalText">An admin appoints marshals for a set time. If you think this is wrong, ask a NACOS admin.</p>
+      <a href="student-dashboard.html" class="btn btn-success">Back to dashboard</a>
+    </div>
+
+    <div id="stationUi" hidden>
+      <div class="panel mb-3">
+        <label for="ticketInput" class="form-label fw-semibold mb-1">Ticket number</label>
+        <div class="input-group input-group-lg">
+          <input id="ticketInput" class="form-control ticket-input" placeholder="NACOS-1A2B-3C4D5E" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40">
+          <button class="btn btn-success" id="lookupBtn" type="button"><i class="bi bi-search"></i><span class="visually-hidden">Look up</span></button>
+        </div>
+        <div class="d-grid mt-2">
+          <button class="btn btn-outline-success" id="scanBtn" type="button"><i class="bi bi-qr-code-scan me-1"></i><span id="scanBtnText">Scan QR code</span></button>
+        </div>
+        <div id="reader" class="mt-2" hidden></div>
+        <div id="scanHint" class="small text-muted mt-1" hidden>Point the camera at the QR code on the player's ticket or receipt.</div>
+      </div>
+
+      <div id="ticketPanel" class="panel mb-3" hidden aria-live="polite"></div>
+
+      <div class="panel">
+        <div class="fw-semibold mb-1"><i class="bi bi-clock-history me-1"></i>Plays you marked</div>
+        <div id="logList" class="small text-muted">None yet.</div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase } from './assets/js/supabase-config.js';
+    import { api } from './assets/js/api-config.js';
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const fmtTime = (d) => new Date(d).toLocaleString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+    const TICKET_RE = /NACOS-[0-9A-F]{4}-[0-9A-F]{6}/i;
+
+    let eventId = new URLSearchParams(location.search).get('event') || '';
+    let appointment = null;
+    let currentCode = '';
+    let scanner = null;
+    let scanning = false;
+    const log = [];
+
+    function lockStation(title, text) {
+      stopScan();
+      $('stationUi').hidden = true;
+      $('notMarshal').hidden = false;
+      if (title) $('notMarshalTitle').textContent = title;
+      if (text) $('notMarshalText').textContent = text;
+    }
+
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        location.href = 'student-login.html?redirect=' + encodeURIComponent(location.pathname.replace(/^\//, '') + location.search);
+        return;
+      }
+      let res;
+      try { res = await api.gameMarshals.me(); } catch (_) { res = null; }
+      const rows = (res && res.success && Array.isArray(res.data)) ? res.data : [];
+      const active = rows.filter(a => a.active);
+      appointment = active.find(a => a.event && a.event.id === eventId) || (!eventId && active.length === 1 ? active[0] : null);
+      if (!appointment) {
+        const upcoming = rows.find(a => !a.active && (!eventId || a.event?.id === eventId));
+        $('windowText').textContent = '';
+        if (upcoming) {
+          $('eventTitle').textContent = upcoming.event?.title || 'Game Marshal Station';
+          lockStation('Your marshal time hasn’t started yet.', `It starts ${fmtTime(upcoming.starts_at)} and ends ${fmtTime(upcoming.ends_at)}. Come back then.`);
+        } else {
+          lockStation();
+        }
+        return;
+      }
+      eventId = appointment.event.id;
+      $('eventTitle').textContent = appointment.event.title || 'Game Night';
+      $('windowText').textContent = `Marshal until ${fmtTime(appointment.ends_at)}`;
+      $('stationUi').hidden = false;
+      $('notMarshal').hidden = true;
+
+      // Close the station by itself when the time is up.
+      const msLeft = new Date(appointment.ends_at).getTime() - Date.now();
+      if (msLeft < 2 ** 31 - 1) setTimeout(() => lockStation('Your marshal time has ended.', 'Thanks for helping! The station is now closed.'), Math.max(0, msLeft));
+
+      const code = new URLSearchParams(location.search).get('ticket');
+      if (code) { $('ticketInput').value = code; lookup(code); }
+      else $('ticketInput').focus();
+    }
+
+    function extractCode(text) {
+      const m = String(text || '').match(TICKET_RE);
+      return m ? m[0].toUpperCase() : String(text || '').trim().toUpperCase();
+    }
+
+    function handleError(res, fallback) {
+      const msg = (res && (res.error || res.message)) || fallback;
+      if (res && /not a game marshal/i.test(msg)) {
+        lockStation('Your marshal access has ended.', 'An admin removed you or your time is up.');
+        return;
+      }
+      $('ticketPanel').hidden = false;
+      $('ticketPanel').innerHTML = `<div class="text-center text-danger py-2"><i class="bi bi-exclamation-octagon fs-3"></i><div class="fw-semibold mt-1">${esc(msg)}</div></div>`;
+    }
+
+    async function lookup(raw) {
+      const code = extractCode(raw);
+      if (!code) return;
+      $('ticketInput').value = code;
+      currentCode = code;
+      $('ticketPanel').hidden = false;
+      $('ticketPanel').innerHTML = '<div class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Looking up ticket…</div>';
+      let res;
+      try { res = await api.gameMarshals.ticket(eventId, code); } catch (_) { res = null; }
+      if (!res || !res.success) return handleError(res, 'Could not reach the server. Check your connection and try again.');
+      renderTicket(res.data);
+    }
+
+    function renderTicket(t) {
+      const allUsed = t.plays_left === 0;
+      $('ticketPanel').innerHTML = `
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <div class="fs-5 fw-bold">${esc(t.buyer)} ${t.is_guest ? '<span class="badge bg-warning-subtle text-warning-emphasis border ms-1">Guest</span>' : ''}</div>
+            <div class="small text-muted"><code>${esc(t.ticket_number)}</code></div>
+          </div>
+          <span class="badge ${allUsed ? 'bg-secondary' : 'bg-success'} left-badge">${t.plays_left} play${t.plays_left === 1 ? '' : 's'} left</span>
+        </div>
+        ${t.games.map(g => `
+          <div class="game-row d-flex align-items-center justify-content-between gap-2 mb-2 ${g.left === 0 ? 'done' : ''}">
+            <div>
+              <div class="fw-semibold">${esc(g.name)}</div>
+              <div class="small text-muted">${g.left} of ${g.bought} left${g.used ? ` &middot; ${g.used} used` : ''}</div>
+            </div>
+            <button class="btn ${g.left === 0 ? 'btn-outline-secondary' : 'btn-success'} btn-mark" data-item="${esc(g.item_id)}" data-name="${esc(g.name)}" ${g.left === 0 ? 'disabled' : ''}>
+              ${g.left === 0 ? 'All used' : '<i class="bi bi-check2-circle me-1"></i>Mark 1 play'}
+            </button>
+          </div>`).join('')}
+        <div class="d-grid mt-2"><button class="btn btn-light border" id="nextTicketBtn"><i class="bi bi-arrow-repeat me-1"></i>Next player</button></div>`;
+      $('ticketPanel').querySelectorAll('.btn-mark').forEach(btn => btn.addEventListener('click', () => markPlay(btn.dataset.item, btn.dataset.name, t.buyer)));
+      $('nextTicketBtn').addEventListener('click', nextPlayer);
+    }
+
+    async function markPlay(itemId, gameName, buyer) {
+      const ok = await Swal.fire({
+        title: `Mark 1 play of ${esc(gameName)}?`,
+        html: `For <strong>${esc(buyer)}</strong>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, mark it',
+        confirmButtonColor: '#157a09',
+        reverseButtons: true
+      });
+      if (!ok.isConfirmed) return;
+      let res;
+      try { res = await api.gameMarshals.redeem(eventId, currentCode, itemId, 1); } catch (_) { res = null; }
+      if (!res || !res.success) {
+        const msg = (res && (res.error || res.message)) || 'Could not reach the server. The play was NOT marked.';
+        if (res && /not a game marshal/i.test(msg)) return handleError(res, msg);
+        Swal.fire('Not marked', esc(msg), 'error');
+        if (res) lookup(currentCode);
+        return;
+      }
+      log.unshift({ at: new Date(), game: gameName, buyer });
+      renderLog();
+      Swal.fire({ toast: true, position: 'top', icon: 'success', title: `${gameName}: 1 play marked`, showConfirmButton: false, timer: 1800 });
+      renderTicket(res.data);
+    }
+
+    function renderLog() {
+      $('logList').innerHTML = log.slice(0, 30).map(l =>
+        `<div class="log-item d-flex justify-content-between"><span><strong>${esc(l.game)}</strong> &middot; ${esc(l.buyer)}</span><span>${l.at.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit', hour12: true })}</span></div>`
+      ).join('') || 'None yet.';
+    }
+
+    function nextPlayer() {
+      currentCode = '';
+      $('ticketInput').value = '';
+      $('ticketPanel').hidden = true;
+      $('ticketPanel').innerHTML = '';
+      $('ticketInput').focus();
+    }
+
+    async function startScan() {
+      if (typeof Html5Qrcode === 'undefined') {
+        Swal.fire('Scanner unavailable', 'The QR scanner could not load. Type the ticket number instead.', 'warning');
+        return;
+      }
+      $('reader').hidden = false;
+      $('scanHint').hidden = false;
+      $('scanBtnText').textContent = 'Stop scanning';
+      scanning = true;
+      try {
+        scanner = scanner || new Html5Qrcode('reader');
+        await scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 230, height: 230 } }, (text) => {
+          if (!TICKET_RE.test(text)) return; // not one of our tickets: keep scanning
+          stopScan();
+          if (navigator.vibrate) navigator.vibrate(80);
+          lookup(text);
+        });
+      } catch (err) {
+        stopScan();
+        Swal.fire('Camera not available', 'Allow camera access for this site, or type the ticket number instead.', 'warning');
+      }
+    }
+
+    async function stopScan() {
+      if (!scanning) return;
+      scanning = false;
+      $('scanBtnText').textContent = 'Scan QR code';
+      $('scanHint').hidden = true;
+      try { if (scanner && scanner.isScanning) await scanner.stop(); } catch (_) {}
+      $('reader').hidden = true;
+    }
+
+    $('scanBtn').addEventListener('click', () => scanning ? stopScan() : startScan());
+    $('lookupBtn').addEventListener('click', () => lookup($('ticketInput').value));
+    $('ticketInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookup($('ticketInput').value); } });
+
+    init();
+  </script>
+</body>
+
+</html>

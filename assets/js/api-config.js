@@ -420,6 +420,25 @@ export const api = {
         }
     },
 
+    // Game marshals (appointed per event by admins; mark plays at game stations)
+    gameMarshals: {
+        async _call(method, path, body) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`${API_URL}/game-marshals${path}`, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                body: body === undefined ? undefined : JSON.stringify(body)
+            });
+            return response.json();
+        },
+        me() { return this._call('GET', '/me'); },
+        ticket(eventId, code) { return this._call('GET', `/${encodeURIComponent(eventId)}/ticket?code=${encodeURIComponent(code)}`); },
+        redeem(eventId, code, itemId, plays = 1) { return this._call('POST', `/${encodeURIComponent(eventId)}/redeem`, { code, item_id: itemId, plays }); },
+        adminGet(eventId) { return this._call('GET', `/admin/event/${encodeURIComponent(eventId)}`); },
+        adminAppoint(eventId, payload) { return this._call('POST', `/admin/event/${encodeURIComponent(eventId)}`, payload); },
+        adminRemove(id) { return this._call('DELETE', `/admin/${encodeURIComponent(id)}`); }
+    },
+
     hackathons: {
         async list(filter = {}) {
             let eventType = '';
