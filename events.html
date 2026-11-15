@@ -375,7 +375,9 @@
     // An event with games lists them; the buyer picks one game and a number of
     // plays (2 plays of a ₦500 game = ₦1,000). The server prices it itself.
     let currentItems = [];
-    let selectedItemId = null;
+    let gamePlays = {}; // game id -> plays picked in the open event
+    const MAX_PLAYS_PER_GAME = MAX_TICKETS_PER_ORDER;
+    const MAX_PLAYS_PER_ORDER = 50;
 
     async function loadItemsFor(eventIds) {
       if (!eventIds.length) return {};
@@ -394,7 +396,15 @@
     }
 
     const itemPrice = (item, guest) => Number(guest ? item.public_price : item.price) || 0;
-    const selectedItem = () => currentItems.find(i => i.id === selectedItemId) || null;
+    // Games picked (plays > 0), as sent to the server: [{ item_id, plays }]
+    const selectedGameLines = () => currentItems
+      .filter(g => (gamePlays[g.id] || 0) > 0)
+      .map(g => ({ item_id: g.id, plays: gamePlays[g.id] }));
+    const totalPlays = (lines) => lines.reduce((s, l) => s + l.plays, 0);
+    const gameLineText = (lines) => lines.map(l => {
+      const g = currentItems.find(i => i.id === l.item_id);
+      return `${g ? g.name : 'Game'} × ${l.plays}`;
+    }).join(', ');
 
     document.addEventListener('DOMContentLoaded', async function() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -483,7 +493,7 @@
         // Quantity is only a fallback here: the server uses the quantity it recorded when the checkout started.
         await processPaymentVerification(urlEventId, reference, student,
           saved.eventId === urlEventId ? saved.quantity : undefined,
-          saved.eventId === urlEventId ? saved.itemId : undefined);
+          saved.eventId === urlEventId ? (saved.items || (saved.itemId ? [{ item_id: saved.itemId, plays: saved.quantity || 1 }] : undefined)) : undefined);
         return;
       }
 
@@ -670,7 +680,7 @@
 
       currentEvent = event;
       currentItems = (await loadItemsFor([event.id]))[event.id] || [];
-      selectedItemId = null;
+      gamePlays = {};
       const hasGames = currentItems.length > 0;
       const eventDate = new Date(event.date);
       const formattedDate = eventDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -757,19 +767,30 @@
           <div class="w-100 small text-muted" id="priceBreakdown" aria-live="polite"></div>
         </div>`;
 
-      // Game choice (game events only). Guests only see games with a guest price.
+      // Game choice (game events only): any number of games, each with its
+      // own number of plays. Guests only see games with a guest price.
       const gamesFor = (guest) => currentItems.filter(g => itemPrice(g, guest) > 0);
-      const gameSelectHtml = (guest) => `
-        <div class="w-100 mb-2">
-          <label for="gameSelect" class="small fw-semibold mb-1">Choose a game</label>
-          <select id="gameSelect" class="form-select">
-            ${gamesFor(guest).map(g => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name)} &middot; ${formatCurrency(itemPrice(g, guest))} per play</option>`).join('')}
-          </select>
+      const maxTotalPlays = Math.min(MAX_PLAYS_PER_ORDER, spotsLeft === null ? MAX_PLAYS_PER_ORDER : spotsLeft);
+      const gameListHtml = (guest) => `
+        <div class="w-100 mb-2" id="gameList">
+          <div class="small fw-semibold mb-1">Choose your games and how many plays</div>
+          ${gamesFor(guest).map(g => `
+            <div class="d-flex align-items-center justify-content-between gap-2 border rounded px-2 py-1 mb-1 game-line" data-id="${escapeHtml(g.id)}">
+              <div class="text-start">
+                <span class="fw-semibold">${escapeHtml(g.name)}</span><br>
+                <small class="text-muted">${formatCurrency(itemPrice(g, guest))} per play</small>
+              </div>
+              <div class="input-group input-group-sm flex-nowrap" style="width: 124px;">
+                <button class="btn btn-outline-secondary g-minus" type="button" aria-label="Fewer plays of ${escapeHtml(g.name)}" style="min-width: 40px;">&minus;</button>
+                <input type="text" class="form-control text-center g-plays" value="0" readonly aria-label="Plays of ${escapeHtml(g.name)}">
+                <button class="btn btn-outline-secondary g-plus" type="button" aria-label="More plays of ${escapeHtml(g.name)}" style="min-width: 40px;">+</button>
+              </div>
+            </div>`).join('')}
+          <div class="small text-muted mt-1" id="priceBreakdown" aria-live="polite"></div>
         </div>`;
       if (hasGames) {
-        const first = gamesFor(!userSession)[0] || currentItems[0];
-        selectedItemId = first ? first.id : null;
-        if (first) pickerUnitPrice = itemPrice(first, !userSession);
+        const first = gamesFor(!userSession)[0];
+        if (first) gamePlays[first.id] = 1; // start with one play of the first game
       }
 
       if (userSession) {
@@ -799,10 +820,9 @@
           if (isPaid && hasGames) {
             footerHtml += `
               ${myRegs.length ? `<div class="w-100 small text-success mb-1"><i class="bi bi-controller me-1"></i>You have ${heldTickets} play${heldTickets > 1 ? 's' : ''} booked. Buy more any time.</div>` : ''}
-              ${gameSelectHtml(false)}
-              ${pickerHtml(pickerUnitPrice)}
-              <button type="button" class="btn btn-register" onclick="registerForEvent('${escapeJsString(eventId)}')">
-                <i class="bi bi-controller me-1"></i> Pay &amp; Play (<span id="payTotal">${formatCurrency(pickerUnitPrice)}</span>)
+              ${gameListHtml(false)}
+              <button type="button" class="btn btn-register" id="gamePayBtn" onclick="registerForEvent('${escapeJsString(eventId)}')">
+                <i class="bi bi-controller me-1"></i> Pay &amp; Play (<span id="payTotal">${formatCurrency(0)}</span>)
               </button>
             `;
           } else if (isPaid) {
@@ -835,10 +855,9 @@
             <i class="bi bi-people me-1"></i>Open to non-members.
             NACOS members: <a href="student-login.html">sign in</a> for member prices.
           </div>
-          ${gameSelectHtml(true)}
-          ${pickerHtml(pickerUnitPrice)}
-          <button type="button" class="btn btn-register" onclick="startGuestCheckout('${escapeJsString(eventId)}')">
-            <i class="bi bi-controller me-1"></i> Pay &amp; Play as Guest (<span id="payTotal">${formatCurrency(pickerUnitPrice)}</span>)
+          ${gameListHtml(true)}
+          <button type="button" class="btn btn-register" id="gamePayBtn" onclick="startGuestCheckout('${escapeJsString(eventId)}')">
+            <i class="bi bi-controller me-1"></i> Pay &amp; Play as Guest (<span id="payTotal">${formatCurrency(0)}</span>)
           </button>
         `;
       } else if (isPaid && !hasGames && isGuestOpen(event) && hasSeats) {
@@ -865,15 +884,44 @@
       }
 
       document.getElementById('eventModalFooter').innerHTML = footerHtml;
-      const picker = bindQuantityPicker(event, pickerUnitPrice, pickerFee, { perLabel, unitWord });
+      bindQuantityPicker(event, pickerUnitPrice, pickerFee, { perLabel, unitWord });
 
-      const gameSelect = document.getElementById('gameSelect');
-      if (gameSelect) {
-        gameSelect.addEventListener('change', () => {
-          selectedItemId = gameSelect.value;
-          const g = selectedItem();
-          if (g && picker) picker.setUnit(itemPrice(g, !userSession));
+      const gameList = document.getElementById('gameList');
+      if (gameList) {
+        const guest = !userSession;
+        const renderGames = () => {
+          const lines = selectedGameLines();
+          const plays = totalPlays(lines);
+          const subtotal = roundNaira(lines.reduce((s, l) => s + itemPrice(currentItems.find(g => g.id === l.item_id), guest) * l.plays, 0));
+          const service = roundNaira(pickerFee * plays);
+          gameList.querySelectorAll('.game-line').forEach(row => {
+            const n = gamePlays[row.dataset.id] || 0;
+            row.querySelector('.g-plays').value = n;
+            row.querySelector('.g-minus').disabled = n <= 0;
+            row.querySelector('.g-plus').disabled = n >= MAX_PLAYS_PER_GAME || plays >= maxTotalPlays;
+            row.classList.toggle('border-success', n > 0);
+          });
+          const totalEl = document.getElementById('payTotal');
+          if (totalEl) totalEl.textContent = formatCurrency(roundNaira(subtotal + service));
+          const payBtn = document.getElementById('gamePayBtn');
+          if (payBtn) payBtn.disabled = plays === 0;
+          const bd = document.getElementById('priceBreakdown');
+          if (bd) {
+            bd.textContent = plays === 0
+              ? 'Pick at least one play.'
+              : `${plays} play${plays > 1 ? 's' : ''}: ${gameLineText(lines)}. Plays ${formatCurrency(subtotal)}` +
+                (service > 0 ? ` + service fee ${formatCurrency(service)} = ${formatCurrency(roundNaira(subtotal + service))}` : '');
+          }
+        };
+        gameList.addEventListener('click', (ev) => {
+          const btn = ev.target.closest('.g-minus, .g-plus');
+          if (!btn || btn.disabled) return;
+          const id = btn.closest('.game-line').dataset.id;
+          const n = gamePlays[id] || 0;
+          gamePlays[id] = btn.classList.contains('g-plus') ? n + 1 : Math.max(0, n - 1);
+          renderGames();
         });
+        renderGames();
       }
 
       new bootstrap.Modal(document.getElementById('eventModal')).show();
@@ -901,12 +949,12 @@
       if (isPaid) {
         // Read the chosen quantity before the modal closes. The server
         // re-validates it and computes the price (unit price × quantity) itself.
-        const quantity = getSelectedQuantity();
-        const itemId = currentItems.length ? selectedItemId : null;
-        if (currentItems.length && !itemId) {
-          Swal.fire('Choose a game', 'Please pick the game you want to play.', 'info');
+        const items = currentItems.length ? selectedGameLines() : null;
+        if (items && !items.length) {
+          Swal.fire('Choose a game', 'Add at least one play of a game.', 'info');
           return;
         }
+        const quantity = items ? totalPlays(items) : getSelectedQuantity();
 
         // Close event modal cleanly to prevent aria-hidden focus blocking
         const eventModalEl = document.getElementById('eventModal');
@@ -926,7 +974,7 @@
           const sessionRes = await api.payments.createBachsSession({
             event_id: eventId,
             quantity,
-            ...(itemId ? { item_id: itemId } : {})
+            ...(items ? { items } : {})
           });
 
           if (!sessionRes.success) {
@@ -947,7 +995,7 @@
               title: 'Bachs Payment Simulation',
               html: `
                 ${reasonHtml}
-                <p class="mt-2">Fee to simulate: <strong>${formatCurrency(data.total_amount ?? Math.round(Number(currentEvent.payment_amount) * quantity * 100) / 100)}</strong> (${quantity} ${itemId ? 'play' : 'ticket'}${quantity > 1 ? 's' : ''})</p>
+                <p class="mt-2">Fee to simulate: <strong>${formatCurrency(data.total_amount ?? Math.round(Number(currentEvent.payment_amount) * quantity * 100) / 100)}</strong> (${quantity} ${items ? 'play' : 'ticket'}${quantity > 1 ? 's' : ''})</p>
                 <p class="small text-muted">Click below to simulate server verification and ticket issuance.</p>
               `,
               icon: 'info',
@@ -959,7 +1007,7 @@
 
             if (!devPrompt.isConfirmed) return;
             const testRef = 'NACOS-EVT-' + eventId.substring(0, 4).toUpperCase() + '-' + Date.now();
-            await processPaymentVerification(eventId, testRef, student, quantity, itemId);
+            await processPaymentVerification(eventId, testRef, student, quantity, items);
             return;
           }
 
@@ -973,7 +1021,7 @@
                 eventId: eventId,
                 checkoutId: data.checkout_id || data.id,
                 quantity,
-                itemId,
+                items,
                 timestamp: Date.now()
               }));
             } catch (_) {}
@@ -986,7 +1034,7 @@
             const handler = BachsCheckout.setup({
               sessionId: data.checkout_id,
               onSuccess: function(response) {
-                processPaymentVerification(eventId, response.reference || data.checkout_id, student, quantity, itemId);
+                processPaymentVerification(eventId, response.reference || data.checkout_id, student, quantity, items);
               },
               onClose: function() {
                 Swal.fire({
@@ -1076,16 +1124,19 @@
     window.startGuestCheckout = async function(eventId) {
       const event = currentEvent;
       if (!event || event.id !== eventId) return;
-      const quantity = getSelectedQuantity();
-      const game = currentItems.length ? selectedItem() : null;
-      if (currentItems.length && !game) {
-        Swal.fire('Choose a game', 'Please pick the game you want to play.', 'info');
+      const items = currentItems.length ? selectedGameLines() : null;
+      if (items && !items.length) {
+        Swal.fire('Choose a game', 'Add at least one play of a game.', 'info');
         return;
       }
-      const unit = game ? itemPrice(game, true) : (Number(event.public_price) || 0);
+      const quantity = items ? totalPlays(items) : getSelectedQuantity();
       const fee = serviceFeeFor(event, { guest: true });
-      const what = game ? `${escapeHtml(game.name)}, ${quantity} play${quantity > 1 ? 's' : ''}` : `${quantity} ticket${quantity > 1 ? 's' : ''}`;
-      const total = roundNaira((unit + fee) * quantity);
+      const subtotal = items
+        ? roundNaira(items.reduce((s, l) => s + itemPrice(currentItems.find(g => g.id === l.item_id), true) * l.plays, 0))
+        : roundNaira((Number(event.public_price) || 0) * quantity);
+      const unit = quantity ? subtotal / quantity : 0;
+      const what = items ? escapeHtml(gameLineText(items)) : `${quantity} ticket${quantity > 1 ? 's' : ''}`;
+      const total = roundNaira(subtotal + fee * quantity);
 
       const evModal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
       if (evModal) evModal.hide();
@@ -1093,7 +1144,7 @@
       const { value: form, isConfirmed } = await Swal.fire({
         title: 'Buy as a guest',
         html: `
-          <p class="small text-muted mb-2">${what}: ${escapeHtml(priceBreakdownText(unit, fee, quantity, game ? 'Plays' : 'Tickets'))}. <strong>Total ${formatCurrency(total)}</strong>. Your ticket will be emailed to you.</p>
+          <p class="small text-muted mb-2">${what}: ${escapeHtml(priceBreakdownText(unit, fee, quantity, items ? 'Plays' : 'Tickets'))}. <strong>Total ${formatCurrency(total)}</strong>. Your ticket will be emailed to you.</p>
           <input id="guestName" class="swal2-input" placeholder="Full name" autocomplete="name" maxlength="100">
           <input id="guestEmail" class="swal2-input" type="email" placeholder="Email address" autocomplete="email" maxlength="254">
           <input id="guestPhone" class="swal2-input" type="tel" placeholder="Phone number" autocomplete="tel" maxlength="20">
@@ -1116,7 +1167,7 @@
 
       Swal.fire({ title: 'Preparing secure checkout...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       try {
-        const res = await api.payments.guestSession({ event_id: eventId, quantity, ...(game ? { item_id: game.id } : {}), ...form });
+        const res = await api.payments.guestSession({ event_id: eventId, quantity, ...(items ? { items } : {}), ...form });
         if (!res || !res.success) throw new Error(res?.error || res?.message || 'Could not start checkout');
         const data = res.data || {};
 
@@ -1315,7 +1366,7 @@
       }
     }
 
-    async function processPaymentVerification(eventId, reference, student, quantity, itemId) {
+    async function processPaymentVerification(eventId, reference, student, quantity, items) {
       let attempts = 0;
       const maxAttempts = 6; // Check up to 6 times (18 seconds total)
 
@@ -1340,7 +1391,7 @@
             reference: reference,
             event_id: eventId,
             ...(quantity ? { quantity } : {}),
-            ...(itemId ? { item_id: itemId } : {})
+            ...(Array.isArray(items) && items.length ? { items } : {})
           });
 
           if (verifyRes.success) {
@@ -1396,7 +1447,7 @@
               cancelButtonText: 'Check Receipt Page'
             }).then((result) => {
               if (result.isConfirmed) {
-                processPaymentVerification(eventId, reference, student, quantity, itemId);
+                processPaymentVerification(eventId, reference, student, quantity, items);
               } else if (result.dismiss === Swal.DismissReason.cancel) {
                 window.location.href = `receipt.html?reference=${encodeURIComponent(reference)}`;
               }
