@@ -1054,7 +1054,7 @@
                 <div class="row g-2 mb-3" id="revenueTotals">
                   <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Ticket revenue (NACOS)</div><div class="fs-5 fw-bold" id="revTickets">-</div></div></div>
                   <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Service fees</div><div class="fs-5 fw-bold text-success" id="revService">-</div></div></div>
-                  <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Bachs fees (paid by buyers)</div><div class="fs-5 fw-bold" id="revGateway">-</div></div></div>
+                  <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Bachs fees (paid by buyers)</div><div class="fs-5 fw-bold" id="revGateway">-</div><button type="button" class="btn btn-link btn-sm p-0 small" onclick="refreshBachsFees(this)" title="Ask Bachs for the fee on past orders that don't have one yet"><i class="bi bi-arrow-repeat me-1"></i>Fetch from Bachs</button></div></div>
                   <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Orders · tickets</div><div class="fs-5 fw-bold" id="revOrders">-</div></div></div>
                 </div>
                 <div class="table-responsive" style="max-height: 260px;">
@@ -3464,18 +3464,75 @@ window.manageEventMarshals = async function(eventId) {
     });
 };
 
+// Paid (verified) orders for an event, from the payments already loaded for
+// the events table, or fetched if they aren't loaded yet.
+async function paidOrdersForEvent(eventId) {
+    let list = Array.isArray(window.allPaymentsList) && window.allPaymentsList.length ? window.allPaymentsList : null;
+    if (!list && typeof api?.payments?.getAll === 'function') {
+        try { const pr = await api.payments.getAll({ limit: 500 }); list = pr?.data?.payments || []; } catch (_) { list = []; }
+    }
+    const paid = (list || []).filter(p => p.event_id === eventId && p.status === 'verified');
+    return { count: paid.length, total: paid.reduce((s, p) => s + (Number(p.amount) || 0), 0) };
+}
+
 window.deleteEvent = async function(id) {
-    const result = await Swal.fire({
-        title: 'Delete Event?',
-        text: 'This will also delete all registrations for this event.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Delete',
-        cancelButtonText: 'Cancel'
-    });
-    
-    if (!result.isConfirmed) return;
+    const ev = (window.currentEventsList || []).find(e => e.id === id) || {};
+    const paid = await paidOrdersForEvent(id);
+
+    if (paid.count > 0) {
+        // Deleting unlinks paid orders from the event (receipts and revenue
+        // lose the event). Steer admins to hiding it instead.
+        const choice = await Swal.fire({
+            title: 'This event has paid orders',
+            html: `<p><strong>${escapeHtml(ev.title || 'This event')}</strong> has <strong>${paid.count}</strong> paid order${paid.count > 1 ? 's' : ''} (${formatCurrency(paid.total)}).</p>
+                   <p class="small text-muted mb-0">Deleting it removes its tickets and unlinks those payments from the event: receipts and the revenue report would no longer show which event they were for.
+                   <strong>Making it inactive</strong> hides it from students and keeps every record.</p>`,
+            icon: 'warning',
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: 'Make inactive instead',
+            confirmButtonColor: '#157a09',
+            denyButtonText: 'Delete anyway',
+            denyButtonColor: '#dc3545',
+            cancelButtonText: 'Cancel',
+            focusConfirm: true
+        });
+        if (choice.isConfirmed) {
+            try {
+                await apiAdmin.update('events', id, { is_active: false, updated_at: new Date().toISOString() });
+                await logAdminAction('UPDATE', 'event', id, { title: ev.title, is_active: false, reason: 'hidden instead of deleted (has paid orders)' });
+                Swal.fire('Event hidden', 'It is now inactive: students no longer see it, and all orders and receipts are kept.', 'success');
+                loadEvents();
+            } catch (error) {
+                Swal.fire('Error', 'Could not make the event inactive: ' + escapeHtml(error.message), 'error');
+            }
+            return;
+        }
+        if (!choice.isDenied) return;
+        const sure = await Swal.fire({
+            title: 'Delete it permanently?',
+            html: `Type <strong>DELETE</strong> to confirm. ${paid.count} paid order${paid.count > 1 ? 's' : ''} will lose their link to this event. This cannot be undone.`,
+            input: 'text',
+            inputPlaceholder: 'DELETE',
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonText: 'Delete permanently',
+            confirmButtonColor: '#dc3545',
+            preConfirm: (v) => (String(v || '').trim() === 'DELETE' ? true : Swal.showValidationMessage('Type DELETE to confirm'))
+        });
+        if (!sure.isConfirmed) return;
+    } else {
+        const result = await Swal.fire({
+            title: 'Delete Event?',
+            text: 'This will also delete all registrations for this event.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel'
+        });
+        if (!result.isConfirmed) return;
+    }
     
     const { data: item } = await supabase
         .from('events')
@@ -5224,6 +5281,25 @@ window.deleteEvent = async function(id) {
       } catch (err) {
         console.warn('[revenue] load failed:', err);
         body.innerHTML = '<tr><td colspan="5" class="text-muted text-center py-3">Could not load revenue.</td></tr>';
+      }
+    };
+
+    // Ask Bachs for the processing fee on past orders that don't have one recorded.
+    window.refreshBachsFees = async function(btn) {
+      if (btn) btn.disabled = true;
+      try {
+        const res = await api.payments.refreshGatewayFees();
+        if (!res || res.success === false) throw new Error(res?.error || res?.message || 'Could not fetch Bachs fees');
+        const d = res.data || {};
+        const parts = [`${d.updated || 0} order(s) updated`];
+        if (d.no_fee_yet) parts.push(`${d.no_fee_yet} not reported by Bachs yet`);
+        if (d.not_found) parts.push(`${d.not_found} not found (for example, paid in test mode while the live key is set)`);
+        Swal.fire({ icon: d.updated ? 'success' : 'info', title: 'Bachs fees', text: parts.join(' · ') });
+        await loadRevenue();
+      } catch (err) {
+        Swal.fire('Could not fetch Bachs fees', escapeHtml(err.message), 'error');
+      } finally {
+        if (btn) btn.disabled = false;
       }
     };
 
