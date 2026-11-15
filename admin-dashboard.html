@@ -5291,7 +5291,12 @@ window.deleteEvent = async function(id) {
         const res = await api.payments.refreshGatewayFees();
         if (!res || res.success === false) throw new Error(res?.error || res?.message || 'Could not fetch Bachs fees');
         const d = res.data || {};
-        const parts = [`${d.updated || 0} order(s) updated`];
+        if (!d.checked) {
+          Swal.fire({ icon: 'info', title: 'Bachs fees', text: 'No paid Bachs orders are missing a fee.' });
+          await loadRevenue();
+          return;
+        }
+        const parts = [`Checked ${d.checked} order(s): ${d.updated || 0} updated`];
         if (d.no_fee_yet) parts.push(`${d.no_fee_yet} not reported by Bachs yet`);
         if (d.not_found) parts.push(`${d.not_found} not found (for example, paid in test mode while the live key is set)`);
         Swal.fire({ icon: d.updated ? 'success' : 'info', title: 'Bachs fees', text: parts.join(' · ') });
