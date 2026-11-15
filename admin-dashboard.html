@@ -1365,7 +1365,8 @@
                     <option value="seminar">Seminar</option>
                     <option value="social">Social</option>
                     <option value="payment">Payment</option>
-                  </select>
+                    <option value="games">Game Night</option>
+                    </select>
                 </div>
               </div>
             </div>
@@ -1500,6 +1501,7 @@
                                     <option value="workshop">Workshop</option>
                                     <option value="seminar">Seminar</option>
                                     <option value="social">Social</option>
+                                    <option value="games">Game Night</option>
                                 </select>
                             </div>
                         </div>
@@ -2806,7 +2808,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
             </div>
           </td>
           <td>
-            <button class="btn btn-sm btn-outline-info me-1" onclick="viewEventAttendees('${ev.id}')" title="View Attendees"><i class="bi bi-people"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-info me-1" onclick="viewEventAttendees('${ev.id}')" title="View Attendees"><i class="bi bi-people"></i></button><button class="btn btn-sm btn-outline-success me-1" onclick="manageEventGames('${ev.id}')" title="Games (pay per play)"><i class="bi bi-controller"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
             <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${ev.id}')"><i class="bi bi-trash"></i></button>
           </td>
         </tr>
@@ -3144,6 +3146,145 @@ document.getElementById('editEventForm')?.addEventListener('submit', async (e) =
     }
 });
     
+// ============================================
+// GAMES (pay per play) FOR AN EVENT
+// ============================================
+// Each game has its own price per play. Buyers pick a game and a number of
+// plays (2 plays of a ₦500 game = ₦1,000). Saving games also sets the event's
+// "from" price; leaving the list empty makes it a normal ticketed event again.
+const GAME_PRESETS = ['Mortal Kombat', 'FIFA', 'Ludo', 'Chess', 'Scrabble', 'Monopoly', 'Whot', 'Snooker'];
+
+async function eventsApiRequest(method, path, body) {
+    const token = await fetchSessionToken();
+    if (!token) throw new Error('Not signed in. Please log in again.');
+    const root = window.__CONFIG?.apiUrl || window.API_URL || '/api';
+    const resp = await fetch(`${root}/events${path}`, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        credentials: 'include',
+        body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    let json = null;
+    try { const t = await resp.text(); if (t) json = JSON.parse(t); } catch {}
+    if (!resp.ok) throw new Error(json?.error || json?.message || `HTTP ${resp.status}`);
+    return json || { success: true };
+}
+
+function gameRowHtml(g = {}) {
+    const v = (x) => (x === null || x === undefined ? '' : escapeHtml(String(x)));
+    return `
+      <div class="game-row border rounded p-2 mb-2 text-start" data-id="${v(g.id)}">
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-4">
+            <label class="form-label small mb-0">Game</label>
+            <input type="text" class="form-control form-control-sm g-name" maxlength="80" placeholder="e.g. FIFA" value="${v(g.name)}">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-0">Price/play (₦)</label>
+            <input type="number" class="form-control form-control-sm g-price" min="1" step="0.01" placeholder="500" value="${v(g.price)}">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-0">Guest price</label>
+            <input type="number" class="form-control form-control-sm g-public" min="1" step="0.01" placeholder="Members only" value="${v(g.public_price)}">
+          </div>
+          <div class="col-8 col-md-3">
+            <label class="form-label small mb-0">Play limit</label>
+            <input type="number" class="form-control form-control-sm g-max" min="1" step="1" placeholder="No limit" value="${v(g.max_plays)}">
+          </div>
+          <div class="col-4 col-md-1 text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger g-remove" title="Remove game" aria-label="Remove game"><i class="bi bi-trash"></i></button>
+          </div>
+        </div>
+      </div>`;
+}
+
+window.manageEventGames = async function(eventId) {
+    const ev = (window.currentEventsList || []).find(e => e.id === eventId) || {};
+    let games = [];
+    try {
+        const res = await eventsApiRequest('GET', `/${encodeURIComponent(eventId)}/items`);
+        games = Array.isArray(res.data) ? res.data : [];
+    } catch (err) {
+        Swal.fire('Could not load games', escapeHtml(err.message) + '<br><small>Has migration 024 been run?</small>', 'error');
+        return;
+    }
+
+    const result = await Swal.fire({
+        title: `Games: ${escapeHtml(ev.title || 'Event')}`,
+        width: 820,
+        html: `
+          <p class="small text-muted text-start mb-2">Buyers pick a game and how many plays. Example: FIFA at ₦500 per play, 2 plays = ₦1,000 (plus any service fee).
+          Guest price is only used when the event is open to non-members. Leave the list empty to turn games off.</p>
+          <div id="gameRows">${games.length ? games.map(gameRowHtml).join('') : ''}</div>
+          <div class="text-start mb-2">
+            <button type="button" class="btn btn-sm btn-outline-success" id="addGameBtn"><i class="bi bi-plus-lg me-1"></i>Add game</button>
+          </div>
+          <div class="text-start small text-muted">Quick add:
+            ${GAME_PRESETS.map(n => `<button type="button" class="btn btn-sm btn-light border ms-1 mb-1 preset-game">${escapeHtml(n)}</button>`).join('')}
+          </div>`,
+        showCancelButton: true,
+        confirmButtonText: 'Save games',
+        confirmButtonColor: '#157a09',
+        focusConfirm: false,
+        didOpen: (popup) => {
+            const rows = popup.querySelector('#gameRows');
+            const add = (g) => { rows.insertAdjacentHTML('beforeend', gameRowHtml(g)); };
+            if (!games.length) add({});
+            popup.querySelector('#addGameBtn').addEventListener('click', () => add({}));
+            popup.querySelectorAll('.preset-game').forEach(btn => btn.addEventListener('click', () => {
+                const name = btn.textContent.trim();
+                const empty = [...rows.querySelectorAll('.g-name')].find(i => !i.value.trim());
+                if (empty) empty.value = name; else add({ name });
+            }));
+            rows.addEventListener('click', (e) => {
+                const rm = e.target.closest('.g-remove');
+                if (rm) rm.closest('.game-row').remove();
+            });
+        },
+        preConfirm: () => {
+            const items = [];
+            for (const row of document.querySelectorAll('#gameRows .game-row')) {
+                const name = row.querySelector('.g-name').value.trim();
+                const price = row.querySelector('.g-price').value.trim();
+                const pub = row.querySelector('.g-public').value.trim();
+                const max = row.querySelector('.g-max').value.trim();
+                if (!name && !price && !pub && !max) continue; // blank row
+                if (!name) return Swal.showValidationMessage('Every game needs a name.');
+                if (!(Number(price) > 0)) return Swal.showValidationMessage(`${name}: enter a price per play.`);
+                if (pub && !(Number(pub) > 0)) return Swal.showValidationMessage(`${name}: guest price must be more than ₦0, or empty.`);
+                if (max && !(Number.isInteger(Number(max)) && Number(max) > 0)) return Swal.showValidationMessage(`${name}: play limit must be a whole number, or empty.`);
+                items.push({
+                    id: row.dataset.id || undefined,
+                    name,
+                    price: Number(price),
+                    public_price: pub ? Number(pub) : null,
+                    max_plays: max ? parseInt(max, 10) : null
+                });
+            }
+            return items;
+        }
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+        Swal.fire({ title: 'Saving games...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        const res = await eventsApiRequest('PUT', `/${encodeURIComponent(eventId)}/items`, { items: result.value });
+        const saved = Array.isArray(res.data) ? res.data : [];
+        await logAdminAction('UPDATE', 'event_games', eventId, { games: saved.map(g => g.name) });
+        const needsGuestSwitch = saved.some(g => Number(g.public_price) > 0) && !ev.open_to_public;
+        Swal.fire({
+            icon: 'success',
+            title: saved.length ? `${saved.length} game${saved.length > 1 ? 's' : ''} saved` : 'Games turned off',
+            html: saved.length
+                ? `Buyers can now pick a game and pay per play.${needsGuestSwitch ? '<br><small class="text-muted">Tip: switch on <strong>Non-members</strong> for this event so guests can use the guest prices.</small>' : ''}`
+                : 'This event is back to normal tickets.'
+        });
+        loadEvents();
+    } catch (err) {
+        Swal.fire('Could not save games', escapeHtml(err.message), 'error');
+    }
+};
+
 window.deleteEvent = async function(id) {
     const result = await Swal.fire({
         title: 'Delete Event?',
