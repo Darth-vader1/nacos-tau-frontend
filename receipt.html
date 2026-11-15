@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <style>
     :root {
@@ -314,6 +315,10 @@
           <div class="ticket-highlight-box">
             <div class="text-muted small fw-bold text-uppercase">Official Admission Ticket Number</div>
             <span class="ticket-code" id="rcTicketNumber">NACOS-TICKET</span>
+            <div id="rcQrWrap" class="mt-2" hidden>
+              <div id="rcQr" class="d-inline-block p-2 bg-white border rounded"></div>
+              <div class="small text-muted">Show this QR code at the game area</div>
+            </div>
             <div class="mt-2 non-printable">
               <button class="btn btn-sm btn-outline-success" onclick="copyTicketNumber()">
                 <i class="bi bi-clipboard me-1"></i> Copy Ticket Code
@@ -363,7 +368,7 @@
           <div class="section-title">Payment Summary</div>
           <div class="info-grid">
             <div>
-              <div class="info-label">Tickets</div>
+              <div class="info-label" id="rcTicketsLabel">Tickets</div>
               <div class="info-value fw-bold" id="rcTickets">1</div>
             </div>
             <div>
@@ -561,15 +566,28 @@
       document.getElementById('rcEventLocation').textContent = event.location || 'TAU Campus, Department of Computer Science';
 
       // Payment info
-      document.getElementById('rcTickets').textContent = `${ticketQty} (admits ${ticketQty} ${ticketQty > 1 ? 'people' : 'person'})`;
+      const games = Array.isArray(data.games) && data.games.length ? data.games : null;
+      if (games && typeof QRCode !== 'undefined' && /^NACOS-[0-9A-F]{4}-[0-9A-F]{6}$/.test(ticketNumber)) {
+        try {
+          document.getElementById('rcQr').innerHTML = '';
+          new QRCode(document.getElementById('rcQr'), { text: ticketNumber, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+          document.getElementById('rcQrWrap').hidden = false;
+        } catch (_) {}
+      }
+      if (games) {
+        document.getElementById('rcTicketsLabel').textContent = 'Plays';
+        document.getElementById('rcTickets').textContent = `${ticketQty} play${ticketQty > 1 ? 's' : ''}: ${games.map(g => `${g.name} × ${g.plays}`).join(', ')}`;
+      } else {
+        document.getElementById('rcTickets').textContent = `${ticketQty} (admits ${ticketQty} ${ticketQty > 1 ? 'people' : 'person'})`;
+      }
       // Breakdown: tickets (+ service fee) (+ Bachs processing fee paid at checkout)
       const ticketsPart = Number(data.subtotal_amount ?? payment.subtotal_amount ?? payment.amount) || 0;
       const servicePart = Number(data.service_fee ?? payment.service_fee ?? 0) || 0;
       const gatewayPart = Number(data.gateway_fee ?? payment.gateway_fee ?? 0) || 0;
-      const perTicket = ticketQty > 1 && ticketsPart > 0 ? ` (${ticketQty} × ${formatCurrency(Math.round((ticketsPart / ticketQty) * 100) / 100)})` : '';
+      const perTicket = ticketQty > 1 && ticketsPart > 0 && !games ? ` (${ticketQty} × ${formatCurrency(Math.round((ticketsPart / ticketQty) * 100) / 100)})` : '';
       document.getElementById('rcAmount').textContent = formatCurrency(payment.amount) + (servicePart > 0 ? '' : perTicket);
       const breakdownParts = [];
-      if (servicePart > 0) breakdownParts.push(`Tickets ${formatCurrency(ticketsPart)}${perTicket} + service fee ${formatCurrency(servicePart)}`);
+      if (servicePart > 0) breakdownParts.push(`${games ? 'Plays' : 'Tickets'} ${formatCurrency(ticketsPart)}${perTicket} + service fee ${formatCurrency(servicePart)}`);
       if (gatewayPart > 0) breakdownParts.push(`+ Bachs processing fee ${formatCurrency(gatewayPart)} paid at checkout`);
       document.getElementById('rcBreakdown').textContent = breakdownParts.join(' ');
       document.getElementById('rcReference').textContent = payment.transaction_id || 'N/A';
