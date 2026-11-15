@@ -1097,10 +1097,12 @@
               </div>
               <div class="col-md-3 col-sm-6">
                 <select class="form-select" id="paymentStatusFilter" aria-label="Filter by status">
-                  <option value="">All Statuses</option>
+                  <option value="">All (except abandoned)</option>
                   <option value="verified">Verified</option>
                   <option value="pending">Pending</option>
                   <option value="rejected">Rejected</option>
+                  <option value="abandoned">Abandoned (never paid)</option>
+                  <option value="everything">Everything</option>
                 </select>
               </div>
               <div class="col-md-3 col-sm-6">
@@ -5049,7 +5051,11 @@ window.deleteEvent = async function(id) {
 
         // Status match
         const pStatus = String(p.status || 'verified').toLowerCase().trim();
-        const matchesStatus = !selectedStatus || pStatus === selectedStatus;
+        // Default hides checkouts that were started but never paid (marked
+        // "abandoned" after 24h); pick "Abandoned" or "Everything" to see them.
+        const matchesStatus = selectedStatus === 'everything' ? true
+          : !selectedStatus ? pStatus !== 'abandoned'
+          : pStatus === selectedStatus;
 
         // Payment type match
         const pType = String(p.payment_type || 'event_registration').toLowerCase().trim();
@@ -5084,7 +5090,7 @@ window.deleteEvent = async function(id) {
         const eventInfo = p.event_id ? paymentsEventMap.get(p.event_id) : null;
         const eventTitle = eventInfo?.title ? escapeHtml(eventInfo.title) : (p.payment_type === 'event_registration' ? '<span class="text-muted">Event Registration</span>' : '<span class="text-muted">General Payment</span>');
 
-        const badgeClass = p.status === 'verified' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark';
+        const badgeClass = p.status === 'verified' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : p.status === 'abandoned' ? 'bg-secondary' : 'bg-warning text-dark';
         const ref = escapeHtml(p.transaction_id || p.id || '');
         let validReceiptUrl = p.payment_proof_url;
         if (validReceiptUrl && validReceiptUrl.includes('paystack.com/receipt/')) {
@@ -5289,7 +5295,7 @@ window.deleteEvent = async function(id) {
           const eventInfo = p.event_id ? eventMap.get(p.event_id) : null;
           const eventTitle = eventInfo?.title ? escapeHtml(eventInfo.title) : (p.payment_type === 'event_registration' ? '<span class="text-muted">Event Registration</span>' : '<span class="text-muted">General Payment</span>');
 
-          const badgeClass = p.status === 'verified' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark';
+          const badgeClass = p.status === 'verified' ? 'bg-success' : p.status === 'rejected' ? 'bg-danger' : p.status === 'abandoned' ? 'bg-secondary' : 'bg-warning text-dark';
           const ref = escapeHtml(p.transaction_id || p.id || '');
           let validReceiptUrl = p.payment_proof_url;
           if (validReceiptUrl && validReceiptUrl.includes('paystack.com/receipt/')) {
