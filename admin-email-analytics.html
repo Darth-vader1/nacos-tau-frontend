@@ -308,6 +308,32 @@
       </div>
     </div>
 
+    <!-- Gmail sending limit (rolling 24 hours) and emails per day -->
+    <div class="card border-0 shadow-sm mb-4" id="gmailUsageCard" style="border-radius: 16px;">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-1"><i class="bi bi-speedometer2 text-success me-2"></i>Gmail sending limit</h5>
+            <small class="text-muted">Google counts the <strong>last 24 hours</strong> (a rolling window, not since midnight). Every email the portal sends is counted here.</small>
+          </div>
+          <span class="badge fs-6" id="gmailUsageStatus">Loading…</span>
+        </div>
+        <div id="gmailUsageUnavailable" class="alert alert-warning small mb-0" hidden>
+          Email counting starts once database migration 030 has been run. Until then, nothing is counted.
+        </div>
+        <div id="gmailUsageBody">
+          <div class="row g-3" id="gmailUsageMeters"></div>
+          <div class="mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="fw-bold mb-0">Emails sent per day</h6>
+              <small class="text-muted">Dashed line: the 2,000 messages limit</small>
+            </div>
+            <div style="height: 220px;"><canvas id="gmailDailyChart" aria-label="Emails sent per day"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Automated Vercel Cron Engine & Candidate Funnel Monitor -->
     <div class="cron-banner">
       <div class="row g-4 align-items-center">
@@ -622,7 +648,80 @@
     }
 
     // Load Aggregated Telemetry
+    // ---- Gmail sending limit meter ------------------------------------------
+    let gmailDailyChart = null;
+    async function loadEmailUsage() {
+      const statusEl = document.getElementById('gmailUsageStatus');
+      try {
+        const res = await apiRequest('/emails/usage?days=30');
+        const u = res.data || {};
+        const unavailable = !u.available;
+        document.getElementById('gmailUsageUnavailable').hidden = !unavailable;
+        document.getElementById('gmailUsageBody').hidden = unavailable;
+        if (unavailable) { statusEl.className = 'badge bg-secondary fs-6'; statusEl.textContent = 'Not counting yet'; return; }
+
+        const labels = {
+          messages: ['Emails sent', 'Each email counts once, however many people it goes to.'],
+          recipients: ['Total recipients', 'Every address on every email.'],
+          external_recipients: ['Outside recipients', `Addresses outside ${(u.internal_domains || []).join(', ') || 'your domain'} (e.g. guests' Gmail).`],
+          unique_recipients: ['Different people', 'Each address counted once.'],
+          unique_external_recipients: ['Different outside people', 'Each outside address counted once.']
+        };
+        const meter = (k) => {
+          const used = u.used[k] || 0, limit = u.limits[k] || 1, pct = Math.min(100, (used / limit) * 100);
+          const cls = pct >= 100 ? 'bg-danger' : pct >= 80 ? 'bg-warning' : 'bg-success';
+          return `
+            <div class="col-md-6 col-xl">
+              <div class="border rounded-3 p-3 h-100">
+                <div class="small text-muted fw-semibold">${escapeHtml(labels[k][0])}</div>
+                <div class="fs-5 fw-bold">${used.toLocaleString()} <span class="fs-6 text-muted fw-normal">/ ${limit.toLocaleString()}</span></div>
+                <div class="progress mt-2" style="height: 8px;" role="progressbar" aria-label="${escapeHtml(labels[k][0])} used" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100">
+                  <div class="progress-bar ${cls}" style="width: ${pct}%"></div>
+                </div>
+                <div class="small text-muted mt-1">${Math.round(pct)}% used &middot; ${(Math.max(0, limit - used)).toLocaleString()} left</div>
+                <div class="small text-muted" style="font-size: .75rem;">${escapeHtml(labels[k][1])}</div>
+              </div>
+            </div>`;
+        };
+        document.getElementById('gmailUsageMeters').innerHTML = Object.keys(labels).map(meter).join('');
+
+        const st = u.status;
+        statusEl.className = 'badge fs-6 ' + (st === 'over' ? 'bg-danger' : st === 'warning' ? 'bg-warning text-dark' : 'bg-success');
+        statusEl.textContent = st === 'over' ? 'Limit reached: sending may fail' : st === 'warning' ? 'Over 80%: slow down' : 'Within limits';
+        if (u.failed_last_24h) statusEl.textContent += ` · ${u.failed_last_24h} failed`;
+
+        const daily = u.daily || [];
+        const ctx = document.getElementById('gmailDailyChart');
+        if (gmailDailyChart) gmailDailyChart.destroy();
+        if (typeof Chart !== 'undefined' && ctx) {
+          gmailDailyChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: daily.map(d => d.day.slice(5)),
+              datasets: [
+                { label: 'Emails sent', data: daily.map(d => d.messages), backgroundColor: daily.map(d => d.messages >= u.limits.messages ? '#dc3545' : d.messages >= u.limits.messages * 0.8 ? '#f0ad4e' : '#157a09') },
+                { label: 'Failed', data: daily.map(d => d.failed), backgroundColor: '#adb5bd' },
+                { label: 'Limit', type: 'line', data: daily.map(() => u.limits.messages), borderColor: '#dc3545', borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5 }
+              ]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } },
+                tooltip: { callbacks: { afterBody: (items) => { const d = daily[items[0].dataIndex]; return d ? `Recipients: ${d.recipients.toLocaleString()}` : ''; } } } },
+              scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+            }
+          });
+        }
+      } catch (err) {
+        statusEl.className = 'badge bg-secondary fs-6';
+        statusEl.textContent = 'Could not load';
+        console.warn('[email usage]', err);
+      }
+    }
+    window.loadEmailUsage = loadEmailUsage;
+
     async function loadAnalytics() {
+      loadEmailUsage();
       const timeframe = document.getElementById('timeframeSelect').value;
       try {
         const res = await apiRequest(`/emails/analytics?timeframe=${timeframe}`);
