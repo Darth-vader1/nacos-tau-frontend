@@ -370,9 +370,9 @@
       </div>
       <div class="container text-center " style="padding-bottom: 50px;">
         <div class="d-flex flex-column justify-content-center align-items-center">
-          <h1 data-aos="fade-up">Welcome to Thomas Adewumi University's <br><span>Nigeria Association of Computing
+          <h1 data-aos="fade-up"><span id="hero-title-prefix">Welcome to Thomas Adewumi University's</span> <br><span id="hero-title-highlight">Nigeria Association of Computing
               Students</span></h1>
-          <p data-aos="fade-up" data-aos-delay="100"><em>Breeding the innovators of tomorrow's technology.</em><br></p>
+          <p data-aos="fade-up" data-aos-delay="100"><em id="hero-subtitle">Breeding the innovators of tomorrow's technology.</em><br></p>
           <div class="d-flex" data-aos="fade-up" data-aos-delay="200" style="padding-bottom: 2%;">
             <a id="hero-signin-btn" class="btn-get-started" href="student-login.html">Sign In</a>
             <a id="hero-dashboard-btn" class="btn-get-started" href="student-dashboard.html"
@@ -390,13 +390,13 @@
         <div class="row gy-4 align-items-center">
           <div class="col-lg-6 content" data-aos="fade-up" data-aos-delay="100">
             <p class="who-we-are">Who We Are</p>
-            <h3>Breeding the innovators of tomorrow's technology</h3>
-            <p class="fst-italic">
+            <h3 id="about-heading">Breeding the innovators of tomorrow's technology</h3>
+            <p class="fst-italic" id="about-intro">
               The Nigeria Association of Computing Students (NACOS) at Thomas Adewumi University is home to all
               students
               of Computer Science, Software Engineering and all other IT related courses.
             </p>
-            <ul>
+            <ul id="about-bullets">
               <li><i class="bi bi-check-circle"></i> <span>We foster a supportive and collaborative community for all
                   computing students.</span></li>
               <li><i class="bi bi-check-circle"></i> <span>We aim to bridge the gap between theoretical and practical
@@ -597,14 +597,14 @@
         <h2>Current Executives</h2>
         <div class="mb-2">
           <span class="badge px-3 py-2 rounded-pill shadow-sm" style="background: #157a09; color: #ffffff; font-size: 13px; font-weight: 700; letter-spacing: 0.5px;">
-            <i class="bi bi-mortarboard-fill me-1"></i> 2026/2027 ACADEMIC SESSION
+            <i class="bi bi-mortarboard-fill me-1"></i> <span id="exec-session-badge">2026/2027 ACADEMIC SESSION</span>
           </span>
         </div>
-        <p>With a versatile and hardworking team of student leaders, we are proud to be led by some of the brightest minds on campus for the 2026/2027 academic tenure!</p>
+        <p id="exec-subtitle">With a versatile and hardworking team of student leaders, we are proud to be led by some of the brightest minds on campus for the 2026/2027 academic tenure!</p>
       </div>
 
       <div class="container">
-        <div class="row gy-4">
+        <div class="row gy-4" id="dynamicExecsContainer">
           <!-- All your executive cards (kept exactly as you had them) -->
           <div class="col-lg-4" data-aos="zoom-in" data-aos-delay="100">
             <div class="pricing-item">
@@ -813,26 +813,26 @@
                     Account Details</h3>
                   <div>
                     <p>Account Number:
-                      <strong style="padding-right: 2%">0118670866</strong>
+                      <strong id="pay-account-number" style="padding-right: 2%">0118670866</strong>
                       <i class="bi bi-copy" id="accountNumberIcon" style="cursor: pointer; font-size: larger;"
                         onclick="copyToClipboard()"></i>
                       <i class="bi bi-check-circle" id="copyMsg"
                         style="display: none; color: green; margin-left: 10px;">Copied to clipboard</i>
                     </p>
                   </div>
-                  <p>Account Name: <strong>Nigerian Association of Computing Students - TAU</strong></p>
-                  <p>Bank: <strong>Sterling Bank</strong></p>
-                  <p>Amount For Association Members: <strong>₦40,000</strong></p>
-                  <p>Note: <strong>Please include your full name, matric number and purpose of payment as the payment
+                  <p>Account Name: <strong id="pay-account-name">Nigerian Association of Computing Students - TAU</strong></p>
+                  <p>Bank: <strong id="pay-bank-name">Sterling Bank</strong></p>
+                  <p>Amount For Association Members: <strong id="pay-dues-amount">₦40,000</strong></p>
+                  <p>Note: <strong id="pay-note">Please include your full name, matric number and purpose of payment as the payment
                       reference.</strong></p>
                   <small style="display: flex; margin: auto; justify-content: center; align-items: center;"><em>Payment
-                      Reference: <strong>NACOS-TAU | Your Matric Number | Association Fee</strong></em></small>
+                      Reference: <strong id="pay-ref-format">NACOS-TAU | Your Matric Number | Association Fee</strong></em></small>
 
                   <br>
                   <hr>
                   <div>
                     <strong>For any inquiries, please reach out through: </strong>
-                    <p class="contact-info">
+                    <p class="contact-info" id="pay-inquiry-contacts">
                       <a href="mailto:nacos@tau.edu.ng" target="_blank">nacos@tau.edu.ng</a> <br>
                       <a href="https://wa.me/+2349167566489" target="_blank">The President</a> <br>
                       <a href="https://wa.me/09167566489" target="_blank">The Vice President </a><br>
@@ -914,7 +914,8 @@
     function copyToClipboard() {
       const copyIcon = document.getElementById('accountNumberIcon');
       const msg = document.getElementById('copyMsg');
-      navigator.clipboard.writeText('0118670866').then(() => {
+      const accountNum = document.getElementById('pay-account-number')?.textContent?.trim() || '0118670866';
+      navigator.clipboard.writeText(accountNum).then(() => {
         copyIcon.style.display = 'none';
         msg.style.display = 'inline';
         setTimeout(() => {
@@ -1182,6 +1183,7 @@
       }
     };
   </script>
+  <script type="module" src="assets/js/homepage-cms.js"></script>
 </body>
 
 </html>

@@ -604,6 +604,33 @@ export const api = {
         }
     },
 
+    siteContent: {
+        async get() {
+            const response = await fetch(`${API_URL}/site-content`);
+            return response.json();
+        },
+        async getAllExecutives() {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('GET', `${API_URL}/site-content/executives/all`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            return response.json();
+        },
+        async updateSettings(data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('PUT', `${API_URL}/site-content/settings`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        }
+    },
+
     emails: {
         async previewRecipients(filter = {}) {
             const { data: { session } } = await supabase.auth.getSession();
