@@ -775,6 +775,12 @@
 
           <!-- Right Content Area -->
           <div class="col-lg-9">
+            <!-- Game Marshal (only shown while an admin has appointed this student) -->
+            <section id="marshalCard" class="card shadow-sm border-0 mb-4" style="border-radius: 20px; padding: 22px; border-left: 6px solid #157a09 !important;" hidden aria-labelledby="marshalCardTitle">
+              <h2 id="marshalCardTitle" class="h5 fw-bold mb-1" style="color: #157a09;"><i class="bi bi-controller me-2"></i>Game Marshal</h2>
+              <p class="small text-muted mb-3">You've been appointed to mark plays at a game night. This section disappears when your time ends.</p>
+              <div id="marshalList"></div>
+            </section>
             <!-- Profile Section -->
             <section class="card shadow-sm border-0 mb-4" style="border-radius: 20px; padding: 30px;" aria-labelledby="profileName">
               <div class="row align-items-center">
@@ -2607,7 +2613,37 @@
       if (loadingState) loadingState.style.display = 'none';
       if (dashboardContent) dashboardContent.style.display = 'block';
 
+      loadMarshalCard();
       scheduleSessionRefresh();
+    }
+
+    // Game Marshal card: only while an admin-set appointment hasn't ended.
+    async function loadMarshalCard() {
+      const card = document.getElementById('marshalCard');
+      const list = document.getElementById('marshalList');
+      if (!card || !list || !api.gameMarshals) return;
+      try {
+        const res = await api.gameMarshals.me();
+        const rows = (res && res.success && Array.isArray(res.data)) ? res.data : [];
+        if (!rows.length) { card.hidden = true; return; }
+        const fmt = (d) => new Date(d).toLocaleString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+        list.innerHTML = rows.map(a => `
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 border rounded-3 p-3 mb-2">
+            <div>
+              <div class="fw-semibold">${escapeHtml(a.event?.title || 'Game Night')}</div>
+              <div class="small text-muted">${a.active ? `Active until ${escapeHtml(fmt(a.ends_at))}` : `Starts ${escapeHtml(fmt(a.starts_at))}, ends ${escapeHtml(fmt(a.ends_at))}`}</div>
+            </div>
+            ${a.active
+              ? `<a class="btn btn-success" href="game-marshal.html?event=${encodeURIComponent(a.event?.id || '')}"><i class="bi bi-qr-code-scan me-1"></i>Open marshal station</a>`
+              : '<span class="badge bg-light text-dark border">Not started yet</span>'}
+          </div>`).join('');
+        card.hidden = false;
+        // Hide or switch on automatically when a start/end time passes.
+        const next = rows.map(a => new Date(a.active ? a.ends_at : a.starts_at).getTime()).filter(t => t > Date.now()).sort((x, y) => x - y)[0];
+        if (next && next - Date.now() < 2 ** 31 - 1) setTimeout(loadMarshalCard, next - Date.now() + 1000);
+      } catch (_) {
+        card.hidden = true; // never block the dashboard over this
+      }
     }
 
     if (document.readyState === 'loading') {

@@ -165,12 +165,14 @@
       <nav id="navmenu" class="navmenu">
         <ul>
           <li><a href="index.html">Home</a></li>
-          <li><a href="past-questions.html">Past Questions</a></li>
-          <li><a href="timetables.html">Timetables</a></li>
-          <li><a href="resources.html">Resources</a></li>
-          <li><a href="career-paths.html">Career Paths</a></li>
+          <li data-members-only hidden><a href="past-questions.html">Past Questions</a></li>
+          <li data-members-only hidden><a href="timetables.html">Timetables</a></li>
+          <li data-members-only hidden><a href="resources.html">Resources</a></li>
+          <li data-members-only hidden><a href="career-paths.html">Career Paths</a></li>
           <li><a href="events.html" class="active">Events</a></li>
           <li><a href="hackathons.html">Hackathons</a></li>
+          <li data-guest-only><a href="student-login.html">Sign In</a></li>
+          <li data-members-only hidden><a href="student-dashboard.html">Dashboard</a></li>
         </ul>
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
@@ -252,8 +254,11 @@
           <div class="footer-links pt-3">
             <h4>Quick Links</h4>
             <a href="index.html">Home</a>
-            <a href="past-questions.html">Past Questions</a>
+            <a href="past-questions.html" data-members-only hidden>Past Questions</a>
             <a href="events.html">Events</a>
+            <a href="events-archive.html">Past Events</a>
+            <a href="privacy-policy.html">Privacy Policy</a>
+            <a href="student-signup.html" data-guest-only>Join NACOS</a>
           </div>
         </div>
       </div>
@@ -263,11 +268,13 @@
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="assets/vendor/aos/aos.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script> 
   <script type="module" src="assets/js/supabase-config.js"></script>
   <script type="module" src="assets/js/api-config.js"></script>
   <script src="assets/js/main.js"></script>
+  <script type="module" src="assets/js/nav-auth.js"></script>
 
   <script type="module">
     import { supabase } from './assets/js/supabase-config.js';
@@ -303,19 +310,57 @@
       return clampQuantity(input.value, parseInt(input.max, 10) || MAX_TICKETS_PER_ORDER);
     }
 
-    function bindQuantityPicker(event, unitPrice) {
+    // ---- Ticket fees (shown before checkout) ----------------------------------
+    // The server always prices the order itself; these are for display only.
+    let ticketFees = { member_service_fee: 0, guest_service_fee: 0, gateway_fee_added_at_checkout: true };
+    let ticketFeesLoaded = null;
+    function loadTicketFees() {
+      if (!ticketFeesLoaded) {
+        ticketFeesLoaded = fetch(`${window.API_URL}/payments/fees`)
+          .then(r => (r.ok ? r.json() : null))
+          .then(j => { if (j && j.data) ticketFees = { ...ticketFees, ...j.data }; })
+          .catch(() => {});
+      }
+      return ticketFeesLoaded;
+    }
+
+    function serviceFeeFor(event, { guest = false } = {}) {
+      const o = event?.service_fee_override;
+      if (o !== null && o !== undefined && o !== '' && Number.isFinite(Number(o))) return Math.max(0, Number(o));
+      return Number(guest ? ticketFees.guest_service_fee : ticketFees.member_service_fee) || 0;
+    }
+
+    const roundNaira = (n) => Math.round(Number(n || 0) * 100) / 100;
+
+    function priceBreakdownText(unit, fee, q, unitWord = 'Tickets') {
+      const tickets = roundNaira(unit * q);
+      const service = roundNaira(fee * q);
+      const parts = [`${unitWord} ${formatCurrency(tickets)}`];
+      if (service > 0) parts.push(`service fee ${formatCurrency(service)}`);
+      let text = parts.join(' + ');
+      if (service > 0) text += ` = ${formatCurrency(tickets + service)}`;
+      if (ticketFees.gateway_fee_added_at_checkout) text += ' · Bachs processing fee added at checkout';
+      return text;
+    }
+
+    function bindQuantityPicker(event, unitPrice, feePerTicket = 0, { perLabel = 'each', unitWord = 'Tickets' } = {}) {
       const input = document.getElementById('ticketQty');
-      if (!input) return;
+      if (!input) return null;
       const max = parseInt(input.max, 10) || 1;
-      const unit = Number(unitPrice ?? event.payment_amount) || 0;
+      let unit = Number(unitPrice ?? event.payment_amount) || 0;
+      const fee = Number(feePerTicket) || 0;
       const totalEl = document.getElementById('payTotal');
+      const breakdownEl = document.getElementById('priceBreakdown');
+      const hintEl = document.getElementById('qtyHint');
       const minus = document.getElementById('qtyMinus');
       const plus = document.getElementById('qtyPlus');
 
       const render = () => {
         const q = clampQuantity(input.value, max);
         input.value = q;
-        if (totalEl) totalEl.textContent = formatCurrency(Math.round(unit * q * 100) / 100);
+        if (totalEl) totalEl.textContent = formatCurrency(roundNaira((unit + fee) * q));
+        if (breakdownEl) breakdownEl.textContent = priceBreakdownText(unit, fee, q, unitWord);
+        if (hintEl) hintEl.innerHTML = `${formatCurrency(unit)} ${perLabel} &middot; max ${max}`;
         if (minus) minus.disabled = q <= 1;
         if (plus) plus.disabled = q >= max;
       };
@@ -325,7 +370,43 @@
       input.addEventListener('change', render);
       input.addEventListener('input', () => { if (input.value !== '') render(); });
       render();
+      return { setUnit(u) { unit = Number(u) || 0; render(); } };
     }
+
+    // ---- Games (pay per play) -------------------------------------------------
+    // An event with games lists them; the buyer picks one game and a number of
+    // plays (2 plays of a ₦500 game = ₦1,000). The server prices it itself.
+    let currentItems = [];
+    let gamePlays = {}; // game id -> plays picked in the open event
+    const MAX_PLAYS_PER_GAME = MAX_TICKETS_PER_ORDER;
+    const MAX_PLAYS_PER_ORDER = 50;
+
+    async function loadItemsFor(eventIds) {
+      if (!eventIds.length) return {};
+      try {
+        const { data, error } = await supabase
+          .from('event_items')
+          .select('*')
+          .in('event_id', eventIds)
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+        if (error) return {};
+        return (data || []).reduce((map, it) => { (map[it.event_id] = map[it.event_id] || []).push(it); return map; }, {});
+      } catch (_) {
+        return {}; // games table not set up yet: treat as no games
+      }
+    }
+
+    const itemPrice = (item, guest) => Number(guest ? item.public_price : item.price) || 0;
+    // Games picked (plays > 0), as sent to the server: [{ item_id, plays }]
+    const selectedGameLines = () => currentItems
+      .filter(g => (gamePlays[g.id] || 0) > 0)
+      .map(g => ({ item_id: g.id, plays: gamePlays[g.id] }));
+    const totalPlays = (lines) => lines.reduce((s, l) => s + l.plays, 0);
+    const gameLineText = (lines) => lines.map(l => {
+      const g = currentItems.find(i => i.id === l.item_id);
+      return `${g ? g.name : 'Game'} × ${l.plays}`;
+    }).join(', ');
 
     document.addEventListener('DOMContentLoaded', async function() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -358,8 +439,10 @@
         if (params.get('guest') === '1' || !userSession) {
           let savedGuest = {};
           try { savedGuest = JSON.parse(localStorage.getItem('pending_bachs_checkout') || '{}') || {}; } catch (_) {}
-          const guestRef = params.get('reference') || params.get('checkout_id') || params.get('session_id') ||
-            (savedGuest.eventId === urlEventId ? savedGuest.checkoutId : null);
+          // Prefer the checkout ID saved when checkout started: it is the one our
+          // server recorded. Bachs may add other IDs (e.g. a charge ID) to the URL.
+          const guestRef = (savedGuest.eventId === urlEventId ? savedGuest.checkoutId : null) ||
+            params.get('checkout_id') || params.get('session_id') || params.get('reference');
           const guestEmail = savedGuest.eventId === urlEventId ? savedGuest.guestEmail : null;
           if (guestRef && guestEmail) {
             await confirmGuestTicket(guestRef, guestEmail);
@@ -373,15 +456,19 @@
         // checkout, then the checkout the server recorded when it was started.
         let saved = {};
         try { saved = JSON.parse(localStorage.getItem('pending_bachs_checkout') || '{}') || {}; } catch (_) {}
-        let reference = params.get('reference') ||
-                        params.get('checkout_id') ||
-                        params.get('session_id') ||
-                        params.get('id') ||
-                        (saved.eventId === urlEventId ? saved.checkoutId : null);
+        // Prefer the checkout ID saved when checkout started (the one our server
+        // recorded); Bachs may append other IDs, such as a charge ID, to the URL.
+        let reference = saved.eventId === urlEventId ? saved.checkoutId : null;
 
+        // Next best: the checkout the server recorded for this event.
         if (!reference) {
           const pending = await findPendingCheckout(urlEventId);
           if (pending) reference = pending.transaction_id;
+        }
+
+        // Last resort: an ID Bachs added to the redirect URL.
+        if (!reference) {
+          reference = params.get('checkout_id') || params.get('session_id') || params.get('reference') || params.get('id');
         }
 
         try { localStorage.removeItem('pending_bachs_checkout'); } catch (_) {}
@@ -406,7 +493,9 @@
 
         // Run payment verification and generate ticket!
         // Quantity is only a fallback here: the server uses the quantity it recorded when the checkout started.
-        await processPaymentVerification(urlEventId, reference, student, saved.eventId === urlEventId ? saved.quantity : undefined);
+        await processPaymentVerification(urlEventId, reference, student,
+          saved.eventId === urlEventId ? saved.quantity : undefined,
+          saved.eventId === urlEventId ? (saved.items || (saved.itemId ? [{ item_id: saved.itemId, plays: saved.quantity || 1 }] : undefined)) : undefined);
         return;
       }
 
@@ -475,11 +564,17 @@
         return;
       }
 
+      const itemsByEvent = await loadItemsFor(data.map(e => e.id));
+
       container.innerHTML = data.map(event => {
         const eventDate = new Date(event.date);
         const day = eventDate.getDate();
         const month = monthNames[eventDate.getMonth()];
         const spotsLeft = spotsLeftFor(event);
+        const games = itemsByEvent[event.id] || [];
+        const gamesBadge = games.length
+          ? `<span class="payment-badge"><i class="bi bi-controller me-1"></i>${games.length} game${games.length > 1 ? 's' : ''} &middot; from ${formatCurrency(Math.min(...games.map(g => Number(g.price))))}/play</span>`
+          : '';
 
         return `
           <div class="col-lg-6">
@@ -503,9 +598,9 @@
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                   <span>
-                    ${event.requires_payment ? `<span class="payment-badge"><i class="bi bi-credit-card me-1"></i>${formatCurrency(event.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}
-                    ${event.requires_payment && isGuestOpen(event) ? `<span class="badge bg-light text-dark border ms-1" title="Non-members can buy at the guest price"><i class="bi bi-people me-1"></i>Guests ${formatCurrency(event.public_price)}</span>` : ''}
-                    ${event.requires_payment && event.allow_repeat_orders ? '<span class="badge bg-light text-dark border ms-1" title="You can buy more tickets after your first order"><i class="bi bi-arrow-repeat me-1"></i>Buy again</span>' : ''}
+                    ${gamesBadge || (event.requires_payment ? `<span class="payment-badge"><i class="bi bi-credit-card me-1"></i>${formatCurrency(event.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>')}
+                    ${event.requires_payment && isGuestOpen(event) ? `<span class="badge bg-light text-dark border ms-1" title="Non-members can buy at the guest price"><i class="bi bi-people me-1"></i>Guests ${games.length ? 'from ' : ''}${formatCurrency(event.public_price)}</span>` : ''}
+                    ${event.requires_payment && event.allow_repeat_orders && !games.length ? '<span class="badge bg-light text-dark border ms-1" title="You can buy more tickets after your first order"><i class="bi bi-arrow-repeat me-1"></i>Buy again</span>' : ''}
                   </span>
                   <button class="btn btn-register btn-sm" onclick="showEventDetails('${escapeJsString(event.id)}')">
                     View Details
@@ -586,6 +681,9 @@
       }
 
       currentEvent = event;
+      currentItems = (await loadItemsFor([event.id]))[event.id] || [];
+      gamePlays = {};
+      const hasGames = currentItems.length > 0;
       const eventDate = new Date(event.date);
       const formattedDate = eventDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -611,8 +709,27 @@
           </div>
           <div class="col-6">
             <p class="mb-1"><strong><i class="bi bi-tag me-2"></i>Fee</strong></p>
-            <p class="text-muted">${event.requires_payment ? formatCurrency(event.payment_amount) : 'Free'}</p>
+            <p class="text-muted">${hasGames ? `From ${formatCurrency(event.payment_amount)} per play` : (event.requires_payment ? formatCurrency(event.payment_amount) : 'Free')}</p>
           </div>
+          ${hasGames ? `
+          <div class="col-12">
+            <p class="mb-1"><strong><i class="bi bi-controller me-2"></i>Games</strong></p>
+            <ul class="list-group list-group-flush mb-2">
+              ${currentItems.map(g => `
+                <li class="list-group-item px-0 d-flex justify-content-between align-items-start">
+                  <span>
+                    <span class="fw-semibold">${escapeHtml(g.name)}</span>
+                    ${g.description ? `<br><small class="text-muted">${escapeHtml(g.description)}</small>` : ''}
+                  </span>
+                  <span class="text-end small">
+                    <span class="fw-semibold">${formatCurrency(g.price)}</span>/play
+                    ${isGuestOpen(event) && Number(g.public_price) > 0 ? `<br><span class="text-muted">Guests ${formatCurrency(g.public_price)}</span>` : ''}
+                  </span>
+                </li>`).join('')}
+            </ul>
+            <p class="small text-muted mb-0">Pay per play: 1 play = 1 game. Want to play twice? Choose 2 plays.</p>
+          </div>
+          ` : ''}
           ${spotsLeft !== null ? `
           <div class="col-12">
             <p class="mb-1"><strong><i class="bi bi-people me-2"></i>Availability</strong></p>
@@ -630,22 +747,53 @@
 
       document.getElementById('eventModalBody').innerHTML = bodyHtml;
 
+      await loadTicketFees();
       let footerHtml = '';
       let pickerUnitPrice = Number(event.payment_amount) || 0;
+      let pickerFee = serviceFeeFor(event, { guest: !userSession });
       const isPaid = event.requires_payment && Number(event.payment_amount) > 0;
       const maxQty = Math.max(1, Math.min(MAX_TICKETS_PER_ORDER, spotsLeft === null ? MAX_TICKETS_PER_ORDER : spotsLeft));
       const hasSeats = spotsLeft === null || spotsLeft > 0;
 
+      const unitWord = hasGames ? 'Plays' : 'Tickets';
+      const perLabel = hasGames ? 'per play' : 'each';
       const pickerHtml = (unitPrice) => `
         <div class="d-flex align-items-center gap-2 me-auto flex-wrap">
-          <label for="ticketQty" class="small text-muted mb-0">Tickets</label>
+          <label for="ticketQty" class="small text-muted mb-0">${unitWord}</label>
           <div class="input-group input-group-sm" style="width: 136px;">
-            <button class="btn btn-outline-secondary" type="button" id="qtyMinus" aria-label="Fewer tickets" style="min-width: 40px;">&minus;</button>
-            <input type="number" id="ticketQty" class="form-control text-center" value="1" min="1" max="${maxQty}" step="1" inputmode="numeric" aria-label="Number of tickets">
-            <button class="btn btn-outline-secondary" type="button" id="qtyPlus" aria-label="More tickets" style="min-width: 40px;">+</button>
+            <button class="btn btn-outline-secondary" type="button" id="qtyMinus" aria-label="Fewer ${unitWord.toLowerCase()}" style="min-width: 40px;">&minus;</button>
+            <input type="number" id="ticketQty" class="form-control text-center" value="1" min="1" max="${maxQty}" step="1" inputmode="numeric" aria-label="Number of ${unitWord.toLowerCase()}">
+            <button class="btn btn-outline-secondary" type="button" id="qtyPlus" aria-label="More ${unitWord.toLowerCase()}" style="min-width: 40px;">+</button>
           </div>
-          <small class="text-muted" id="qtyHint">${formatCurrency(unitPrice)} each &middot; max ${maxQty}</small>
+          <small class="text-muted" id="qtyHint">${formatCurrency(unitPrice)} ${perLabel} &middot; max ${maxQty}</small>
+          <div class="w-100 small text-muted" id="priceBreakdown" aria-live="polite"></div>
         </div>`;
+
+      // Game choice (game events only): any number of games, each with its
+      // own number of plays. Guests only see games with a guest price.
+      const gamesFor = (guest) => currentItems.filter(g => itemPrice(g, guest) > 0);
+      const maxTotalPlays = Math.min(MAX_PLAYS_PER_ORDER, spotsLeft === null ? MAX_PLAYS_PER_ORDER : spotsLeft);
+      const gameListHtml = (guest) => `
+        <div class="w-100 mb-2" id="gameList">
+          <div class="small fw-semibold mb-1">Choose your games and how many plays</div>
+          ${gamesFor(guest).map(g => `
+            <div class="d-flex align-items-center justify-content-between gap-2 border rounded px-2 py-1 mb-1 game-line" data-id="${escapeHtml(g.id)}">
+              <div class="text-start">
+                <span class="fw-semibold">${escapeHtml(g.name)}</span><br>
+                <small class="text-muted">${formatCurrency(itemPrice(g, guest))} per play</small>
+              </div>
+              <div class="input-group input-group-sm flex-nowrap" style="width: 124px;">
+                <button class="btn btn-outline-secondary g-minus" type="button" aria-label="Fewer plays of ${escapeHtml(g.name)}" style="min-width: 40px;">&minus;</button>
+                <input type="text" class="form-control text-center g-plays" value="0" readonly aria-label="Plays of ${escapeHtml(g.name)}">
+                <button class="btn btn-outline-secondary g-plus" type="button" aria-label="More plays of ${escapeHtml(g.name)}" style="min-width: 40px;">+</button>
+              </div>
+            </div>`).join('')}
+          <div class="small text-muted mt-1" id="priceBreakdown" aria-live="polite"></div>
+        </div>`;
+      if (hasGames) {
+        const first = gamesFor(!userSession)[0];
+        if (first) gamePlays[first.id] = 1; // start with one play of the first game
+      }
 
       if (userSession) {
         footerHtml = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`;
@@ -662,7 +810,7 @@
           myRegs = (regs || []).filter(r => (r.status || 'registered') !== 'cancelled');
         }
         const heldTickets = myRegs.reduce((sum, r) => sum + Math.max(1, parseInt(r.ticket_quantity, 10) || 1), 0);
-        const canBuyMore = isPaid && event.allow_repeat_orders;
+        const canBuyMore = isPaid && (event.allow_repeat_orders || hasGames);
 
         if (myRegs.length && !canBuyMore) {
           footerHtml += `
@@ -671,7 +819,15 @@
             </button>
           `;
         } else if (hasSeats) {
-          if (isPaid) {
+          if (isPaid && hasGames) {
+            footerHtml += `
+              ${myRegs.length ? `<div class="w-100 small text-success mb-1"><i class="bi bi-controller me-1"></i>You have ${heldTickets} play${heldTickets > 1 ? 's' : ''} booked. Buy more any time.</div>` : ''}
+              ${gameListHtml(false)}
+              <button type="button" class="btn btn-register" id="gamePayBtn" onclick="registerForEvent('${escapeJsString(eventId)}')">
+                <i class="bi bi-controller me-1"></i> Pay &amp; Play (<span id="payTotal">${formatCurrency(0)}</span>)
+              </button>
+            `;
+          } else if (isPaid) {
             const buyMore = myRegs.length > 0;
             footerHtml += `
               ${buyMore ? `<div class="w-100 small text-success mb-1"><i class="bi bi-ticket-perforated me-1"></i>You have ${heldTickets} ticket${heldTickets > 1 ? 's' : ''} for this event. Repeat purchases are open, so you can buy more.</div>` : ''}
@@ -694,7 +850,19 @@
             </button>
           `;
         }
-      } else if (isPaid && isGuestOpen(event) && hasSeats) {
+      } else if (isPaid && hasGames && isGuestOpen(event) && hasSeats && gamesFor(true).length) {
+        // Non-members: pay per play at each game's guest price
+        footerHtml = `
+          <div class="w-100 small text-muted mb-1">
+            <i class="bi bi-people me-1"></i>Open to non-members.
+            NACOS members: <a href="student-login.html">sign in</a> for member prices.
+          </div>
+          ${gameListHtml(true)}
+          <button type="button" class="btn btn-register" id="gamePayBtn" onclick="startGuestCheckout('${escapeJsString(eventId)}')">
+            <i class="bi bi-controller me-1"></i> Pay &amp; Play as Guest (<span id="payTotal">${formatCurrency(0)}</span>)
+          </button>
+        `;
+      } else if (isPaid && !hasGames && isGuestOpen(event) && hasSeats) {
         // Non-members: guest checkout at the event's guest price
         pickerUnitPrice = Number(event.public_price);
         footerHtml = `
@@ -718,7 +886,45 @@
       }
 
       document.getElementById('eventModalFooter').innerHTML = footerHtml;
-      bindQuantityPicker(event, pickerUnitPrice);
+      bindQuantityPicker(event, pickerUnitPrice, pickerFee, { perLabel, unitWord });
+
+      const gameList = document.getElementById('gameList');
+      if (gameList) {
+        const guest = !userSession;
+        const renderGames = () => {
+          const lines = selectedGameLines();
+          const plays = totalPlays(lines);
+          const subtotal = roundNaira(lines.reduce((s, l) => s + itemPrice(currentItems.find(g => g.id === l.item_id), guest) * l.plays, 0));
+          const service = roundNaira(pickerFee * plays);
+          gameList.querySelectorAll('.game-line').forEach(row => {
+            const n = gamePlays[row.dataset.id] || 0;
+            row.querySelector('.g-plays').value = n;
+            row.querySelector('.g-minus').disabled = n <= 0;
+            row.querySelector('.g-plus').disabled = n >= MAX_PLAYS_PER_GAME || plays >= maxTotalPlays;
+            row.classList.toggle('border-success', n > 0);
+          });
+          const totalEl = document.getElementById('payTotal');
+          if (totalEl) totalEl.textContent = formatCurrency(roundNaira(subtotal + service));
+          const payBtn = document.getElementById('gamePayBtn');
+          if (payBtn) payBtn.disabled = plays === 0;
+          const bd = document.getElementById('priceBreakdown');
+          if (bd) {
+            bd.textContent = plays === 0
+              ? 'Pick at least one play.'
+              : `${plays} play${plays > 1 ? 's' : ''}: ${gameLineText(lines)}. Plays ${formatCurrency(subtotal)}` +
+                (service > 0 ? ` + service fee ${formatCurrency(service)} = ${formatCurrency(roundNaira(subtotal + service))}` : '');
+          }
+        };
+        gameList.addEventListener('click', (ev) => {
+          const btn = ev.target.closest('.g-minus, .g-plus');
+          if (!btn || btn.disabled) return;
+          const id = btn.closest('.game-line').dataset.id;
+          const n = gamePlays[id] || 0;
+          gamePlays[id] = btn.classList.contains('g-plus') ? n + 1 : Math.max(0, n - 1);
+          renderGames();
+        });
+        renderGames();
+      }
 
       new bootstrap.Modal(document.getElementById('eventModal')).show();
     };
@@ -745,7 +951,12 @@
       if (isPaid) {
         // Read the chosen quantity before the modal closes. The server
         // re-validates it and computes the price (unit price × quantity) itself.
-        const quantity = getSelectedQuantity();
+        const items = currentItems.length ? selectedGameLines() : null;
+        if (items && !items.length) {
+          Swal.fire('Choose a game', 'Add at least one play of a game.', 'info');
+          return;
+        }
+        const quantity = items ? totalPlays(items) : getSelectedQuantity();
 
         // Close event modal cleanly to prevent aria-hidden focus blocking
         const eventModalEl = document.getElementById('eventModal');
@@ -764,7 +975,8 @@
         try {
           const sessionRes = await api.payments.createBachsSession({
             event_id: eventId,
-            quantity
+            quantity,
+            ...(items ? { items } : {})
           });
 
           if (!sessionRes.success) {
@@ -785,7 +997,7 @@
               title: 'Bachs Payment Simulation',
               html: `
                 ${reasonHtml}
-                <p class="mt-2">Fee to simulate: <strong>${formatCurrency(Math.round(Number(currentEvent.payment_amount) * quantity * 100) / 100)}</strong> (${quantity} ticket${quantity > 1 ? 's' : ''})</p>
+                <p class="mt-2">Fee to simulate: <strong>${formatCurrency(data.total_amount ?? Math.round(Number(currentEvent.payment_amount) * quantity * 100) / 100)}</strong> (${quantity} ${items ? 'play' : 'ticket'}${quantity > 1 ? 's' : ''})</p>
                 <p class="small text-muted">Click below to simulate server verification and ticket issuance.</p>
               `,
               icon: 'info',
@@ -797,7 +1009,7 @@
 
             if (!devPrompt.isConfirmed) return;
             const testRef = 'NACOS-EVT-' + eventId.substring(0, 4).toUpperCase() + '-' + Date.now();
-            await processPaymentVerification(eventId, testRef, student, quantity);
+            await processPaymentVerification(eventId, testRef, student, quantity, items);
             return;
           }
 
@@ -811,6 +1023,7 @@
                 eventId: eventId,
                 checkoutId: data.checkout_id || data.id,
                 quantity,
+                items,
                 timestamp: Date.now()
               }));
             } catch (_) {}
@@ -823,7 +1036,7 @@
             const handler = BachsCheckout.setup({
               sessionId: data.checkout_id,
               onSuccess: function(response) {
-                processPaymentVerification(eventId, response.reference || data.checkout_id, student, quantity);
+                processPaymentVerification(eventId, response.reference || data.checkout_id, student, quantity, items);
               },
               onClose: function() {
                 Swal.fire({
@@ -913,9 +1126,19 @@
     window.startGuestCheckout = async function(eventId) {
       const event = currentEvent;
       if (!event || event.id !== eventId) return;
-      const quantity = getSelectedQuantity();
-      const unit = Number(event.public_price) || 0;
-      const total = Math.round(unit * quantity * 100) / 100;
+      const items = currentItems.length ? selectedGameLines() : null;
+      if (items && !items.length) {
+        Swal.fire('Choose a game', 'Add at least one play of a game.', 'info');
+        return;
+      }
+      const quantity = items ? totalPlays(items) : getSelectedQuantity();
+      const fee = serviceFeeFor(event, { guest: true });
+      const subtotal = items
+        ? roundNaira(items.reduce((s, l) => s + itemPrice(currentItems.find(g => g.id === l.item_id), true) * l.plays, 0))
+        : roundNaira((Number(event.public_price) || 0) * quantity);
+      const unit = quantity ? subtotal / quantity : 0;
+      const what = items ? escapeHtml(gameLineText(items)) : `${quantity} ticket${quantity > 1 ? 's' : ''}`;
+      const total = roundNaira(subtotal + fee * quantity);
 
       const evModal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
       if (evModal) evModal.hide();
@@ -923,11 +1146,11 @@
       const { value: form, isConfirmed } = await Swal.fire({
         title: 'Buy as a guest',
         html: `
-          <p class="small text-muted mb-2">${quantity} ticket${quantity > 1 ? 's' : ''} &times; ${formatCurrency(unit)} = <strong>${formatCurrency(total)}</strong>. Your ticket will be emailed to you.</p>
+          <p class="small text-muted mb-2">${what}: ${escapeHtml(priceBreakdownText(unit, fee, quantity, items ? 'Plays' : 'Tickets'))}. <strong>Total ${formatCurrency(total)}</strong>. Your ticket will be emailed to you.</p>
           <input id="guestName" class="swal2-input" placeholder="Full name" autocomplete="name" maxlength="100">
           <input id="guestEmail" class="swal2-input" type="email" placeholder="Email address" autocomplete="email" maxlength="254">
           <input id="guestPhone" class="swal2-input" type="tel" placeholder="Phone number" autocomplete="tel" maxlength="20">
-          <p class="small text-muted mt-2 mb-0">We only use these details to issue your ticket and contact you about this event.</p>`,
+          <p class="small text-muted mt-2 mb-0">We only use these details to issue your ticket and contact you about this event. See our <a href="privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>`,
         focusConfirm: false,
         showCancelButton: true,
         confirmButtonText: `Continue to payment (${formatCurrency(total)})`,
@@ -946,7 +1169,7 @@
 
       Swal.fire({ title: 'Preparing secure checkout...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       try {
-        const res = await api.payments.guestSession({ event_id: eventId, quantity, ...form });
+        const res = await api.payments.guestSession({ event_id: eventId, quantity, ...(items ? { items } : {}), ...form });
         if (!res || !res.success) throw new Error(res?.error || res?.message || 'Could not start checkout');
         const data = res.data || {};
 
@@ -986,6 +1209,8 @@
             reference: d.payment?.transaction_id || reference,
             amount: d.total_amount ?? 0,
             quantity: d.ticket_quantity,
+            subtotal: d.subtotal_amount, serviceFee: d.service_fee, gatewayFee: d.gateway_fee,
+            games: d.games,
             paymentType: 'Guest ticket (confirmed)'
           });
           await loadEvents();
@@ -1135,6 +1360,8 @@
           reference: res.data?.payment?.transaction_id || '',
           amount: res.data?.total_amount ?? res.data?.payment?.amount ?? ev.payment_amount ?? 0,
           quantity: res.data?.ticket_quantity,
+          subtotal: res.data?.subtotal_amount, serviceFee: res.data?.service_fee, gatewayFee: res.data?.gateway_fee,
+          games: res.data?.games,
           paymentType: 'Online payment (confirmed)'
         });
         await loadEvents();
@@ -1143,7 +1370,7 @@
       }
     }
 
-    async function processPaymentVerification(eventId, reference, student, quantity) {
+    async function processPaymentVerification(eventId, reference, student, quantity, items) {
       let attempts = 0;
       const maxAttempts = 6; // Check up to 6 times (18 seconds total)
 
@@ -1167,7 +1394,8 @@
           const verifyRes = await api.payments.verifyPaystack({
             reference: reference,
             event_id: eventId,
-            ...(quantity ? { quantity } : {})
+            ...(quantity ? { quantity } : {}),
+            ...(Array.isArray(items) && items.length ? { items } : {})
           });
 
           if (verifyRes.success) {
@@ -1188,6 +1416,8 @@
               reference: reference,
               amount: verifyRes.data?.total_amount ?? verifyRes.data?.payment?.amount ?? evToDisplay.payment_amount ?? 0,
               quantity: verifyRes.data?.ticket_quantity,
+              subtotal: verifyRes.data?.subtotal_amount, serviceFee: verifyRes.data?.service_fee, gatewayFee: verifyRes.data?.gateway_fee,
+              games: verifyRes.data?.games,
               paymentType: 'Bachs Verified'
             });
 
@@ -1222,7 +1452,7 @@
               cancelButtonText: 'Check Receipt Page'
             }).then((result) => {
               if (result.isConfirmed) {
-                processPaymentVerification(eventId, reference, student, quantity);
+                processPaymentVerification(eventId, reference, student, quantity, items);
               } else if (result.dismiss === Swal.DismissReason.cancel) {
                 window.location.href = `receipt.html?reference=${encodeURIComponent(reference)}`;
               }
@@ -1234,8 +1464,15 @@
       attemptVerify();
     }
 
-    window.showTicketModal = function({ event, student, ticketNumber, reference, amount, quantity, paymentType }) {
+    window.showTicketModal = function({ event, student, ticketNumber, reference, amount, quantity, paymentType, subtotal, serviceFee, gatewayFee, games }) {
       const qty = Math.max(1, parseInt(quantity, 10) || 1);
+      // Game orders: plays of each game, not people admitted.
+      const gameList = Array.isArray(games) && games.length ? games : null;
+      const gamesText = gameList ? gameList.map(g => `${g.name} × ${g.plays}`).join(', ') : '';
+      const unitWord = gameList ? 'plays' : 'tickets';
+      const ticketsPart = Number(subtotal ?? amount) || 0;
+      const servicePart = Number(serviceFee) || 0;
+      const gatewayPart = Number(gatewayFee) || 0;
       const s = student || {};
       const ev = event || currentEvent || {};
       const studentName = s.name || `${s.first_name || ''} ${s.last_name || ''}`.trim() || userSession?.user?.email?.split('@')[0] || 'Student';
@@ -1270,6 +1507,12 @@
             </div>
           </div>
 
+          ${gameList && ticketNumber ? `
+          <div class="text-center mt-3">
+            <div id="ticketQr" class="d-inline-block p-2 bg-white border rounded" aria-label="QR code for ticket ${escapeHtml(ticketNumber)}"></div>
+            <div class="small text-muted mt-1">Show this QR code at the game area</div>
+          </div>` : ''}
+
           <div class="table-responsive mt-3">
             <table class="table table-sm table-borderless small mb-0">
               <tbody>
@@ -1286,13 +1529,24 @@
                   <td class="text-muted">Date & Time:</td>
                   <td>${escapeHtml(dateStr)} • ${escapeHtml(timeStr)}</td>
                 </tr>
+                ${gameList ? `
+                <tr>
+                  <td class="text-muted">Games:</td>
+                  <td>${escapeHtml(gamesText)}</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Plays:</td>
+                  <td><strong>${qty}</strong> play${qty > 1 ? 's' : ''} in total</td>
+                </tr>` : `
                 <tr>
                   <td class="text-muted">Tickets:</td>
                   <td><strong>${qty}</strong> &mdash; admits ${qty} ${qty > 1 ? 'people' : 'person'}</td>
-                </tr>
+                </tr>`}
                 <tr>
-                  <td class="text-muted">Fee Paid:</td>
-                  <td><strong class="text-success">${feeFormatted}</strong>${qty > 1 && amount > 0 ? ` <span class="text-muted">(${qty} × ${formatCurrency(Math.round((amount / qty) * 100) / 100)})</span>` : ''}</td>
+                  <td class="text-muted">${servicePart > 0 ? 'Total Paid:' : 'Fee Paid:'}</td>
+                  <td><strong class="text-success">${feeFormatted}</strong>${servicePart > 0
+                    ? ` <span class="text-muted">(${unitWord} ${formatCurrency(ticketsPart)}${qty > 1 && !gameList ? ` = ${qty} × ${formatCurrency(roundNaira(ticketsPart / qty))}` : ''} + service fee ${formatCurrency(servicePart)})</span>`
+                    : (qty > 1 && ticketsPart > 0 && !gameList ? ` <span class="text-muted">(${qty} × ${formatCurrency(roundNaira(ticketsPart / qty))})</span>` : '')}${gatewayPart > 0 ? `<div class="small text-muted">+ Bachs processing fee ${formatCurrency(gatewayPart)} paid at checkout</div>` : ''}</td>
                 </tr>
                 <tr>
                   <td class="text-muted">Reference:</td>
@@ -1303,12 +1557,18 @@
           </div>
 
           <div class="alert alert-light border mt-3 mb-0 text-center small text-muted">
-            <i class="bi bi-envelope-check text-success me-1"></i> A confirmation receipt and ticket details have been sent to <strong>${escapeHtml(studentEmail)}</strong>. Present this pass at venue entrance.
+            <i class="bi bi-envelope-check text-success me-1"></i> A confirmation receipt and ticket details have been sent to <strong>${escapeHtml(studentEmail)}</strong>. ${gameList ? 'Show this pass or your ticket number at the game area.' : 'Present this pass at venue entrance.'}
           </div>
         </div>
       `;
 
       document.getElementById('ticketModalBody').innerHTML = bodyHtml;
+      const qrEl = document.getElementById('ticketQr');
+      if (qrEl && typeof QRCode !== 'undefined') {
+        try { new QRCode(qrEl, { text: String(ticketNumber), width: 150, height: 150, correctLevel: QRCode.CorrectLevel.M }); } catch (_) { qrEl.remove(); }
+      } else if (qrEl) {
+        qrEl.parentElement.remove();
+      }
       const modal = new bootstrap.Modal(document.getElementById('ticketModal'));
       modal.show();
     };

@@ -42,6 +42,19 @@
       ]
     },
     {
+      "source": "/game-marshal(.html)?",
+      "headers": [
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(), microphone=(), camera=(self)"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [
         {

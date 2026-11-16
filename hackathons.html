@@ -36,6 +36,24 @@
   <link href="assets/css/main.css" rel="stylesheet">
 
   <style>
+    /* Teammate picker suggestions */
+    .tm-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 1065;
+      max-height: 260px;
+      overflow-y: auto;
+      margin-top: 2px;
+      padding: 0;
+      border-radius: 8px;
+    }
+    .tm-suggestions .tm-option { cursor: pointer; padding: 8px 12px; min-height: 44px; }
+    .tm-suggestions .tm-option.active,
+    .tm-suggestions .tm-option:hover { background: #e8f5e9; color: #0f5132; }
+    .tm-suggestions .tm-option.active .text-muted { color: #2f6f43 !important; }
+
     :root {
       --brand-green: #157a09;
       --brand-green-hover: #15730a;
@@ -585,12 +603,14 @@
       <nav id="navmenu" class="navmenu">
         <ul>
           <li><a href="index.html">Home</a></li>
-          <li><a href="past-questions.html">Past Questions</a></li>
-          <li><a href="timetables.html">Timetables</a></li>
-          <li><a href="resources.html">Resources</a></li>
-          <li><a href="career-paths.html">Career Paths</a></li>
+          <li data-members-only hidden><a href="past-questions.html">Past Questions</a></li>
+          <li data-members-only hidden><a href="timetables.html">Timetables</a></li>
+          <li data-members-only hidden><a href="resources.html">Resources</a></li>
+          <li data-members-only hidden><a href="career-paths.html">Career Paths</a></li>
           <li><a href="events.html">Events</a></li>
           <li><a href="hackathons.html" class="active">Hackathons</a></li>
+          <li data-guest-only><a href="student-login.html">Sign In</a></li>
+          <li data-members-only hidden><a href="student-dashboard.html">Dashboard</a></li>
         </ul>
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
@@ -852,7 +872,7 @@
     </div>
 
     <div class="container copyright text-center mt-4 pt-3 border-top">
-      <p class="small text-muted mb-0">Copyright © <strong class="text-dark">NACOS - TAU Development Team.</strong> All Rights Reserved.</p>
+      <p class="small text-muted mb-0">Copyright © <strong class="text-dark">NACOS - TAU Development Team.</strong> All Rights Reserved. &middot; <a href="privacy-policy.html">Privacy Policy</a> &middot; <a href="terms-conditions.html">Terms</a></p>
     </div>
   </footer>
 
@@ -862,6 +882,9 @@
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script>
   <script src="assets/js/main.js"></script>
+  <script src="assets/js/prize-format.js"></script>
+  <script src="assets/js/team-members.js"></script>
+  <script type="module" src="assets/js/nav-auth.js"></script>
   <script type="module" src="assets/js/supabase-config.js"></script>
   <script type="module" src="assets/js/api-config.js"></script>
 
@@ -884,13 +907,11 @@
       return div.innerHTML;
     }
 
+    // Shared with the emails (assets/js/prize-format.js): formats every naira
+    // amount inside the prize text, e.g. "N300,000 (1st: 150k)" -> "₦300,000 (1st: ₦150,000)".
     function formatPrizePool(prize) {
-      if (!prize) return '';
-      const str = String(prize).trim();
-      if (/^\d+(\.\d+)?$/.test(str)) {
-        return '₦' + Number(str).toLocaleString('en-NG');
-      }
-      return str;
+      if (window.NacosFormat && window.NacosFormat.prizePool) return window.NacosFormat.prizePool(prize);
+      return prize ? String(prize).trim() : '';
     }
 
     function toggleLookingForFields(isChecked) {
@@ -1159,7 +1180,10 @@
 
           // Find special roles requested or contact if stored in metadata
           const metaReq = members.find(m => m.name === '[ROLE_REQ]');
-          const actualMembers = members.filter(m => m.name !== '[ROLE_REQ]');
+          const actualMembers = window.NacosTeams
+            ? window.NacosTeams.teammatesOf(members)
+            : members.filter(m => m.name !== '[ROLE_REQ]' && m.name !== '[LEADER_META]');
+          const leaderMetaRow = members.find(m => m.name === '[LEADER_META]');
           const rolesNeeded = metaReq ? metaReq.role : (t.track_selected ? `${t.track_selected} collaborators` : 'Passionate Builders');
           const contact = metaReq ? metaReq.email : (actualMembers[0]?.email || '');
 
@@ -1184,7 +1208,7 @@
                 </div>
 
                 <div class="mb-4 flex-grow-1">
-                  <span class="d-block text-muted small fw-semibold mb-1" style="font-size: 11px; text-transform: uppercase;">Current Members (${actualMembers.length || 1}):</span>
+                  <span class="d-block text-muted small fw-semibold mb-1" style="font-size: 11px; text-transform: uppercase;">Current Members (${actualMembers.length + 1}):</span>
                   <div class="d-flex flex-wrap gap-1">
                     ${actualMembers.map(m => `
                       <span class="member-avatar-chip">
@@ -1193,7 +1217,7 @@
                         ${m.role ? `<span class="text-muted">(${escapeHtml(m.role)})</span>` : ''}
                       </span>
                     `).join('')}
-                    ${!actualMembers.length ? `<span class="member-avatar-chip"><i class="bi bi-person-circle"></i> Team Leader</span>` : ''}
+                    <span class="member-avatar-chip"><i class="bi bi-star-fill text-warning"></i> ${escapeHtml((leaderMetaRow && leaderMetaRow.leader_name) || 'Team Leader')} <span class="text-muted">(Leader)</span></span>
                   </div>
                 </div>
 
@@ -1488,7 +1512,9 @@
 
       const members = Array.isArray(reg.team_members) ? reg.team_members : [];
       const metaReq = members.find(m => m.name === '[ROLE_REQ]');
-      const actualMembers = members.filter(m => m.name !== '[ROLE_REQ]' && m.name !== '[LEADER_META]');
+      const actualMembers = window.NacosTeams
+        ? window.NacosTeams.teammatesOf(members)
+        : members.filter(m => m.name !== '[ROLE_REQ]' && m.name !== '[LEADER_META]');
 
       if (document.getElementById('rolesNeeded')) {
         document.getElementById('rolesNeeded').value = metaReq ? metaReq.role : '';
@@ -1499,30 +1525,208 @@
 
       const container = document.getElementById('teammatesContainer');
       container.innerHTML = '';
-      actualMembers.forEach(m => {
-        const div = document.createElement('div');
-        div.className = 'input-group mb-2';
-        div.innerHTML = `
-          <input type="text" class="form-control rounded-start" placeholder="Teammate Name" value="${escapeHtml(m.name || '')}" required>
-          <input type="email" class="form-control" placeholder="Student Email" value="${escapeHtml(m.email || '')}" required>
-          <input type="text" class="form-control" placeholder="Role (e.g. Backend)" value="${escapeHtml(m.role || '')}">
-          <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()"><i class="bi bi-trash"></i></button>`;
-        container.appendChild(div);
-      });
+      actualMembers.forEach(m => container.appendChild(createTeammateRow(m)));
 
       new bootstrap.Modal(document.getElementById('registerModal')).show();
     }
 
     function addTeammateField() {
-      const c = document.getElementById('teammatesContainer');
-      const div = document.createElement('div');
-      div.className = 'input-group mb-2';
-      div.innerHTML = `
-        <input type="text" class="form-control rounded-start" placeholder="Teammate Name" required>
-        <input type="email" class="form-control" placeholder="Student Email" required>
-        <input type="text" class="form-control" placeholder="Role (e.g. Backend)">
-        <button class="btn btn-outline-danger" type="button" onclick="this.parentElement.remove()"><i class="bi bi-trash"></i></button>`;
-      c.appendChild(div);
+      const row = createTeammateRow();
+      document.getElementById('teammatesContainer').appendChild(row);
+      row.querySelector('.tm-name').focus();
+    }
+
+    // ---- Teammate picker: type 3+ letters of a classmate's name, pick them ----
+    // Picking links the row to their account (the server fills in their exact
+    // name and email). Typing a name + email without picking still works for
+    // teammates who don't have a portal account.
+    let teammateRowSeq = 0;
+
+    function setRowLinked(row, student) {
+      const nameInput = row.querySelector('.tm-name');
+      const emailInput = row.querySelector('.tm-email');
+      const badge = row.querySelector('.tm-linked');
+      if (student) {
+        row.dataset.userId = student.user_id;
+        nameInput.value = student.name;
+        nameInput.classList.add('is-valid');
+        emailInput.value = student.email || '';
+        emailInput.readOnly = true;
+        emailInput.required = false;
+        emailInput.placeholder = 'Linked to their NACOS account';
+        badge.hidden = false;
+        badge.textContent = [student.department, student.level ? `${student.level} Level` : ''].filter(Boolean).join(' · ') || 'NACOS member';
+      } else {
+        delete row.dataset.userId;
+        nameInput.classList.remove('is-valid');
+        if (emailInput.readOnly) emailInput.value = '';
+        emailInput.readOnly = false;
+        emailInput.required = true;
+        emailInput.placeholder = 'Student Email';
+        badge.hidden = true;
+      }
+    }
+
+    // Remembers teammate searches for a minute, shared by every teammate row.
+    // When a search came back with every match (`complete`), longer searches
+    // that start with it are answered from memory by narrowing that list.
+    const teammateSearchCache = (() => {
+      const TTL = 60 * 1000;
+      const store = new Map(); // key -> { at, h, q, results, complete }
+      const key = (h, q) => h + '|' + q.toLowerCase();
+      const fresh = (e) => e && Date.now() - e.at < TTL;
+      return {
+        put(h, q, results, complete) { store.set(key(h, q), { at: Date.now(), h, q: q.toLowerCase(), results, complete }); },
+        lookup(h, q) {
+          const ql = q.toLowerCase();
+          const exact = store.get(key(h, q));
+          if (fresh(exact)) return exact.results;
+          if (/[,()*%\\":.]/.test(ql)) return null; // server cleans these; let it decide
+          let best = null;
+          for (const e of store.values()) {
+            if (e.h !== h || !fresh(e) || !e.complete || !ql.startsWith(e.q)) continue;
+            if (!best || e.q.length > best.q.length) best = e;
+          }
+          if (!best) return null;
+          return best.results.filter(s => String(s.name || '').toLowerCase().includes(ql));
+        }
+      };
+    })();
+
+    function createTeammateRow(member = {}) {
+      const n = ++teammateRowSeq;
+      const row = document.createElement('div');
+      row.className = 'teammate-row mb-2';
+      row.innerHTML = `
+        <div class="d-flex flex-wrap flex-md-nowrap gap-2 align-items-start">
+          <div class="tm-name-wrap position-relative flex-grow-1" style="min-width: 200px;">
+            <input type="text" class="form-control tm-name" placeholder="Type 3+ letters of their name" autocomplete="off"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="tm-list-${n}" aria-label="Teammate name" required>
+            <ul class="tm-suggestions list-group shadow-sm" id="tm-list-${n}" role="listbox" hidden></ul>
+            <small class="tm-linked text-success d-block mt-1" hidden></small>
+          </div>
+          <input type="email" class="form-control tm-email" placeholder="Student Email" aria-label="Teammate email" style="min-width: 180px;" required>
+          <input type="text" class="form-control tm-role" placeholder="Role (e.g. Backend)" aria-label="Teammate role" style="max-width: 200px;">
+          <button class="btn btn-outline-danger" type="button" aria-label="Remove teammate" onclick="this.closest('.teammate-row').remove()"><i class="bi bi-trash"></i></button>
+        </div>`;
+
+      const nameInput = row.querySelector('.tm-name');
+      const emailInput = row.querySelector('.tm-email');
+      const roleInput = row.querySelector('.tm-role');
+      const list = row.querySelector('.tm-suggestions');
+
+      nameInput.value = member.name || '';
+      emailInput.value = member.email || '';
+      roleInput.value = member.role || '';
+      if (member.user_id) {
+        setRowLinked(row, { user_id: member.user_id, name: member.name || '', email: member.email || '' });
+      }
+
+      let timer = null;
+      let controller = null;
+      let options = [];
+      let active = -1;
+
+      const close = () => {
+        list.hidden = true;
+        list.innerHTML = '';
+        nameInput.setAttribute('aria-expanded', 'false');
+        nameInput.removeAttribute('aria-activedescendant');
+        active = -1;
+      };
+
+      const highlight = (i) => {
+        const items = list.querySelectorAll('[role="option"]');
+        items.forEach((el, idx) => {
+          const on = idx === i;
+          el.classList.toggle('active', on);
+          el.setAttribute('aria-selected', on ? 'true' : 'false');
+          if (on) { nameInput.setAttribute('aria-activedescendant', el.id); el.scrollIntoView({ block: 'nearest' }); }
+        });
+        active = i;
+      };
+
+      const choose = (i) => {
+        const s = options[i];
+        if (!s) return;
+        setRowLinked(row, s);
+        close();
+        roleInput.focus();
+      };
+
+      const render = (results, q) => {
+        options = results;
+        if (!results.length) {
+          list.innerHTML = `<li class="list-group-item small text-muted">No matching student for "${escapeHtml(q)}". Keep typing, or enter their email to add them manually.</li>`;
+        } else {
+          list.innerHTML = results.map((s, i) => `
+            <li class="list-group-item list-group-item-action tm-option" role="option" id="tm-opt-${n}-${i}" aria-selected="false" data-i="${i}">
+              <div class="fw-semibold">${escapeHtml(s.name)}</div>
+              <div class="small text-muted">${escapeHtml([s.department, s.level ? `${s.level} Level` : ''].filter(Boolean).join(' · ') || 'NACOS member')}</div>
+            </li>`).join('');
+          list.querySelectorAll('.tm-option').forEach(li => {
+            // mousedown fires before the input loses focus, so the pick isn't lost
+            li.addEventListener('mousedown', (ev) => { ev.preventDefault(); choose(Number(li.dataset.i)); });
+          });
+        }
+        list.hidden = false;
+        nameInput.setAttribute('aria-expanded', 'true');
+        active = -1;
+      };
+
+      const showSearching = () => {
+        options = [];
+        list.innerHTML = '<li class="list-group-item small text-muted"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Searching…</li>';
+        list.hidden = false;
+        nameInput.setAttribute('aria-expanded', 'true');
+        active = -1;
+      };
+
+      const show = (all, q) => {
+        const pickedElsewhere = new Set([...document.querySelectorAll('#teammatesContainer .teammate-row')]
+          .filter(r => r !== row && r.dataset.userId).map(r => r.dataset.userId));
+        render(all.filter(s => !pickedElsewhere.has(s.user_id)).slice(0, 8), q);
+      };
+
+      const search = async (q) => {
+        const hackathonId = document.getElementById('regHackathonId').value;
+        if (!hackathonId) return;
+        if (controller) controller.abort();
+        controller = new AbortController();
+        try {
+          const res = await api.hackathons.teammateSearch(hackathonId, q, { signal: controller.signal });
+          const data = (res && res.data) || {};
+          teammateSearchCache.put(hackathonId, q, data.results || [], data.complete === true);
+          if (nameInput.value.trim() !== q) return; // a newer search is on its way
+          show(data.results || [], q);
+        } catch (err) {
+          if (err.name !== 'AbortError') close(); // offline / server error: manual entry still works
+        }
+      };
+
+      nameInput.addEventListener('input', () => {
+        if (row.dataset.userId) setRowLinked(row, null); // editing the name unlinks the account
+        const q = nameInput.value.trim();
+        clearTimeout(timer);
+        if (q.length < 3) { if (controller) controller.abort(); close(); return; }
+        // Already know the answer (same search before, or a shorter search
+        // that returned every match)? Show it at once, no request.
+        const known = teammateSearchCache.lookup(document.getElementById('regHackathonId').value, q);
+        if (known) { if (controller) controller.abort(); show(known, q); return; }
+        showSearching();
+        timer = setTimeout(() => search(q), 200);
+      });
+
+      nameInput.addEventListener('keydown', (ev) => {
+        if (list.hidden || !options.length) return;
+        if (ev.key === 'ArrowDown') { ev.preventDefault(); highlight(Math.min(active + 1, options.length - 1)); }
+        else if (ev.key === 'ArrowUp') { ev.preventDefault(); highlight(Math.max(active - 1, 0)); }
+        else if (ev.key === 'Enter' && active >= 0) { ev.preventDefault(); choose(active); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); close(); }
+      });
+
+      nameInput.addEventListener('blur', () => setTimeout(close, 150));
+      return row;
     }
 
     async function handleRegistration(e) {
@@ -1593,15 +1797,26 @@
       // Extract teammates
       const rows = document.getElementById('teammatesContainer').children;
       const teamMembers = [];
+      const myEmail = String(session?.user?.email || '').trim().toLowerCase();
+      let skippedSelf = false;
       for (let r of rows) {
-        const inputs = r.querySelectorAll('input');
-        if (inputs.length >= 2 && inputs[0].value.trim()) {
-          teamMembers.push({
-            name: inputs[0].value.trim(),
-            email: inputs[1].value.trim(),
-            role: inputs[2] ? inputs[2].value.trim() : ''
-          });
-        }
+        const nameVal = (r.querySelector('.tm-name') || r.querySelectorAll('input')[0])?.value.trim();
+        if (!nameVal) continue;
+        const memberEmail = (r.querySelector('.tm-email') || r.querySelectorAll('input')[1])?.value.trim() || '';
+        const roleVal = (r.querySelector('.tm-role') || r.querySelectorAll('input')[2])?.value.trim() || '';
+        const linkedId = r.dataset.userId || '';
+        // You are already the team leader: listing yourself again would count you twice.
+        if ((linkedId && linkedId === session.user.id) || (myEmail && memberEmail.toLowerCase() === myEmail)) { skippedSelf = true; continue; }
+        teamMembers.push({
+          name: nameVal,
+          email: memberEmail,
+          role: roleVal,
+          ...(linkedId ? { user_id: linkedId } : {}) // picked from the search: the server fills in their account details
+        });
+      }
+      if (skippedSelf && window.Swal) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'info', timer: 4500, showConfirmButton: false,
+          title: "You're the team leader, so you weren't added again as a teammate." });
       }
 
       const isLooking = document.getElementById('isLookingForMembers').checked;

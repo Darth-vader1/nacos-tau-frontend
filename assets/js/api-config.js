@@ -300,6 +300,60 @@ export const api = {
             return response.json();
         },
 
+        // Admin: ticket fee settings (read: any admin; change: super admin)
+        async getFeeSettings() {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('GET', `${API_URL}/payments/fee-settings`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            return response.json();
+        },
+
+        async updateFeeSettings(data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('PUT', `${API_URL}/payments/fee-settings`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+
+        // Admin: revenue split into tickets, service fees and Bachs fees
+        async getRevenue(params = {}) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+            const response = await secureRequest('GET', `${API_URL}/payments/revenue${qs ? '?' + qs : ''}`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            return response.json();
+        },
+
+        // Admin: ask Bachs again for the processing fee on past paid orders
+        async refreshGatewayFees() {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/payments/refresh-gateway-fees`, {
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                body: JSON.stringify({})
+            });
+            return response.json();
+        },
+
+        // Admin: ask the gateway whether an online checkout was paid, and issue tickets if so
+        async gatewayRecheck(id) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/payments/${encodeURIComponent(id)}/gateway-recheck`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({})
+            });
+            return response.json();
+        },
+
         async verifyAdmin(id, data) {
             const { data: { session } } = await supabase.auth.getSession();
             const response = await secureRequest('PUT', `${API_URL}/payments/${id}/verify`, {
@@ -376,6 +430,25 @@ export const api = {
         }
     },
 
+    // Game marshals (appointed per event by admins; mark plays at game stations)
+    gameMarshals: {
+        async _call(method, path, body) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`${API_URL}/game-marshals${path}`, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                body: body === undefined ? undefined : JSON.stringify(body)
+            });
+            return response.json();
+        },
+        me() { return this._call('GET', '/me'); },
+        ticket(eventId, code) { return this._call('GET', `/${encodeURIComponent(eventId)}/ticket?code=${encodeURIComponent(code)}`); },
+        redeem(eventId, code, itemId, plays = 1) { return this._call('POST', `/${encodeURIComponent(eventId)}/redeem`, { code, item_id: itemId, plays }); },
+        adminGet(eventId) { return this._call('GET', `/admin/event/${encodeURIComponent(eventId)}`); },
+        adminAppoint(eventId, payload) { return this._call('POST', `/admin/event/${encodeURIComponent(eventId)}`, payload); },
+        adminRemove(id) { return this._call('DELETE', `/admin/${encodeURIComponent(id)}`); }
+    },
+
     hackathons: {
         async list(filter = {}) {
             let eventType = '';
@@ -400,6 +473,15 @@ export const api = {
         },
         async past() {
             const response = await fetch(`${API_URL}/hackathons/past`);
+            return response.json();
+        },
+        // Search students to add as teammates (3+ letters; name, department and level only)
+        async teammateSearch(hackathonId, q, { signal } = {}) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch(`${API_URL}/hackathons/${encodeURIComponent(hackathonId)}/teammate-search?q=${encodeURIComponent(q)}`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` },
+                signal
+            });
             return response.json();
         },
         async openTeams(hackathonId = '') {
