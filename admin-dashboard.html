@@ -1130,6 +1130,25 @@
                 </button>
               </div>
             </div>
+            <div class="row g-2 align-items-center mt-1">
+              <div class="col-md-5">
+                <select class="form-select" id="paymentEventFilter" aria-label="Filter by event">
+                  <option value="">All events</option>
+                </select>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="input-group">
+                  <span class="input-group-text small">From</span>
+                  <input type="date" class="form-control" id="paymentFromDate" aria-label="Payments from date">
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="input-group">
+                  <span class="input-group-text small">To</span>
+                  <input type="date" class="form-control" id="paymentToDate" aria-label="Payments to date">
+                </div>
+              </div>
+            </div>
             <div class="d-flex justify-content-between align-items-center mt-2 px-1">
               <small class="text-muted" id="paymentResultsInfo">Loading payments...</small>
             </div>
@@ -5317,10 +5336,62 @@ window.deleteEvent = async function(id) {
     let currentFilteredPayments = [];
     let paymentsEventMap = new Map();
 
+    // Which event a payment belongs to, for the Event filter. Orders of a
+    // deleted event keep their old name from the order description.
+    function paymentEventKey(p) {
+      if (p.event_id && paymentsEventMap && paymentsEventMap.get(p.event_id)) {
+        return { key: 'ev:' + p.event_id, label: paymentsEventMap.get(p.event_id).title || 'Event' };
+      }
+      const m = String(p.description || '').match(/^Online payment for event: (.+)$/);
+      if (m) {
+        const rest = m[1].trim();
+        let cut = -1;
+        if (rest.endsWith(')')) {
+          let depth = 0;
+          for (let i = rest.length - 1; i >= 0; i--) {
+            if (rest[i] === ')') depth++;
+            else if (rest[i] === '(' && --depth === 0) { cut = i; break; }
+          }
+        }
+        const name = (cut > 0 ? rest.slice(0, cut) : rest).trim();
+        if (name) return { key: 'old:' + name.toLowerCase(), label: name + ' (deleted event)' };
+      }
+      return { key: 'none', label: p.payment_type === 'event_registration' ? 'Unknown event' : 'Not an event payment' };
+    }
+
+    // Fill the Event dropdown from the loaded payments (keeps the current choice).
+    function populatePaymentEventFilter() {
+      const sel = document.getElementById('paymentEventFilter');
+      if (!sel) return;
+      const current = sel.value;
+      const seen = new Map();
+      (allPaymentsList || []).forEach(p => {
+        const k = paymentEventKey(p);
+        const e = seen.get(k.key) || { label: k.label, count: 0 };
+        e.count += 1;
+        seen.set(k.key, e);
+      });
+      const opts = [...seen.entries()].sort((a, b) => a[1].label.localeCompare(b[1].label));
+      sel.innerHTML = '<option value="">All events</option>' + opts.map(([k, e]) =>
+        `<option value="${escapeHtml(k)}">${escapeHtml(e.label)} (${e.count})</option>`).join('');
+      if (current && seen.has(current)) sel.value = current;
+    }
+
+    // Local calendar date (YYYY-MM-DD) a payment happened on.
+    function paymentDay(p) {
+      const d = new Date(p.verified_at || p.submitted_at || p.created_at || '');
+      if (isNaN(d)) return '';
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
     function filterAndDisplayPayments() {
       const searchInput = document.getElementById('paymentSearchInput');
       const statusFilter = document.getElementById('paymentStatusFilter');
       const typeFilter = document.getElementById('paymentTypeFilter');
+      const selectedEvent = document.getElementById('paymentEventFilter')?.value || '';
+      let fromDay = document.getElementById('paymentFromDate')?.value || '';
+      let toDay = document.getElementById('paymentToDate')?.value || '';
+      if (fromDay && toDay && fromDay > toDay) [fromDay, toDay] = [toDay, fromDay];
       const tbody = document.getElementById('payments-table-body');
       const resultsInfo = document.getElementById('paymentResultsInfo');
       const clearBtn = document.getElementById('paymentSearchClearBtn');
@@ -5378,17 +5449,24 @@ window.deleteEvent = async function(id) {
         const pType = String(p.payment_type || 'event_registration').toLowerCase().trim();
         const matchesType = !selectedType || pType === selectedType;
 
-        return matchesSearch && matchesStatus && matchesType;
+        // Event and date range
+        const matchesEvent = !selectedEvent || paymentEventKey(p).key === selectedEvent;
+        const day = (fromDay || toDay) ? paymentDay(p) : '';
+        const matchesDate = (!fromDay || (day && day >= fromDay)) && (!toDay || (day && day <= toDay));
+
+        return matchesSearch && matchesStatus && matchesType && matchesEvent && matchesDate;
       });
 
       currentFilteredPayments = filtered;
 
       // Update results counter info
       if (resultsInfo) {
+        const verifiedTotal = filtered.filter(p => (p.status || 'verified') === 'verified').reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const totalNote = verifiedTotal > 0 ? ` &middot; ${formatCurrency(verifiedTotal)} verified` : '';
         if (filtered.length === allPaymentsList.length) {
-          resultsInfo.innerHTML = `Showing all <strong>${filtered.length}</strong> payments`;
+          resultsInfo.innerHTML = `Showing all <strong>${filtered.length}</strong> payments${totalNote}`;
         } else {
-          resultsInfo.innerHTML = `Showing <strong>${filtered.length}</strong> of ${allPaymentsList.length} payments (filtered)`;
+          resultsInfo.innerHTML = `Showing <strong>${filtered.length}</strong> of ${allPaymentsList.length} payments (filtered)${totalNote}`;
         }
       }
 
@@ -5451,6 +5529,13 @@ window.deleteEvent = async function(id) {
       paymentTypeFilterEl.addEventListener('change', filterAndDisplayPayments);
     }
 
+    const paymentEventFilterEl = document.getElementById('paymentEventFilter');
+    const paymentFromDateEl = document.getElementById('paymentFromDate');
+    const paymentToDateEl = document.getElementById('paymentToDate');
+    [paymentEventFilterEl, paymentFromDateEl, paymentToDateEl].forEach(el => {
+      if (el) el.addEventListener('change', filterAndDisplayPayments);
+    });
+
     const paymentSearchClearBtnEl = document.getElementById('paymentSearchClearBtn');
     if (paymentSearchClearBtnEl) {
       paymentSearchClearBtnEl.addEventListener('click', () => {
@@ -5465,6 +5550,9 @@ window.deleteEvent = async function(id) {
         if (paymentSearchInputEl) paymentSearchInputEl.value = '';
         if (paymentStatusFilterEl) paymentStatusFilterEl.value = '';
         if (paymentTypeFilterEl) paymentTypeFilterEl.value = '';
+        if (paymentEventFilterEl) paymentEventFilterEl.value = '';
+        if (paymentFromDateEl) paymentFromDateEl.value = '';
+        if (paymentToDateEl) paymentToDateEl.value = '';
         filterAndDisplayPayments();
       });
     }
@@ -5681,6 +5769,7 @@ window.deleteEvent = async function(id) {
           }
         }
 
+        populatePaymentEventFilter();
         filterAndDisplayPayments();
         return;
         const _unusedPaymentsRender = records.map(p => {
