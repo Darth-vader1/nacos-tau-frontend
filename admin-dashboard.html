@@ -1053,6 +1053,10 @@
                   <input type="date" class="form-control form-control-sm" id="revStart" aria-label="From date" style="width: 150px;">
                   <input type="date" class="form-control form-control-sm" id="revEnd" aria-label="To date" style="width: 150px;">
                   <button class="btn btn-outline-secondary btn-sm" onclick="loadRevenue()" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
+                  <div class="form-check form-switch mb-0 small" title="List archived (test) orders too. They never count in the totals.">
+                    <input class="form-check-input" type="checkbox" id="revShowArchived" onchange="loadRevenue()">
+                    <label class="form-check-label" for="revShowArchived">Show archived</label>
+                  </div>
                   <button class="btn btn-outline-success btn-sm" onclick="exportRevenueStatement()"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Statement CSV</button>
                 </div>
               </div>
@@ -1065,8 +1069,8 @@
                 </div>
                 <div class="table-responsive" style="max-height: 260px;">
                   <table class="table table-sm align-middle mb-0">
-                    <thead><tr><th>Event</th><th class="text-end">Tickets</th><th class="text-end">Ticket revenue</th><th class="text-end">Service fees</th><th class="text-end">Bachs fees</th></tr></thead>
-                    <tbody id="revenueByEvent"><tr><td colspan="5" class="text-muted text-center py-3">Loading...</td></tr></tbody>
+                    <thead><tr><th>Event</th><th class="text-end">Tickets</th><th class="text-end">Ticket revenue</th><th class="text-end">Service fees</th><th class="text-end">Bachs fees</th><th class="text-end"><span class="visually-hidden">Actions</span></th></tr></thead>
+                    <tbody id="revenueByEvent"><tr><td colspan="6" class="text-muted text-center py-3">Loading...</td></tr></tbody>
                   </table>
                 </div>
                 <div class="small text-muted mt-2">Bachs fees appear when Bachs reports them on a payment. Older orders had no service fee.</div>
@@ -1108,6 +1112,7 @@
                   <option value="pending">Pending</option>
                   <option value="rejected">Rejected</option>
                   <option value="abandoned">Abandoned (never paid)</option>
+                  <option value="archived">Archived (test)</option>
                   <option value="everything">Everything</option>
                 </select>
               </div>
@@ -5361,7 +5366,11 @@ window.deleteEvent = async function(id) {
         const pStatus = String(p.status || 'verified').toLowerCase().trim();
         // Default hides checkouts that were started but never paid (marked
         // "abandoned" after 24h); pick "Abandoned" or "Everything" to see them.
+        // Archived (test) orders only show under "Archived" or "Everything".
+        const isArchived = !!p.archived_at;
         const matchesStatus = selectedStatus === 'everything' ? true
+          : selectedStatus === 'archived' ? isArchived
+          : isArchived ? false
           : !selectedStatus ? pStatus !== 'abandoned'
           : pStatus === selectedStatus;
 
@@ -5411,7 +5420,7 @@ window.deleteEvent = async function(id) {
             <td>${eventTitle}</td>
             <td><strong class="text-success">${formatCurrency(p.amount)}</strong>${p.payment_type === 'event_registration' ? `<br><small class="text-muted">${Math.max(1, parseInt(p.ticket_quantity, 10) || 1)} ticket${(parseInt(p.ticket_quantity, 10) || 1) > 1 ? 's' : ''}${Number(p.service_fee || 0) > 0 ? ` · incl. ${formatCurrency(p.service_fee)} service fee` : ''}</small>` : ''}</td>
             <td><code>${ref}</code></td>
-            <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
+            <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span>${p.archived_at ? ` <span class="badge bg-light text-muted border" title="${escapeHtml(p.archive_reason || 'Archived')}">archived</span>` : ''}</td>
             <td>
               ${p.status === 'pending' ? (String(p.notes || '').includes('[online-checkout]')
                 ? `<button class="btn btn-sm btn-primary me-1" onclick="recheckGatewayPayment('${p.id}', this)" title="Ask Bachs whether this online checkout was paid"><i class="bi bi-arrow-repeat me-1"></i>Re-check gateway</button>`
@@ -5510,7 +5519,8 @@ window.deleteEvent = async function(id) {
       try {
         const res = await api.payments.getRevenue({
           start_date: document.getElementById('revStart').value,
-          end_date: document.getElementById('revEnd').value
+          end_date: document.getElementById('revEnd').value,
+          include_archived: document.getElementById('revShowArchived')?.checked ? '1' : ''
         });
         if (!res || res.success === false) throw new Error(res?.error || 'Could not load revenue');
         const d = res.data || {};
@@ -5521,17 +5531,71 @@ window.deleteEvent = async function(id) {
         document.getElementById('revGateway').textContent = formatCurrency(t.gateway_fees || 0);
         document.getElementById('revOrders').textContent = `${(t.orders || 0).toLocaleString()} · ${(t.tickets || 0).toLocaleString()}`;
         const rows = d.by_event || [];
-        body.innerHTML = rows.length ? rows.map(r => `
-          <tr>
+        window.__revenueRows = rows;
+        const canArchive = d.archive_available !== false;
+        body.innerHTML = rows.length ? rows.map((r, i) => `
+          <tr class="${r.archived ? 'text-muted' : ''}">
             <td>${escapeHtml(r.title)}${r.guest_orders ? ` <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">${r.guest_orders} guest</span>` : ''}</td>
             <td class="text-end">${r.tickets}</td>
             <td class="text-end">${formatCurrency(r.ticket_revenue)}</td>
-            <td class="text-end text-success">${formatCurrency(r.service_fees)}</td>
+            <td class="text-end ${r.archived ? '' : 'text-success'}">${formatCurrency(r.service_fees)}</td>
             <td class="text-end">${formatCurrency(r.gateway_fees)}</td>
-          </tr>`).join('') : '<tr><td colspan="5" class="text-muted text-center py-3">No confirmed ticket orders in this period.</td></tr>';
+            <td class="text-end text-nowrap">${!canArchive || !(r.payment_ids || []).length ? ''
+              : r.archived
+                ? `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="restoreRevenueRow(${i})" title="Count these orders again"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>`
+                : `<button type="button" class="btn btn-sm btn-outline-danger" onclick="archiveRevenueRow(${i})" title="Archive these orders (for example test payments)"><i class="bi bi-archive"></i></button>`}</td>
+          </tr>`).join('') : '<tr><td colspan="6" class="text-muted text-center py-3">No confirmed ticket orders in this period.</td></tr>';
       } catch (err) {
         console.warn('[revenue] load failed:', err);
-        body.innerHTML = '<tr><td colspan="5" class="text-muted text-center py-3">Could not load revenue.</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">Could not load revenue.</td></tr>';
+      }
+    };
+
+    // Archive (soft delete) every order in a revenue row, e.g. test payments.
+    window.archiveRevenueRow = async function(i) {
+      const r = (window.__revenueRows || [])[i];
+      if (!r || !(r.payment_ids || []).length) return;
+      const n = r.payment_ids.length;
+      const ok = await Swal.fire({
+        title: 'Archive these orders?',
+        html: `<p><strong>${escapeHtml(r.title)}</strong>: ${n} order${n > 1 ? 's' : ''}, ${formatCurrency(r.collected || r.ticket_revenue)} collected.</p>
+               <p class="small text-muted mb-2">Archived orders are kept on record but no longer count in revenue, payment stats or the Payments list. Tickets and receipts are not affected. You can restore them any time with "Show archived".</p>`,
+        input: 'text',
+        inputLabel: 'Reason',
+        inputValue: 'Test payment',
+        inputAttributes: { maxlength: 200 },
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Archive',
+        confirmButtonColor: '#dc3545'
+      });
+      if (!ok.isConfirmed) return;
+      try {
+        const res = await api.payments.archivePayments(r.payment_ids, ok.value || 'Test payment');
+        if (!res || res.success === false) throw new Error(res?.error || res?.message || 'Could not archive');
+        await logAdminAction('UPDATE', 'payments', null, { archived: res.data?.changed || 0, group: r.title, reason: ok.value });
+        Swal.fire({ icon: 'success', title: 'Archived', text: `${res.data?.changed || 0} order(s) archived.`, timer: 1800, showConfirmButton: false });
+        allPaymentsList = []; window.allPaymentsList = [];
+        await loadRevenue();
+        if (typeof loadPayments === 'function') loadPayments();
+      } catch (err) {
+        Swal.fire('Could not archive', escapeHtml(err.message), 'error');
+      }
+    };
+
+    window.restoreRevenueRow = async function(i) {
+      const r = (window.__revenueRows || [])[i];
+      if (!r || !(r.payment_ids || []).length) return;
+      try {
+        const res = await api.payments.unarchivePayments(r.payment_ids);
+        if (!res || res.success === false) throw new Error(res?.error || res?.message || 'Could not restore');
+        await logAdminAction('UPDATE', 'payments', null, { restored: res.data?.changed || 0, group: r.title });
+        Swal.fire({ icon: 'success', title: 'Restored', text: `${res.data?.changed || 0} order(s) count again.`, timer: 1800, showConfirmButton: false });
+        allPaymentsList = []; window.allPaymentsList = [];
+        await loadRevenue();
+        if (typeof loadPayments === 'function') loadPayments();
+      } catch (err) {
+        Swal.fire('Could not restore', escapeHtml(err.message), 'error');
       }
     };
 
@@ -5640,7 +5704,7 @@ window.deleteEvent = async function(id) {
               <td>${eventTitle}</td>
               <td><strong class="text-success">${formatCurrency(p.amount)}</strong>${p.payment_type === 'event_registration' ? `<br><small class="text-muted">${Math.max(1, parseInt(p.ticket_quantity, 10) || 1)} ticket${(parseInt(p.ticket_quantity, 10) || 1) > 1 ? 's' : ''}${Number(p.service_fee || 0) > 0 ? ` · incl. ${formatCurrency(p.service_fee)} service fee` : ''}</small>` : ''}</td>
               <td><code>${ref}</code></td>
-              <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span></td>
+              <td><span class="badge ${badgeClass}">${escapeHtml(p.status || 'verified')}</span>${p.archived_at ? ` <span class="badge bg-light text-muted border" title="${escapeHtml(p.archive_reason || 'Archived')}">archived</span>` : ''}</td>
               <td>
                 ${p.status === 'pending' ? (String(p.notes || '').includes('[online-checkout]')
                 ? `<button class="btn btn-sm btn-primary me-1" onclick="recheckGatewayPayment('${p.id}', this)" title="Ask Bachs whether this online checkout was paid"><i class="bi bi-arrow-repeat me-1"></i>Re-check gateway</button>`

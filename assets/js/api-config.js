@@ -331,6 +331,24 @@ export const api = {
             return response.json();
         },
 
+        // Admin: archive (soft delete) or restore payments, e.g. test orders
+        async archivePayments(ids, reason) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/payments/archive`, {
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                body: JSON.stringify({ ids, reason })
+            });
+            return response.json();
+        },
+        async unarchivePayments(ids) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/payments/unarchive`, {
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                body: JSON.stringify({ ids })
+            });
+            return response.json();
+        },
+
         // Admin: ask Bachs again for the processing fee on past paid orders
         async refreshGatewayFees() {
             const { data: { session } } = await supabase.auth.getSession();
