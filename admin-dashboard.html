@@ -467,6 +467,12 @@
         </a>
       </li>
       <li class="nav-item">
+        <a href="#homepage-cms" class="nav-link" data-section="homepage-cms">
+          <i class="bi bi-layout-text-window-reverse"></i>
+          <span>Homepage &amp; Execs</span>
+        </a>
+      </li>
+      <li class="nav-item">
         <a href="admin-analytics.html" class="nav-link">
           <i class="bi bi-bar-chart-line"></i>
           <span>Resource Analytics</span>
@@ -1332,6 +1338,195 @@
               </table>
             </div>
             <div class="p-3 text-muted small" id="pastExecResultsInfo"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Homepage & Current Executives CMS Section -->
+      <div id="homepage-cms-section" class="content-section" style="display: none;">
+        <div id="cms-migration-warning" class="alert alert-warning mb-3" style="display: none;">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <strong>Database migration needed:</strong> Run <code>backend/migrations/027_homepage_cms.sql</code> in Supabase SQL Editor to enable saving Homepage &amp; Current Executives.
+        </div>
+
+        <ul class="nav nav-tabs mb-3" id="homepageCmsTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="cms-execs-tab" data-bs-toggle="tab" data-bs-target="#cms-execs-pane" type="button" role="tab">
+              <i class="bi bi-people-fill me-1"></i> Current Executives
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="cms-settings-tab" data-bs-toggle="tab" data-bs-target="#cms-settings-pane" type="button" role="tab">
+              <i class="bi bi-sliders me-1"></i> Homepage Copy &amp; Payment Info
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+          <!-- Tab 1: Current Executives -->
+          <div class="tab-pane fade show active" id="cms-execs-pane" role="tabpanel">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span><i class="bi bi-person-badge me-2"></i>Current Executives (Shown on index.html)</span>
+                <div class="d-flex gap-2">
+                  <a href="index.html#execs" target="_blank" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> View Homepage
+                  </a>
+                  <button class="btn btn-sm btn-admin" data-bs-toggle="modal" data-bs-target="#addCurrentExecutiveModal" onclick="resetCurrentExecutiveForm()">
+                    <i class="bi bi-plus-lg me-1"></i> Add Executive
+                  </button>
+                </div>
+              </div>
+              <div class="card-body border-bottom">
+                <div class="input-group" style="max-width: 420px;">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input type="text" class="form-control" id="currentExecSearchInput" placeholder="Search current executives by name or role...">
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                      <tr>
+                        <th>Photo &amp; Name</th>
+                        <th>Portfolio / Role</th>
+                        <th>Order</th>
+                        <th>Visibility</th>
+                        <th>LinkedIn</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="current-execs-table-body">
+                      <tr><td colspan="6" class="text-center text-muted py-4">Loading...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="p-3 text-muted small" id="currentExecsResultsInfo"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Homepage Copy & Payment Info -->
+          <div class="tab-pane fade" id="cms-settings-pane" role="tabpanel">
+            <form id="siteSettingsForm">
+              <div class="row g-4">
+                <!-- Payment & Bank Details -->
+                <div class="col-lg-6">
+                  <div class="card h-100">
+                    <div class="card-header">
+                      <i class="bi bi-credit-card-2-front me-2"></i>Payment &amp; Bank Details (#pays)
+                    </div>
+                    <div class="card-body">
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          <label class="form-label">Bank Name</label>
+                          <input type="text" class="form-control" id="cms-bank-name" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Account Number</label>
+                          <input type="text" class="form-control" id="cms-account-number" required>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Account Name</label>
+                          <input type="text" class="form-control" id="cms-account-name" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Association Dues Amount</label>
+                          <input type="text" class="form-control" id="cms-dues-amount" placeholder="₦40,000" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Official Contact Email</label>
+                          <input type="email" class="form-control" id="cms-contact-email" required>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Payment Reference Format</label>
+                          <input type="text" class="form-control" id="cms-payment-ref" required>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Payment Note</label>
+                          <textarea class="form-control" id="cms-payment-note" rows="2" required></textarea>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Executive Inquiry Contacts -->
+                <div class="col-lg-6">
+                  <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <span><i class="bi bi-whatsapp me-2"></i>Inquiry Contacts (#pays)</span>
+                      <button type="button" class="btn btn-sm btn-outline-success" id="cms-add-contact-btn">
+                        <i class="bi bi-plus-lg"></i> Add Contact
+                      </button>
+                    </div>
+                    <div class="card-body">
+                      <p class="text-muted small mb-3">Links displayed under "For any inquiries, please reach out through:" on the homepage.</p>
+                      <div id="cms-inquiry-contacts-list"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Executives Header & Hero/About Copy -->
+                <div class="col-12">
+                  <div class="card">
+                    <div class="card-header">
+                      <i class="bi bi-type me-2"></i>Hero, About &amp; Executives Header Copy
+                    </div>
+                    <div class="card-body">
+                      <div class="row g-3">
+                        <div class="col-md-4">
+                          <label class="form-label">Executives Session Badge</label>
+                          <input type="text" class="form-control" id="cms-exec-session" placeholder="2026/2027 ACADEMIC SESSION" required>
+                        </div>
+                        <div class="col-md-8">
+                          <label class="form-label">Executives Subtitle</label>
+                          <input type="text" class="form-control" id="cms-exec-subtitle" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Hero Title Prefix</label>
+                          <input type="text" class="form-control" id="cms-hero-prefix" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Hero Title Highlight</label>
+                          <input type="text" class="form-control" id="cms-hero-highlight" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Hero Subtitle</label>
+                          <input type="text" class="form-control" id="cms-hero-subtitle" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">About Heading</label>
+                          <input type="text" class="form-control" id="cms-about-heading" required>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">About Intro Paragraph</label>
+                          <textarea class="form-control" id="cms-about-intro" rows="2" required></textarea>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">About Bullet 1</label>
+                          <textarea class="form-control" id="cms-about-bullet-1" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">About Bullet 2</label>
+                          <textarea class="form-control" id="cms-about-bullet-2" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">About Bullet 3</label>
+                          <textarea class="form-control" id="cms-about-bullet-3" rows="2"></textarea>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-3 text-end">
+                <button type="submit" class="btn btn-admin px-4" id="cms-save-settings-btn">
+                  <i class="bi bi-check2-circle me-1"></i> Save All Homepage Settings
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -2236,19 +2431,73 @@
     </div>
   </div>
 
+  <!-- Add/Edit Current Executive Modal -->
+  <div class="modal fade" id="addCurrentExecutiveModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="ce-modal-title"><i class="bi bi-person-badge me-2"></i>Add Current Executive</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="addCurrentExecutiveForm">
+          <input type="hidden" id="ce-id">
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label">Full Name *</label>
+                <input type="text" class="form-control" id="ce-full-name" required>
+              </div>
+              <div class="col-md-8">
+                <label class="form-label">Portfolio / Role *</label>
+                <input type="text" class="form-control" id="ce-portfolio" placeholder="e.g. President, Software Director" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Display Order</label>
+                <input type="number" class="form-control" id="ce-rank" value="10" min="1">
+              </div>
+              <div class="col-12">
+                <label class="form-label">LinkedIn Profile URL</label>
+                <input type="url" class="form-control" id="ce-linkedin" placeholder="https://www.linkedin.com/in/...">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Upload Photo</label>
+                <input type="file" class="form-control" id="ce-photo-file" accept="image/*">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Or Photo URL / Path</label>
+                <input type="text" class="form-control" id="ce-photo-url" placeholder="https://... or assets/img/...">
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="ce-active" checked>
+                  <label class="form-check-label" for="ce-active">Visible on Homepage</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-admin" id="ce-submit-btn">Save Executive</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="assets/vendor/aos/aos.js"></script>
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script> 
   <script type="module" src="assets/js/supabase-config.js"></script>
-  <script type="module" src="assets/js/api-config.js?v=2.2"></script>
+  <script type="module" src="assets/js/api-config.js?v=2.3"></script>
+  <script type="module" src="assets/js/admin-homepage-cms.js"></script>
   <script src="assets/js/main.js"></script>
   <script src="assets/js/prize-format.js"></script>
   <script src="assets/js/team-members.js"></script>
 
   <script type="module">
     import { supabase, requireAdmin, checkAuth, signOut, DEFAULT_BUCKET_NAME, ensureBucket, uploadFileToStorage } from './assets/js/supabase-config.js';
-    import { api } from './assets/js/api-config.js?v=2.2';
+    import { api } from './assets/js/api-config.js?v=2.3';
 
     // Convenience: also expose on window for code paths that reference
     // window.api (delete event handlers registered via onclick="..." etc
@@ -2605,6 +2854,8 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       batchUpdate: (table, filterEq, patch) =>
         apiAdminRequest('POST', `/${table}/batch-update`, { filter: { eq: filterEq }, patch })
     };
+    window.apiAdmin = apiAdmin;
+    window.logAdminAction = logAdminAction;
 
     // ============================================
     // AUDIT LOGGING
@@ -7005,7 +7256,8 @@ window.deleteEvent = async function(id) {
         broadcasts: 'Email Broadcasts',
         payments: 'Payments',
         students: 'Student Verification',
-        'past-executives': 'Past Executives Roll of Honour'
+        'past-executives': 'Past Executives Roll of Honour',
+        'homepage-cms': 'Homepage & Current Executives CMS'
       };
       const titleEl = document.getElementById('page-title');
       if (titleEl) titleEl.textContent = titles[section] || section;
@@ -7109,7 +7361,8 @@ window.deleteEvent = async function(id) {
         loadHackathons(),
         loadPayments(),
         loadStudents('active'),
-        loadPastExecutives()
+        loadPastExecutives(),
+        window.loadHomepageCms?.()
       ]);
     }
     
