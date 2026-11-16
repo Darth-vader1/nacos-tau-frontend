@@ -777,8 +777,8 @@
           <div class="col-lg-9">
             <!-- Game Marshal (only shown while an admin has appointed this student) -->
             <section id="marshalCard" class="card shadow-sm border-0 mb-4" style="border-radius: 20px; padding: 22px; border-left: 6px solid #157a09 !important;" hidden aria-labelledby="marshalCardTitle">
-              <h2 id="marshalCardTitle" class="h5 fw-bold mb-1" style="color: #157a09;"><i class="bi bi-controller me-2"></i>Game Marshal</h2>
-              <p class="small text-muted mb-3">You've been appointed to mark plays at a game night. This section disappears when your time ends.</p>
+              <h2 id="marshalCardTitle" class="h5 fw-bold mb-1" style="color: #157a09;"><i class="bi bi-person-badge me-2"></i>Event duty</h2>
+              <p class="small text-muted mb-3">You've been appointed to help at an event. This section disappears when your time ends.</p>
               <div id="marshalList"></div>
             </section>
             <!-- Profile Section -->
@@ -2630,11 +2630,11 @@
         list.innerHTML = rows.map(a => `
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 border rounded-3 p-3 mb-2">
             <div>
-              <div class="fw-semibold">${escapeHtml(a.event?.title || 'Game Night')}</div>
+              <div class="fw-semibold">${escapeHtml(a.event?.title || 'Event')} <span class="badge bg-light text-dark border ms-1">${a.mode === 'games' ? '🎮 Game marshal' : '🎟️ Check-in'}</span></div>
               <div class="small text-muted">${a.active ? `Active until ${escapeHtml(fmt(a.ends_at))}` : `Starts ${escapeHtml(fmt(a.starts_at))}, ends ${escapeHtml(fmt(a.ends_at))}`}</div>
             </div>
             ${a.active
-              ? `<a class="btn btn-success" href="game-marshal.html?event=${encodeURIComponent(a.event?.id || '')}"><i class="bi bi-qr-code-scan me-1"></i>Open marshal station</a>`
+              ? `<a class="btn btn-success" href="game-marshal.html?event=${encodeURIComponent(a.event?.id || '')}"><i class="bi bi-qr-code-scan me-1"></i>${a.mode === 'games' ? 'Open marshal station' : 'Open check-in station'}</a>`
               : '<span class="badge bg-light text-dark border">Not started yet</span>'}
           </div>`).join('');
         card.hidden = false;

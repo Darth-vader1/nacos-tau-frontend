@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Game Marshal Station | NACOS TAU</title>
+  <title>Event Duty Station | NACOS TAU</title>
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#157a09">
   <link href="assets/img/tau_logo-removebg-preview.png" rel="icon">
@@ -36,7 +36,7 @@
   <main class="station">
     <div class="top-bar mb-3 d-flex align-items-center justify-content-between gap-2">
       <div>
-        <div class="fw-bold"><i class="bi bi-controller me-1"></i><span id="eventTitle">Game Marshal Station</span></div>
+        <div class="fw-bold"><i class="bi bi-controller me-1"></i><span id="eventTitle">Event Duty Station</span></div>
         <div class="small" id="windowText">Checking your appointment…</div>
       </div>
       <a href="student-dashboard.html" class="btn btn-sm btn-light"><i class="bi bi-house"></i><span class="visually-hidden">Dashboard</span></a>
@@ -66,7 +66,7 @@
       <div id="ticketPanel" class="panel mb-3" hidden aria-live="polite"></div>
 
       <div class="panel">
-        <div class="fw-semibold mb-1"><i class="bi bi-clock-history me-1"></i>Plays you marked</div>
+        <div class="fw-semibold mb-1"><i class="bi bi-clock-history me-1"></i>Your activity</div>
         <div id="logList" class="small text-muted">None yet.</div>
       </div>
     </div>
@@ -126,7 +126,7 @@
         const upcoming = rows.find(a => !a.active && (!eventId || a.event?.id === eventId));
         $('windowText').textContent = '';
         if (upcoming) {
-          $('eventTitle').textContent = upcoming.event?.title || 'Game Marshal Station';
+          $('eventTitle').textContent = upcoming.event?.title || 'Event Duty Station';
           lockStation('Your marshal time hasn’t started yet.', `It starts ${fmtTime(upcoming.starts_at)} and ends ${fmtTime(upcoming.ends_at)}. Come back then.`);
         } else {
           lockStation();
@@ -134,7 +134,7 @@
         return;
       }
       eventId = appointment.event.id;
-      $('eventTitle').textContent = appointment.event.title || 'Game Night';
+      $('eventTitle').textContent = appointment.event.title || 'Event';
       $('windowText').textContent = `Marshal until ${fmtTime(appointment.ends_at)}`;
       $('stationUi').hidden = false;
       $('notMarshal').hidden = true;
@@ -177,6 +177,7 @@
     }
 
     function renderTicket(t) {
+      if (t.mode === 'checkin') return renderCheckin(t);
       const allUsed = t.plays_left === 0;
       $('ticketPanel').innerHTML = `
         <div class="d-flex justify-content-between align-items-start mb-2">
@@ -199,6 +200,55 @@
         <div class="d-grid mt-2"><button class="btn btn-light border" id="nextTicketBtn"><i class="bi bi-arrow-repeat me-1"></i>Next player</button></div>`;
       $('ticketPanel').querySelectorAll('.btn-mark').forEach(btn => btn.addEventListener('click', () => markPlay(btn.dataset.item, btn.dataset.name, t.buyer)));
       $('nextTicketBtn').addEventListener('click', nextPlayer);
+    }
+
+    // Door check-in: "Admits 6 · 2 in" with Admit 1 / Admit all.
+    function renderCheckin(t) {
+      const done = t.admit_left === 0;
+      const times = (t.admitted_at || []).map(d => new Date(d).toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit', hour12: true }));
+      $('ticketPanel').innerHTML = `
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <div class="fs-5 fw-bold">${esc(t.buyer)} ${t.is_guest ? '<span class="badge bg-warning-subtle text-warning-emphasis border ms-1">Guest</span>' : ''}</div>
+            <div class="small text-muted"><code>${esc(t.ticket_number)}</code></div>
+          </div>
+          <span class="badge ${done ? 'bg-secondary' : 'bg-success'} left-badge">${done ? 'All in' : `${t.admit_left} to come in`}</span>
+        </div>
+        <div class="game-row mb-2 ${done ? 'done' : ''}">
+          <div class="fw-semibold">Admits ${t.tickets} ${t.tickets === 1 ? 'person' : 'people'} &middot; ${t.admitted} in</div>
+          <div class="small text-muted">${times.length ? `Checked in at ${esc(times.join(', '))}` : 'Nobody checked in yet'}</div>
+          ${t.checkin_available === false ? '<div class="small text-danger mt-1">Check-in is not switched on yet (database migration 031).</div>' : ''}
+          ${done ? '<div class="text-danger fw-semibold mt-2"><i class="bi bi-exclamation-triangle me-1"></i>Everyone on this ticket is already in. Do not admit again.</div>' : `
+          <div class="d-flex gap-2 mt-2 flex-wrap">
+            <button class="btn btn-success btn-mark flex-fill" id="admitOneBtn"><i class="bi bi-person-check me-1"></i>Admit 1</button>
+            ${t.admit_left > 1 ? `<button class="btn btn-outline-success btn-mark flex-fill" id="admitAllBtn"><i class="bi bi-people me-1"></i>Admit all ${t.admit_left}</button>` : ''}
+          </div>`}
+        </div>
+        <div class="d-grid mt-2"><button class="btn btn-light border" id="nextTicketBtn"><i class="bi bi-arrow-repeat me-1"></i>Next guest</button></div>`;
+      $('admitOneBtn')?.addEventListener('click', () => admit(1, t.buyer));
+      $('admitAllBtn')?.addEventListener('click', () => admit('all', t.buyer, t.admit_left));
+      $('nextTicketBtn').addEventListener('click', nextPlayer);
+    }
+
+    async function admit(count, buyer, howMany) {
+      const n = count === 'all' ? howMany : count;
+      if (count === 'all') {
+        const ok = await Swal.fire({ title: `Admit ${n} people?`, html: `On <strong>${esc(buyer)}</strong>'s ticket`, icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, admit', confirmButtonColor: '#157a09', reverseButtons: true });
+        if (!ok.isConfirmed) return;
+      }
+      let res;
+      try { res = await api.gameMarshals.admit(eventId, currentCode, count); } catch (_) { res = null; }
+      if (!res || !res.success) {
+        const msg = (res && (res.error || res.message)) || 'Could not reach the server. Nobody was admitted.';
+        if (res && /not a game marshal/i.test(msg)) return handleError(res, msg);
+        Swal.fire('Not admitted', esc(msg), 'error');
+        if (res) lookup(currentCode);
+        return;
+      }
+      log.unshift({ at: new Date(), game: `Admitted ${n}`, buyer });
+      renderLog();
+      Swal.fire({ toast: true, position: 'top', icon: 'success', title: `${n} admitted`, showConfirmButton: false, timer: 1600 });
+      renderTicket(res.data);
     }
 
     async function markPlay(itemId, gameName, buyer) {

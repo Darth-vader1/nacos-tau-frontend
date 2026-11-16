@@ -317,7 +317,7 @@
             <span class="ticket-code" id="rcTicketNumber">NACOS-TICKET</span>
             <div id="rcQrWrap" class="mt-2" hidden>
               <div id="rcQr" class="d-inline-block p-2 bg-white border rounded"></div>
-              <div class="small text-muted">Show this QR code at the game area</div>
+              <div class="small text-muted" id="rcQrCaption">Show this QR code at the entrance</div>
             </div>
             <div class="mt-2 non-printable">
               <button class="btn btn-sm btn-outline-success" onclick="copyTicketNumber()">
@@ -598,11 +598,13 @@
         }).join('') + '<div class="small text-muted non-printable">A game marshal marks each play at the game area. Refresh this page to see the latest.</div>';
         section.hidden = false;
       }
-      if (games && typeof QRCode !== 'undefined' && /^NACOS-[0-9A-F]{4}-[0-9A-F]{6}$/.test(ticketNumber)) {
+      // Every paid ticket gets a QR code to scan at the entrance (or game area).
+      if (typeof QRCode !== 'undefined' && /^NACOS-[0-9A-F]{4}-[0-9A-F]{6}$/.test(ticketNumber)) {
         try {
           document.getElementById('rcQr').innerHTML = '';
           new QRCode(document.getElementById('rcQr'), { text: ticketNumber, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
           document.getElementById('rcQrWrap').hidden = false;
+          if (games) document.getElementById('rcQrCaption').textContent = 'Show this QR code at the game area';
         } catch (_) {}
       }
       if (games) {
