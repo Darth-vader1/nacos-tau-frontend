@@ -45,21 +45,34 @@
     });
   }
 
-  // 2. Realtime Broadcast Listener for newly published site content (Events, Timetables, Past Questions, etc.)
-  function setupLiveContentUpdateListener() {
-    // Only initialize if Supabase client is available on the page
-    if (typeof supabase === 'undefined' || !supabase.channel) {
-      setTimeout(setupLiveContentUpdateListener, 2000);
-      return;
+  // 2. Realtime listener for newly published site content (events, past
+  // questions, timetables). Needs migration 027 (Realtime on those tables).
+  // It shares the page's own Supabase client: importing supabase-config.js
+  // by the same URL returns the instance the page already created, so there
+  // is only one connection. Each table's RLS decides what a visitor receives.
+  async function getSiteSupabaseClient() {
+    if (window.supabase && typeof window.supabase.channel === 'function') return window.supabase;
+    if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return null; // env.js not on this page
+    try {
+      const mod = await import(new URL('assets/js/supabase-config.js', document.baseURI).href);
+      return mod && mod.supabase && typeof mod.supabase.channel === 'function' ? mod.supabase : null;
+    } catch (e) {
+      return null;
     }
+  }
+
+  async function setupLiveContentUpdateListener() {
+    const client = await getSiteSupabaseClient();
+    if (!client) return; // no Supabase on this page: nothing to listen to
 
     try {
-      supabase
+      client
         .channel('public-site-updates')
         .on(
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'events' },
           (payload) => {
+            if (payload.new && payload.new.is_active === false) return; // saved as hidden
             const title = payload.new?.title ? `"${payload.new.title}"` : 'A new event';
             showUpdatePrompt(null, `🎉 ${title} was just published!`);
           }
@@ -79,14 +92,17 @@
             showUpdatePrompt(null, `📅 New timetable updated!`);
           }
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          if (status === 'CHANNEL_ERROR' && err) console.warn('Live content updates unavailable:', err.message || err);
+        });
     } catch (e) {
       console.warn('Live content update channel notice:', e);
     }
   }
 
-  // Initialize content broadcast listener
-  setupLiveContentUpdateListener();
+  // Start once the page (and env.js, which some pages load with defer) is ready.
+  if (document.readyState === 'complete') setupLiveContentUpdateListener();
+  else window.addEventListener('load', () => { setupLiveContentUpdateListener(); }, { once: true });
 
   // 3. UI: Update Available Banner / Modal Prompt
   function showUpdatePrompt(worker, messageText) {
