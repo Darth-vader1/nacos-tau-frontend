@@ -827,10 +827,8 @@
             </div>`).join('')}
           <div class="small text-muted mt-1" id="priceBreakdown" aria-live="polite"></div>
         </div>`;
-      if (hasGames) {
-        const first = gamesFor(!userSession).find(g => !fullGames.has(g.id));
-        if (first) gamePlays[first.id] = 1; // start with one play of the first open game
-      }
+      // Nothing is pre-selected: buyers pick their own games, so nobody
+      // enters a tournament (or buys a play) by accident.
 
       if (userSession) {
         footerHtml = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>`;
