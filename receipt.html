@@ -23,7 +23,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <style>
@@ -410,8 +410,8 @@
 
     <!-- Action Bar -->
     <div class="action-bar non-printable" id="actionBar" style="display: none;">
-      <button class="btn btn-action btn-primary-action" onclick="printReceipt()">
-        <i class="bi bi-printer-fill"></i> Print / Save as PDF
+      <button class="btn btn-action btn-primary-action" id="downloadImageBtn" onclick="downloadReceiptImage()">
+        <i class="bi bi-download"></i> Download as Image
       </button>
       <a href="events.html" class="btn btn-action btn-secondary-action">
         <i class="bi bi-calendar-event"></i> Return to Events
@@ -701,7 +701,53 @@
     }
 
     function printReceipt() {
-      window.print();
+      downloadReceiptImage();
+    }
+
+    async function downloadReceiptImage() {
+      const btn = document.getElementById('downloadImageBtn');
+      const card = document.getElementById('receiptCard');
+      if (!card || typeof html2canvas === 'undefined') {
+        Swal.fire('Unavailable', 'Image export could not load. Please check your connection and try again.', 'error');
+        return;
+      }
+      const originalHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Preparing image...';
+      }
+      try {
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        const canvas = await html2canvas(card, {
+          scale: Math.max(2, window.devicePixelRatio || 1),
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          logging: false,
+          // Leave out on-screen-only controls (e.g. "Copy Ticket Code")
+          ignoreElements: (el) => el.classList && el.classList.contains('non-printable')
+        });
+        const ticket = (document.getElementById('rcTicketNumber').textContent || 'receipt').trim().replace(/[^a-zA-Z0-9-]/g, '');
+        const fileName = `NACOS-Receipt-${ticket}.png`;
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (!blob) throw new Error('Could not generate image.');
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Receipt saved as image', showConfirmButton: false, timer: 2000 });
+      } catch (err) {
+        console.error('Receipt image export failed:', err);
+        Swal.fire('Error', 'Could not create the image. Please try again.', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
+      }
     }
   </script>
 </body>
