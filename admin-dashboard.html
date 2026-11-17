@@ -3920,15 +3920,38 @@ window.manageEventMarshals = async function(eventId) {
           <h6 class="fw-bold mb-1">Buyers (${report.buyers.length})</h6>
           ${report.buyers.length ? '<button type="button" id="mCsv" class="btn btn-sm btn-outline-secondary mb-1"><i class="bi bi-download me-1"></i>CSV</button>' : ''}
         </div>
+        ${report.buyers.length ? `<div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+          <div class="input-group input-group-sm" style="max-width: 320px;">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="search" id="mBuyerSearch" class="form-control" placeholder="Name, matric, email or ticket" autocomplete="off">
+          </div>
+          <select id="mBuyerFilter" class="form-select form-select-sm" style="max-width: 200px;">
+            <option value="all">All</option>
+            ${isCheckin ? `<option value="in">Checked in (any)</option>
+            <option value="full">Fully checked in</option>
+            <option value="partial">Partly checked in</option>
+            <option value="none">Not checked in yet</option>` : `<option value="in">Played at least once</option>
+            <option value="full">All plays used</option>
+            <option value="none">Not played yet</option>`}
+          </select>
+          <span class="small text-muted" id="mBuyerCount"></span>
+        </div>` : ''}
         ${report.buyers.length ? `<div class="table-responsive" style="max-height: 260px;"><table class="table table-sm mb-0">
           <thead><tr><th>Buyer</th><th>Ticket</th><th>${isCheckin ? 'Checked in' : 'Games (played / bought)'}</th></tr></thead><tbody>
-          ${report.buyers.map(b => `<tr>
+          ${report.buyers.map(b => {
+            const used = isCheckin ? (b.admitted || 0) : b.games.reduce((t, g) => t + (g.used || 0), 0);
+            const total = isCheckin ? (b.tickets || 0) : b.games.reduce((t, g) => t + (g.bought || 0), 0);
+            const state = used <= 0 ? 'none' : used >= total ? 'full' : 'partial';
+            const hay = [b.name, b.matric_no, b.email, b.ticket_number, b.guest ? 'guest' : ''].filter(Boolean).join(' ').toLowerCase();
+            return `<tr class="m-buyer-row" data-state="${state}" data-search="${escapeHtml(hay)}">
             <td>${escapeHtml(b.name)}${b.guest ? ' <span class="badge bg-warning-subtle text-warning-emphasis border">Guest</span>' : ''}<br><span class="text-muted">${escapeHtml(b.matric_no || b.email || '')}</span></td>
             <td><code>${escapeHtml(b.ticket_number)}</code></td>
             <td>${isCheckin
               ? (b.admitted >= b.tickets ? `<span class="badge bg-success">${b.admitted}/${b.tickets} in</span>` : `${b.admitted}/${b.tickets}`)
               : b.games.map(g => `${escapeHtml(g.name)} ${g.used}/${g.bought}`).join('<br>')}</td>
-          </tr>`).join('')}</tbody></table></div>` : `<p class="text-muted">${isCheckin ? 'No paid tickets yet.' : 'No game tickets sold yet.'}</p>`}
+          </tr>`; }).join('')}
+          <tr id="mBuyerEmpty" style="display:none;"><td colspan="3" class="text-center text-muted py-3">No buyers match.</td></tr>
+          </tbody></table></div>` : `<p class="text-muted">${isCheckin ? 'No paid tickets yet.' : 'No game tickets sold yet.'}</p>`}
       </div>`;
 
     await Swal.fire({
@@ -3939,6 +3962,29 @@ window.manageEventMarshals = async function(eventId) {
         showCloseButton: true,
         didOpen: (popup) => {
             popup.querySelector('#mCsv')?.addEventListener('click', () => marshalReportCsv(ev, report));
+            // Search + checked-in filter for the buyers table
+            const bSearch = popup.querySelector('#mBuyerSearch');
+            const bFilter = popup.querySelector('#mBuyerFilter');
+            const applyBuyerFilter = () => {
+                const q = (bSearch?.value || '').trim().toLowerCase();
+                const f = bFilter?.value || 'all';
+                const rows = popup.querySelectorAll('.m-buyer-row');
+                let shown = 0;
+                rows.forEach(r => {
+                    const st = r.dataset.state;
+                    const okState = f === 'all' || (f === 'in' ? st !== 'none' : st === f);
+                    const okText = !q || q.split(/\s+/).every(w => r.dataset.search.includes(w));
+                    const show = okState && okText;
+                    r.style.display = show ? '' : 'none';
+                    if (show) shown++;
+                });
+                const empty = popup.querySelector('#mBuyerEmpty');
+                if (empty) empty.style.display = shown ? 'none' : '';
+                const cnt = popup.querySelector('#mBuyerCount');
+                if (cnt) cnt.textContent = (q || f !== 'all') ? `Showing ${shown} of ${rows.length}` : '';
+            };
+            bSearch?.addEventListener('input', applyBuyerFilter);
+            bFilter?.addEventListener('change', applyBuyerFilter);
             popup.querySelector('#mAppoint').addEventListener('click', async () => {
                 const email = popup.querySelector('#mEmail').value.trim();
                 const from = popup.querySelector('#mFrom').value;
