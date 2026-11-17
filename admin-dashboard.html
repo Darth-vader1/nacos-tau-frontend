@@ -5709,13 +5709,15 @@ window.deleteEvent = async function(id) {
         const ev = p.event_id && paymentsEventMap ? paymentsEventMap.get(p.event_id) : null;
         const evTitle = String(ev?.title || p.description || '').toLowerCase();
 
-        // Search match
-        const matchesSearch = !searchTerm ||
-          studentName.includes(searchTerm) ||
-          matricNo.includes(searchTerm) ||
-          studentEmail.includes(searchTerm) ||
-          ref.includes(searchTerm) ||
-          evTitle.includes(searchTerm);
+        // Search match: every word typed must appear somewhere (any order),
+        // across student or guest details, reference, ticket number and event.
+        const ticketNo = p.event_id && p.id
+          ? `nacos-${String(p.event_id).replace(/-/g, '').slice(0, 4)}-${String(p.id).replace(/-/g, '').slice(0, 6)}`
+          : '';
+        const haystack = [studentName, matricNo, studentEmail, String(p.students?.department || ''),
+          String(p.guest_name || ''), String(p.guest_email || ''), String(p.guest_phone || ''), p.guest_email ? 'guest' : '',
+          ref, String(p.id || ''), ticketNo, evTitle].join(' ').toLowerCase();
+        const matchesSearch = !searchTerm || searchTerm.split(/\s+/).every(w => haystack.includes(w));
 
         // Status match
         const pStatus = String(p.status || 'verified').toLowerCase().trim();
@@ -6052,7 +6054,26 @@ window.deleteEvent = async function(id) {
       const colSpan = 6;
 
       try {
-        const response = await api.payments.getAll({ limit: 100 });
+        // The API returns at most 100 per page, so keep fetching until we
+        // have them all (otherwise search, filters and totals miss older orders).
+        let response = await api.payments.getAll({ limit: 100, page: 1 });
+        if (response.success) {
+          const seenIds = new Set();
+          const all = [];
+          const addPage = (list) => (list || []).forEach(p => { if (p && !seenIds.has(p.id)) { seenIds.add(p.id); all.push(p); } });
+          addPage(response.data?.payments);
+          const total = Number(response.data?.pagination?.total) || 0;
+          let pageNo = 1;
+          let lastSize = (response.data?.payments || []).length;
+          while (lastSize === 100 && (!total || all.length < total) && pageNo < 100) {
+            pageNo++;
+            const next = await api.payments.getAll({ limit: 100, page: pageNo });
+            if (!next.success) break;
+            lastSize = (next.data?.payments || []).length;
+            addPage(next.data?.payments);
+          }
+          response = { ...response, data: { ...response.data, payments: all } };
+        }
         if (!response.success) {
           const errObj = response.details || { message: response.error };
           if (isMissingTableError(errObj, 'payments')) {
