@@ -231,6 +231,12 @@ export const api = {
             return response.json();
         },
 
+        // Which games of an event are fully booked: [{ item_id, full }]
+        async gamesAvailability(eventId) {
+            const response = await fetch(`${API_URL}/payments/games-availability/${encodeURIComponent(eventId)}`);
+            return response.json();
+        },
+
         // Guest (non-member) checkout: no account, guest price, ticket by email
         async guestSession(data) {
             const response = await secureRequest('POST', `${API_URL}/payments/guest-session`, {

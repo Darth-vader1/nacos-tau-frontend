@@ -378,6 +378,25 @@
     // plays (2 plays of a ₦500 game = ₦1,000). The server prices it itself.
     let currentItems = [];
     let gamePlays = {}; // game id -> plays picked in the open event
+    let fullGames = new Set(); // game ids that are fully booked
+    const isTournament = (g) => !!(g && g.tournament);
+    const PHONE_OK = /^\+?[0-9][0-9 ()-]{6,19}$/;
+    // Tournament games picked in this order (they need a player username)
+    const tournamentPicks = (lines) => (lines || []).map(l => currentItems.find(g => g.id === l.item_id)).filter(isTournament);
+    const usernameFieldsHtml = (lines) => tournamentPicks(lines).map(g => `
+          <label class="form-label small fw-semibold mt-2 mb-0 d-block text-start" for="un-${escapeHtml(g.id)}">${escapeHtml(g.name)} player username</label>
+          <input id="un-${escapeHtml(g.id)}" class="swal2-input mt-1 entry-username" data-item="${escapeHtml(g.id)}" data-name="${escapeHtml(g.name)}" placeholder="Your in-game username" maxlength="40" autocomplete="off">`).join('');
+    // Reads the username boxes; returns { usernames } or { error }
+    function readUsernames() {
+      const usernames = {};
+      for (const el of document.querySelectorAll('.entry-username')) {
+        const v = el.value.trim();
+        if (v.length < 2) return { error: `Please enter your ${el.dataset.name} player username` };
+        if (v.length > 40) return { error: `${el.dataset.name} username is too long (max 40 characters)` };
+        usernames[el.dataset.item] = v;
+      }
+      return { usernames };
+    }
     const MAX_PLAYS_PER_GAME = MAX_TICKETS_PER_ORDER;
     const MAX_PLAYS_PER_ORDER = 50;
 
@@ -683,7 +702,14 @@
       currentEvent = event;
       currentItems = (await loadItemsFor([event.id]))[event.id] || [];
       gamePlays = {};
+      fullGames = new Set();
       const hasGames = currentItems.length > 0;
+      if (hasGames) {
+        try {
+          const av = await api.payments.gamesAvailability(event.id);
+          if (av && av.success && Array.isArray(av.data)) fullGames = new Set(av.data.filter(a => a.full).map(a => a.item_id));
+        } catch (_) { /* the server still enforces limits at checkout */ }
+      }
       const eventDate = new Date(event.date);
       const formattedDate = eventDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -719,7 +745,10 @@
                 <li class="list-group-item px-0 d-flex justify-content-between align-items-start">
                   <span>
                     <span class="fw-semibold">${escapeHtml(g.name)}</span>
+                    ${isTournament(g) ? ' <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">🏆 Tournament</span>' : ''}
+                    ${fullGames.has(g.id) ? ' <span class="badge bg-danger">Fully booked</span>' : ''}
                     ${g.description ? `<br><small class="text-muted">${escapeHtml(g.description)}</small>` : ''}
+                    ${isTournament(g) ? '<br><small class="text-muted">1 entry per person. You\'ll give your player username when you pay.</small>' : ''}
                   </span>
                   <span class="text-end small">
                     <span class="fw-semibold">${formatCurrency(g.price)}</span>/play
@@ -779,8 +808,10 @@
           ${gamesFor(guest).map(g => `
             <div class="d-flex align-items-center justify-content-between gap-2 border rounded px-2 py-1 mb-1 game-line" data-id="${escapeHtml(g.id)}">
               <div class="text-start">
-                <span class="fw-semibold">${escapeHtml(g.name)}</span><br>
-                <small class="text-muted">${formatCurrency(itemPrice(g, guest))} per play</small>
+                <span class="fw-semibold">${escapeHtml(g.name)}</span>
+                ${isTournament(g) ? '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning ms-1">🏆 1 per person</span>' : ''}
+                ${fullGames.has(g.id) ? '<span class="badge bg-danger ms-1">Fully booked</span>' : ''}<br>
+                <small class="text-muted">${formatCurrency(itemPrice(g, guest))} ${isTournament(g) ? 'entry' : 'per play'}</small>
               </div>
               <div class="input-group input-group-sm flex-nowrap" style="width: 124px;">
                 <button class="btn btn-outline-secondary g-minus" type="button" aria-label="Fewer plays of ${escapeHtml(g.name)}" style="min-width: 40px;">&minus;</button>
@@ -791,8 +822,8 @@
           <div class="small text-muted mt-1" id="priceBreakdown" aria-live="polite"></div>
         </div>`;
       if (hasGames) {
-        const first = gamesFor(!userSession)[0];
-        if (first) gamePlays[first.id] = 1; // start with one play of the first game
+        const first = gamesFor(!userSession).find(g => !fullGames.has(g.id));
+        if (first) gamePlays[first.id] = 1; // start with one play of the first open game
       }
 
       if (userSession) {
@@ -900,7 +931,10 @@
             const n = gamePlays[row.dataset.id] || 0;
             row.querySelector('.g-plays').value = n;
             row.querySelector('.g-minus').disabled = n <= 0;
-            row.querySelector('.g-plus').disabled = n >= MAX_PLAYS_PER_GAME || plays >= maxTotalPlays;
+            const g = currentItems.find(i => i.id === row.dataset.id);
+            row.querySelector('.g-plus').disabled = n >= MAX_PLAYS_PER_GAME || plays >= maxTotalPlays
+              || fullGames.has(row.dataset.id) || (isTournament(g) && n >= 1);
+            row.classList.toggle('opacity-50', fullGames.has(row.dataset.id) && n === 0);
             row.classList.toggle('border-success', n > 0);
           });
           const totalEl = document.getElementById('payTotal');
@@ -965,6 +999,34 @@
           if (modalInstance) modalInstance.hide();
         }
 
+        // Phone number is required to pay (pre-filled from the profile);
+        // tournament games also need the player's username.
+        let savedPhone = '';
+        try {
+          const { data: me } = await supabase.from('students').select('phone').eq('user_id', userSession.user.id).maybeSingle();
+          savedPhone = (me && me.phone) || '';
+        } catch (_) {}
+        const { value: buyer, isConfirmed: buyerOk } = await Swal.fire({
+          title: 'Your details',
+          html: `
+            <label class="form-label small fw-semibold mb-0 d-block text-start" for="buyerPhone">Phone number</label>
+            <input id="buyerPhone" class="swal2-input mt-1" type="tel" placeholder="e.g. 0803 123 4567" autocomplete="tel" maxlength="20" value="${escapeHtml(savedPhone)}">
+            ${usernameFieldsHtml(items)}
+            <p class="small text-muted mt-2 mb-0">We use these only for this event (e.g. to reach you about your ticket or match). See our <a href="privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>`,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'Continue to payment',
+          confirmButtonColor: '#157a09',
+          preConfirm: () => {
+            const phone = document.getElementById('buyerPhone').value.trim();
+            if (!PHONE_OK.test(phone)) return Swal.showValidationMessage('Please enter a valid phone number');
+            const un = readUsernames();
+            if (un.error) return Swal.showValidationMessage(un.error);
+            return { phone, usernames: un.usernames };
+          }
+        });
+        if (!buyerOk || !buyer) return;
+
         Swal.fire({
           title: 'Preparing Secure Checkout...',
           text: 'Please wait while we set up your secure Bachs session.',
@@ -976,7 +1038,9 @@
           const sessionRes = await api.payments.createBachsSession({
             event_id: eventId,
             quantity,
-            ...(items ? { items } : {})
+            phone: buyer.phone,
+            ...(items ? { items } : {}),
+            ...(Object.keys(buyer.usernames || {}).length ? { usernames: buyer.usernames } : {})
           });
 
           if (!sessionRes.success) {
@@ -1156,6 +1220,7 @@
           <input id="guestName" class="swal2-input" placeholder="Full name" autocomplete="name" maxlength="100">
           <input id="guestEmail" class="swal2-input" type="email" placeholder="Email address" autocomplete="email" maxlength="254">
           <input id="guestPhone" class="swal2-input" type="tel" placeholder="Phone number" autocomplete="tel" maxlength="20">
+          ${usernameFieldsHtml(items)}
           <p class="small text-muted mt-2 mb-0">We only use these details to issue your ticket and contact you about this event. See our <a href="privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>`,
         focusConfirm: false,
         showCancelButton: true,
@@ -1168,7 +1233,9 @@
           if (name.length < 2) return Swal.showValidationMessage('Please enter your full name');
           if (!/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(email)) return Swal.showValidationMessage('Please enter a valid email address');
           if (!/^\+?[0-9][0-9 ()-]{6,19}$/.test(phone)) return Swal.showValidationMessage('Please enter a valid phone number');
-          return { name, email, phone };
+          const un = readUsernames();
+          if (un.error) return Swal.showValidationMessage(un.error);
+          return { name, email, phone, ...(Object.keys(un.usernames).length ? { usernames: un.usernames } : {}) };
         }
       });
       if (!isConfirmed || !form) return;

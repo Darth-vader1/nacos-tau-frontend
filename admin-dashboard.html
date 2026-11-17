@@ -3728,6 +3728,12 @@ function gameRowHtml(g = {}) {
           <div class="col-4 col-md-1 text-end">
             <button type="button" class="btn btn-sm btn-outline-danger g-remove" title="Remove game" aria-label="Remove game"><i class="bi bi-trash"></i></button>
           </div>
+          <div class="col-12">
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input g-tournament" type="checkbox" role="switch" ${g.tournament ? 'checked' : ''}>
+              <label class="form-check-label small">🏆 Tournament: 1 entry per person, and buyers must give their player username. Set the number of slots in Play limit.</label>
+            </div>
+          </div>
         </div>
       </div>`;
 }
@@ -3792,7 +3798,8 @@ window.manageEventGames = async function(eventId) {
                     name,
                     price: Number(price),
                     public_price: pub ? Number(pub) : null,
-                    max_plays: max ? parseInt(max, 10) : null
+                    max_plays: max ? parseInt(max, 10) : null,
+                    tournament: !!row.querySelector('.g-tournament')?.checked
                 });
             }
             return items;
@@ -3847,11 +3854,11 @@ function marshalReportCsv(ev, report) {
     const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     let lines;
     if (report.mode === 'checkin') {
-        lines = [['Ticket', 'Buyer', 'Email', 'Matric', 'Guest', 'Tickets', 'Checked in', 'Not yet'].map(q).join(',')];
-        report.buyers.forEach(b => lines.push([b.ticket_number, b.name, b.email, b.matric_no, b.guest ? 'yes' : 'no', b.tickets, b.admitted, Math.max(0, b.tickets - b.admitted)].map(q).join(',')));
+        lines = [['Ticket', 'Buyer', 'Email', 'Phone', 'Matric', 'Guest', 'Tickets', 'Checked in', 'Not yet'].map(q).join(',')];
+        report.buyers.forEach(b => lines.push([b.ticket_number, b.name, b.email, b.phone, b.matric_no, b.guest ? 'yes' : 'no', b.tickets, b.admitted, Math.max(0, b.tickets - b.admitted)].map(q).join(',')));
     } else {
-        lines = [['Ticket', 'Buyer', 'Email', 'Matric', 'Guest', 'Game', 'Bought', 'Played', 'Left'].map(q).join(',')];
-        report.buyers.forEach(b => b.games.forEach(g => lines.push([b.ticket_number, b.name, b.email, b.matric_no, b.guest ? 'yes' : 'no', g.name, g.bought, g.used, g.left].map(q).join(','))));
+        lines = [['Ticket', 'Buyer', 'Email', 'Phone', 'Matric', 'Guest', 'Game', 'Player username', 'Bought', 'Played', 'Left'].map(q).join(',')];
+        report.buyers.forEach(b => b.games.forEach(g => lines.push([b.ticket_number, b.name, b.email, b.phone, b.matric_no, b.guest ? 'yes' : 'no', g.name, g.username || '', g.bought, g.used, g.left].map(q).join(','))));
     }
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
@@ -3942,13 +3949,13 @@ window.manageEventMarshals = async function(eventId) {
             const used = isCheckin ? (b.admitted || 0) : b.games.reduce((t, g) => t + (g.used || 0), 0);
             const total = isCheckin ? (b.tickets || 0) : b.games.reduce((t, g) => t + (g.bought || 0), 0);
             const state = used <= 0 ? 'none' : used >= total ? 'full' : 'partial';
-            const hay = [b.name, b.matric_no, b.email, b.ticket_number, b.guest ? 'guest' : ''].filter(Boolean).join(' ').toLowerCase();
+            const hay = [b.name, b.matric_no, b.email, b.phone, b.ticket_number, b.guest ? 'guest' : '', ...(b.games || []).map(g => g.username || '')].filter(Boolean).join(' ').toLowerCase();
             return `<tr class="m-buyer-row" data-state="${state}" data-search="${escapeHtml(hay)}">
-            <td>${escapeHtml(b.name)}${b.guest ? ' <span class="badge bg-warning-subtle text-warning-emphasis border">Guest</span>' : ''}<br><span class="text-muted">${escapeHtml(b.matric_no || b.email || '')}</span></td>
+            <td>${escapeHtml(b.name)}${b.guest ? ' <span class="badge bg-warning-subtle text-warning-emphasis border">Guest</span>' : ''}<br><span class="text-muted">${escapeHtml(b.matric_no || b.email || '')}</span>${b.phone ? `<br><span class="text-muted small"><i class="bi bi-telephone me-1"></i>${escapeHtml(b.phone)}</span>` : ''}</td>
             <td><code>${escapeHtml(b.ticket_number)}</code></td>
             <td>${isCheckin
               ? (b.admitted >= b.tickets ? `<span class="badge bg-success">${b.admitted}/${b.tickets} in</span>` : `${b.admitted}/${b.tickets}`)
-              : b.games.map(g => `${escapeHtml(g.name)} ${g.used}/${g.bought}`).join('<br>')}</td>
+              : b.games.map(g => `${escapeHtml(g.name)} ${g.used}/${g.bought}${g.username ? ` <span class="badge bg-light text-dark border" title="Player username">🎮 ${escapeHtml(g.username)}</span>` : ''}`).join('<br>')}</td>
           </tr>`; }).join('')}
           <tr id="mBuyerEmpty" style="display:none;"><td colspan="3" class="text-center text-muted py-3">No buyers match.</td></tr>
           </tbody></table></div>` : `<p class="text-muted">${isCheckin ? 'No paid tickets yet.' : 'No game tickets sold yet.'}</p>`}
@@ -5715,7 +5722,8 @@ window.deleteEvent = async function(id) {
           ? `nacos-${String(p.event_id).replace(/-/g, '').slice(0, 4)}-${String(p.id).replace(/-/g, '').slice(0, 6)}`
           : '';
         const haystack = [studentName, matricNo, studentEmail, String(p.students?.department || ''),
-          String(p.guest_name || ''), String(p.guest_email || ''), String(p.guest_phone || ''), p.guest_email ? 'guest' : '',
+          String(p.guest_name || ''), String(p.guest_email || ''), String(p.guest_phone || ''), String(p.buyer_phone || ''), p.guest_email ? 'guest' : '',
+          ...(Array.isArray(p.entry_details) ? p.entry_details.map(e => String(e && e.username || '')) : []),
           ref, String(p.id || ''), ticketNo, evTitle].join(' ').toLowerCase();
         const matchesSearch = !searchTerm || searchTerm.split(/\s+/).every(w => haystack.includes(w));
 
@@ -5776,7 +5784,7 @@ window.deleteEvent = async function(id) {
 
       tbody.innerHTML = filtered.map(p => {
         const studentText = p.students 
-          ? `${escapeHtml(p.students.name)}<br><small class="text-muted">${escapeHtml(p.students.matric_no || '')}</small>`
+          ? `${escapeHtml(p.students.name)}<br><small class="text-muted">${escapeHtml(p.students.matric_no || '')}${p.buyer_phone ? ' · ' + escapeHtml(p.buyer_phone) : ''}</small>`
           : (p.guest_email
               ? `${escapeHtml(p.guest_name || 'Guest')} <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">Guest</span><br><small class="text-muted">${escapeHtml(p.guest_email)}${p.guest_phone ? ' · ' + escapeHtml(p.guest_phone) : ''}</small>`
               : '<span class="text-muted">Student</span>');
