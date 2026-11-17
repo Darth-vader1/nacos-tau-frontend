@@ -1507,10 +1507,10 @@
             </div>
           </div>
 
-          ${gameList && ticketNumber ? `
+          ${ticketNumber && /^NACOS-[0-9A-F]{4}-[0-9A-F]{6}$/i.test(String(ticketNumber)) ? `
           <div class="text-center mt-3">
             <div id="ticketQr" class="d-inline-block p-2 bg-white border rounded" aria-label="QR code for ticket ${escapeHtml(ticketNumber)}"></div>
-            <div class="small text-muted mt-1">Show this QR code at the game area</div>
+            <div class="small text-muted mt-1">Show this QR code ${gameList ? 'at the game area' : 'at the entrance'}</div>
           </div>` : ''}
 
           <div class="table-responsive mt-3">
