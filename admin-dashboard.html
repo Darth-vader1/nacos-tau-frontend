@@ -3361,7 +3361,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
               <label class="form-label small fw-bold mb-1">Student Matric No or Email *</label>
               <input type="text" id="rsvStudentIdentifier" class="form-control form-control-sm" list="rsvStudentDatalist" placeholder="Type Matric No, Email, or pick student...">
               <datalist id="rsvStudentDatalist">
-                ${(Array.isArray(allStudentsList) ? allStudentsList : []).slice(0, 300).map(s =>
+                ${((typeof allStudents !== 'undefined' && Array.isArray(allStudents)) ? allStudents : (Array.isArray(window.allStudentsList) ? window.allStudentsList : [])).slice(0, 300).map(s =>
                   `<option value="${escapeHtml(s.matric_no || s.email || s.user_id || '')}">${escapeHtml((s.name || 'Student') + (s.matric_no ? ' (' + s.matric_no + ')' : '') + (s.email ? ' — ' + s.email : ''))}</option>`
                 ).join('')}
               </datalist>
