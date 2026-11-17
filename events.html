@@ -592,7 +592,9 @@
         const spotsLeft = spotsLeftFor(event);
         const games = itemsByEvent[event.id] || [];
         const gamesBadge = games.length
-          ? `<span class="payment-badge"><i class="bi bi-controller me-1"></i>${games.length} game${games.length > 1 ? 's' : ''} &middot; from ${formatCurrency(Math.min(...games.map(g => Number(g.price))))}/play</span>`
+          ? (games.every(g => g.tournament)
+              ? `<span class="payment-badge"><i class="bi bi-trophy me-1"></i>${games.length} tournament${games.length > 1 ? 's' : ''} &middot; from ${formatCurrency(Math.min(...games.map(g => Number(g.price))))} entry</span>`
+              : `<span class="payment-badge"><i class="bi bi-controller me-1"></i>${games.length} game${games.length > 1 ? 's' : ''} &middot; from ${formatCurrency(Math.min(...games.map(g => Number(g.price))))}/play</span>`)
           : '';
 
         return `
@@ -704,6 +706,8 @@
       gamePlays = {};
       fullGames = new Set();
       const hasGames = currentItems.length > 0;
+      const allTour = hasGames && currentItems.every(isTournament);
+      const someTour = hasGames && currentItems.some(isTournament);
       if (hasGames) {
         try {
           const av = await api.payments.gamesAvailability(event.id);
@@ -735,7 +739,7 @@
           </div>
           <div class="col-6">
             <p class="mb-1"><strong><i class="bi bi-tag me-2"></i>Fee</strong></p>
-            <p class="text-muted">${hasGames ? `From ${formatCurrency(event.payment_amount)} per play` : (event.requires_payment ? formatCurrency(event.payment_amount) : 'Free')}</p>
+            <p class="text-muted">${hasGames ? `From ${formatCurrency(event.payment_amount)} ${allTour ? 'per entry' : 'per play'}` : (event.requires_payment ? formatCurrency(event.payment_amount) : 'Free')}</p>
           </div>
           ${hasGames ? `
           <div class="col-12">
@@ -751,12 +755,14 @@
                     ${isTournament(g) ? '<br><small class="text-muted">1 entry per person. You\'ll give your player username when you pay.</small>' : ''}
                   </span>
                   <span class="text-end small">
-                    <span class="fw-semibold">${formatCurrency(g.price)}</span>/play
+                    <span class="fw-semibold">${formatCurrency(g.price)}</span>${isTournament(g) ? ' entry' : '/play'}
                     ${isGuestOpen(event) && Number(g.public_price) > 0 ? `<br><span class="text-muted">Guests ${formatCurrency(g.public_price)}</span>` : ''}
                   </span>
                 </li>`).join('')}
             </ul>
-            <p class="small text-muted mb-0">Pay per play: 1 play = 1 game. Want to play twice? Choose 2 plays.</p>
+            <p class="small text-muted mb-0">${allTour
+              ? 'Tournaments: 1 entry per person. You can enter more than one tournament. You\'ll give your player username when you pay.'
+              : `Pay per play: 1 play = 1 game. Want to play twice? Choose 2 plays.${someTour ? ' Tournaments are 1 entry per person.' : ''}`}</p>
           </div>
           ` : ''}
           ${spotsLeft === 0 ? `
@@ -804,7 +810,7 @@
       const maxTotalPlays = Math.min(MAX_PLAYS_PER_ORDER, spotsLeft === null ? MAX_PLAYS_PER_ORDER : spotsLeft);
       const gameListHtml = (guest) => `
         <div class="w-100 mb-2" id="gameList">
-          <div class="small fw-semibold mb-1">Choose your games and how many plays</div>
+          <div class="small fw-semibold mb-1">${allTour ? 'Choose the tournaments you want to enter' : 'Choose your games and how many plays'}</div>
           ${gamesFor(guest).map(g => `
             <div class="d-flex align-items-center justify-content-between gap-2 border rounded px-2 py-1 mb-1 game-line" data-id="${escapeHtml(g.id)}">
               <div class="text-start">
@@ -855,7 +861,7 @@
               ${myRegs.length ? `<div class="w-100 small text-success mb-1"><i class="bi bi-controller me-1"></i>You have ${heldTickets} play${heldTickets > 1 ? 's' : ''} booked. Buy more any time.</div>` : ''}
               ${gameListHtml(false)}
               <button type="button" class="btn btn-register" id="gamePayBtn" onclick="registerForEvent('${escapeJsString(eventId)}')">
-                <i class="bi bi-controller me-1"></i> Pay &amp; Play (<span id="payTotal">${formatCurrency(0)}</span>)
+                <i class="bi bi-controller me-1"></i> ${allTour ? 'Pay &amp; Enter' : 'Pay &amp; Play'} (<span id="payTotal">${formatCurrency(0)}</span>)
               </button>
             `;
           } else if (isPaid) {
@@ -890,7 +896,7 @@
           </div>
           ${gameListHtml(true)}
           <button type="button" class="btn btn-register" id="gamePayBtn" onclick="startGuestCheckout('${escapeJsString(eventId)}')">
-            <i class="bi bi-controller me-1"></i> Pay &amp; Play as Guest (<span id="payTotal">${formatCurrency(0)}</span>)
+            <i class="bi bi-controller me-1"></i> ${allTour ? 'Pay &amp; Enter as Guest' : 'Pay &amp; Play as Guest'} (<span id="payTotal">${formatCurrency(0)}</span>)
           </button>
         `;
       } else if (isPaid && !hasGames && isGuestOpen(event) && hasSeats) {
@@ -943,9 +949,10 @@
           if (payBtn) payBtn.disabled = plays === 0;
           const bd = document.getElementById('priceBreakdown');
           if (bd) {
+            const unitW = allTour ? ['entry', 'entries', 'Entries'] : ['play', 'plays', 'Plays'];
             bd.textContent = plays === 0
-              ? 'Pick at least one play.'
-              : `${plays} play${plays > 1 ? 's' : ''}: ${gameLineText(lines)}. Plays ${formatCurrency(subtotal)}` +
+              ? (allTour ? 'Pick at least one tournament.' : 'Pick at least one play.')
+              : `${plays} ${plays > 1 ? unitW[1] : unitW[0]}: ${allTour ? lines.map(l => (currentItems.find(g => g.id === l.item_id) || {}).name).join(', ') : gameLineText(lines)}. ${unitW[2]} ${formatCurrency(subtotal)}` +
                 (service > 0 ? ` + service fee ${formatCurrency(service)} = ${formatCurrency(roundNaira(subtotal + service))}` : '');
           }
         };
