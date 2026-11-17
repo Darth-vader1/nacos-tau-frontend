@@ -3271,6 +3271,11 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         }
 
         const evPays = allP.filter(p => p.event_id === eventId && (p.status === 'verified' || !p.status));
+        window.__attGameNames = {};
+        try {
+          const gi = await eventsApiRequest('GET', `/${encodeURIComponent(eventId)}/items`);
+          (gi?.data || []).forEach(g => { window.__attGameNames[g.id] = g.name; });
+        } catch (_) {}
 
         // Registrations come from the admin API: the browser itself may only
         // read its own rows, which hid every free sign-up.
@@ -3308,8 +3313,18 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
           const mNo = st.matric_no ? ('<code>' + escapeHtml(st.matric_no) + '</code>') : '<span class="text-muted">N/A</span>';
           const dpt = st.department ? escapeHtml(st.department) : '<span class="text-muted">N/A</span>';
           const emlVal = st.email || (isGuestRow ? p.guest_email : '');
-          const eml = (emlVal ? ('<br><small class="text-muted">' + escapeHtml(emlVal) + (isGuestRow && p.guest_phone ? ' · ' + escapeHtml(p.guest_phone) : '') + '</small>') : '') +
-            (isGuestRow ? ' <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">Guest</span>' : '');
+          const phoneVal = p.buyer_phone || (isGuestRow ? p.guest_phone : '') || st.phone || '';
+          const gameLines = Array.isArray(p.order_items) && p.order_items.length
+            ? p.order_items.map(l => ({ item_id: l.item_id, name: l.name, plays: l.plays }))
+            : (p.event_item_id ? [{ item_id: p.event_item_id, name: null, plays: qtyOf(p) }] : []);
+          const entries = Array.isArray(p.entry_details) ? p.entry_details : [];
+          const gamesHtml = gameLines.length ? '<br><small>' + gameLines.map(l => {
+            const e = entries.find(x => x && x.item_id === l.item_id);
+            const nm = l.name || (e && e.name) || (window.__attGameNames && window.__attGameNames[l.item_id]) || 'Game';
+            return '🎮 ' + escapeHtml(nm) + (l.plays > 1 ? ' × ' + l.plays : '') + (e ? ' <span class="badge bg-light text-dark border" title="Player username">' + escapeHtml(e.username) + '</span>' : '');
+          }).join('<br>') + '</small>' : '';
+          const eml = (emlVal || phoneVal ? ('<br><small class="text-muted">' + escapeHtml(emlVal) + (phoneVal ? (emlVal ? ' · ' : '') + '<i class="bi bi-telephone"></i> ' + escapeHtml(phoneVal) : '') + '</small>') : '') +
+            (isGuestRow ? ' <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">Guest</span>' : '') + gamesHtml;
           const pQty = qtyOf(p);
           const isManualRef = String(p.transaction_id || '').startsWith('RSV-');
           const isComp = isManualRef && Number(p.amount) === 0;
@@ -3343,7 +3358,8 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
           const mNo = st.matric_no ? ('<code>' + escapeHtml(st.matric_no) + '</code>') : '<span class="text-muted">N/A</span>';
           const dpt = st.department ? escapeHtml(st.department) : '<span class="text-muted">N/A</span>';
           const emlVal = st.email || r.guest_email || '';
-          const eml = emlVal ? ('<br><small class="text-muted">' + escapeHtml(emlVal) + '</small>') : '';
+          const phoneVal = r.guest_phone || st.phone || '';
+          const eml = (emlVal || phoneVal) ? ('<br><small class="text-muted">' + escapeHtml(emlVal) + (phoneVal ? (emlVal ? ' · ' : '') + '<i class="bi bi-telephone"></i> ' + escapeHtml(phoneVal) : '') + '</small>') : '';
           const q = qtyOf(r);
           const badge = r.linked_payment_id
             ? '<span class="badge bg-warning text-dark" title="Linked order is not verified">Registered · payment not verified</span>'
