@@ -359,6 +359,19 @@ export const api = {
             return response.json();
         },
 
+        // Admin: manually reserve a spot / issue a complimentary or cash-paid ticket
+        async manualReserve(data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/payments/manual-reserve`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+
         // Admin: ask the gateway whether an online checkout was paid, and issue tickets if so
         async gatewayRecheck(id) {
             const { data: { session } } = await supabase.auth.getSession();

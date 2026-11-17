@@ -1864,8 +1864,11 @@
             </table>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-success btn-sm" id="reserveSpotFromModalBtn">
+            <i class="bi bi-ticket-perforated me-1"></i>Reserve Spot / Issue Ticket
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
@@ -3091,7 +3094,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
             </div>
           </td>
           <td>
-            <button class="btn btn-sm btn-outline-info me-1" onclick="viewEventAttendees('${ev.id}')" title="View Attendees"><i class="bi bi-people"></i></button><button class="btn btn-sm btn-outline-success me-1" onclick="manageEventGames('${ev.id}')" title="Games (pay per play)"><i class="bi bi-controller"></i></button><button class="btn btn-sm btn-outline-dark me-1" onclick="manageEventMarshals('${ev.id}')" title="Event duty: door check-in or game marshals"><i class="bi bi-person-badge"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-info me-1" onclick="viewEventAttendees('${ev.id}')" title="View Attendees"><i class="bi bi-people"></i></button><button class="btn btn-sm btn-outline-warning me-1" onclick="openReserveSpotModal('${ev.id}')" title="Reserve Spot / Issue Manual Ticket"><i class="bi bi-ticket-perforated"></i></button><button class="btn btn-sm btn-outline-success me-1" onclick="manageEventGames('${ev.id}')" title="Games (pay per play)"><i class="bi bi-controller"></i></button><button class="btn btn-sm btn-outline-dark me-1" onclick="manageEventMarshals('${ev.id}')" title="Event duty: door check-in or game marshals"><i class="bi bi-person-badge"></i></button><button class="btn btn-sm btn-outline-primary me-1" onclick="editEvent('${ev.id}')"><i class="bi bi-pencil"></i></button>
             <button class="btn btn-sm btn-outline-danger" onclick="deleteEvent('${ev.id}')"><i class="bi bi-trash"></i></button>
           </td>
         </tr>
@@ -3239,9 +3242,12 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       const targetEvent = (window.currentEventsList || []).find(e => e.id === eventId);
       const title = targetEvent ? targetEvent.title : 'Event';
       document.getElementById('eventAttendeesModalTitle').innerHTML = '<i class="bi bi-people-fill me-2 text-primary"></i>Attendees: ' + escapeHtml(title);
+      const reserveBtn = document.getElementById('reserveSpotFromModalBtn');
+      if (reserveBtn) reserveBtn.onclick = () => openReserveSpotModal(eventId);
       const tbody = document.getElementById('eventAttendeesTableBody');
       tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading attendees...</td></tr>';
-      new bootstrap.Modal(document.getElementById('eventAttendeesModal')).show();
+      const modalEl = document.getElementById('eventAttendeesModal');
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
 
       try {
         let allP = [];
@@ -3285,8 +3291,18 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
           const eml = (emlVal ? ('<br><small class="text-muted">' + escapeHtml(emlVal) + (isGuestRow && p.guest_phone ? ' · ' + escapeHtml(p.guest_phone) : '') + '</small>') : '') +
             (isGuestRow ? ' <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">Guest</span>' : '');
           const pQty = qtyOf(p);
-          const pBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid ' + formatCurrency(p.amount) + '</span>' +
-            ' <span class="badge bg-light text-dark border">' + pQty + ' ticket' + (pQty > 1 ? 's' : '') + '</span>';
+          const isManualRef = String(p.transaction_id || '').startsWith('RSV-');
+          const isComp = isManualRef && Number(p.amount) === 0;
+          const statusBadge = isComp
+            ? '<span class="badge bg-primary"><i class="bi bi-bookmark-star me-1"></i>Reserved (Complimentary)</span>'
+            : isManualRef
+              ? '<span class="badge bg-success"><i class="bi bi-cash-stack me-1"></i>Paid ' + formatCurrency(p.amount) + ' (Offline)</span>'
+              : '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Paid ' + formatCurrency(p.amount) + '</span>';
+          const receiptLink = p.transaction_id
+            ? ' <a href="receipt.html?reference=' + encodeURIComponent(p.transaction_id) + '" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary py-0 px-2 ms-1" title="Open / Download Ticket"><i class="bi bi-receipt"></i></a>'
+            : '';
+          const pBadge = statusBadge +
+            ' <span class="badge bg-light text-dark border">' + pQty + ' ticket' + (pQty > 1 ? 's' : '') + '</span>' + receiptLink;
           const rDate = p.verified_at || p.submitted_at || p.created_at || null;
           const dStr = rDate ? new Date(rDate).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
 
@@ -3303,6 +3319,205 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       } catch (err) {
         console.error('[viewEventAttendees]', err);
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Error loading attendees: ' + escapeHtml(err.message || String(err)) + '</td></tr>';
+      }
+    };
+
+    // Admin: Manually reserve a spot / issue a complimentary or cash-paid ticket
+    window.openReserveSpotModal = async function(eventId) {
+      const targetEvent = (window.currentEventsList || []).find(e => e.id === eventId) || {};
+      const evTitle = targetEvent.title || 'Event';
+      const memberPrice = Number(targetEvent.payment_amount) || 0;
+      const guestPrice = Number(targetEvent.public_price) || memberPrice;
+      const cap = Number(targetEvent.max_attendees) || 0;
+      const taken = Number((window.eventCountsMap && window.eventCountsMap[eventId]) ?? targetEvent.current_attendees) || 0;
+      const spotsInfo = cap > 0 ? `${Math.max(0, cap - taken)} of ${cap} seat(s) remaining` : "Unlimited capacity";
+
+      // Hide attendees modal temporarily so SweetAlert inputs can take focus cleanly
+      const attModalEl = document.getElementById('eventAttendeesModal');
+      const wasAttendeesOpen = attModalEl && attModalEl.classList.contains('show');
+      if (wasAttendeesOpen) bootstrap.Modal.getInstance(attModalEl)?.hide();
+
+      const { value: payload, isConfirmed } = await Swal.fire({
+        title: 'Reserve Spot / Issue Ticket',
+        width: 560,
+        html: `
+          <div class="text-start">
+            <div class="p-2 mb-3 rounded bg-light border small d-flex justify-content-between align-items-center">
+              <span><strong>${escapeHtml(evTitle)}</strong></span>
+              <span class="badge bg-secondary">${escapeHtml(spotsInfo)}</span>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold mb-1">1. Attendee Type</label>
+              <div class="btn-group w-100" role="group">
+                <input type="radio" class="btn-check" name="rsvAttendeeType" id="rsvTypeStudent" value="student" checked>
+                <label class="btn btn-outline-success btn-sm" for="rsvTypeStudent"><i class="bi bi-mortarboard me-1"></i>Registered Student</label>
+                <input type="radio" class="btn-check" name="rsvAttendeeType" id="rsvTypeGuest" value="guest">
+                <label class="btn btn-outline-success btn-sm" for="rsvTypeGuest"><i class="bi bi-person-badge me-1"></i>Guest / External / VIP</label>
+              </div>
+            </div>
+
+            <div id="rsvStudentFields" class="mb-3">
+              <label class="form-label small fw-bold mb-1">Student Matric No or Email *</label>
+              <input type="text" id="rsvStudentIdentifier" class="form-control form-control-sm" list="rsvStudentDatalist" placeholder="Type Matric No, Email, or pick student...">
+              <datalist id="rsvStudentDatalist">
+                ${(Array.isArray(allStudentsList) ? allStudentsList : []).slice(0, 300).map(s =>
+                  `<option value="${escapeHtml(s.matric_no || s.email || s.user_id || '')}">${escapeHtml((s.name || 'Student') + (s.matric_no ? ' (' + s.matric_no + ')' : '') + (s.email ? ' — ' + s.email : ''))}</option>`
+                ).join('')}
+              </datalist>
+              <div class="form-text small">Enter the student's Matric Number or TAU email address.</div>
+            </div>
+
+            <div id="rsvGuestFields" class="mb-3" style="display: none;">
+              <div class="mb-2">
+                <label class="form-label small fw-bold mb-1">Guest Full Name *</label>
+                <input type="text" id="rsvGuestName" class="form-control form-control-sm" placeholder="e.g. Dr. Adewale Bello" maxlength="100">
+              </div>
+              <div class="row g-2">
+                <div class="col-sm-7">
+                  <label class="form-label small fw-bold mb-1">Guest Email Address *</label>
+                  <input type="email" id="rsvGuestEmail" class="form-control form-control-sm" placeholder="guest@example.com" maxlength="254">
+                </div>
+                <div class="col-sm-5">
+                  <label class="form-label small fw-bold mb-1">Phone (optional)</label>
+                  <input type="tel" id="rsvGuestPhone" class="form-control form-control-sm" placeholder="08012345678" maxlength="20">
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold mb-1">2. Reservation / Payment Mode</label>
+              <div class="btn-group w-100" role="group">
+                <input type="radio" class="btn-check" name="rsvMode" id="rsvModeComp" value="complimentary" checked>
+                <label class="btn btn-outline-primary btn-sm" for="rsvModeComp"><i class="bi bi-bookmark-star me-1"></i>Complimentary (₦0 Reserved)</label>
+                <input type="radio" class="btn-check" name="rsvMode" id="rsvModeCash" value="cash">
+                <label class="btn btn-outline-primary btn-sm" for="rsvModeCash"><i class="bi bi-cash-stack me-1"></i>Cash / Offline Paid</label>
+              </div>
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-sm-5">
+                <label class="form-label small fw-bold mb-1">Ticket Quantity *</label>
+                <input type="number" id="rsvQuantity" class="form-control form-control-sm" value="1" min="1" max="10">
+              </div>
+              <div class="col-sm-7" id="rsvCashAmountWrap" style="display: none;">
+                <label class="form-label small fw-bold mb-1">Amount Collected (₦) *</label>
+                <input type="number" id="rsvAmountPaid" class="form-control form-control-sm" value="${memberPrice}" min="0" step="0.01">
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label small fw-bold mb-1">Admin Note / Reason (optional)</label>
+              <input type="text" id="rsvNotes" class="form-control form-control-sm" placeholder="e.g. VIP Guest, Executive reservation, Cash paid at desk..." maxlength="200">
+            </div>
+
+            <div class="form-check small mt-2">
+              <input class="form-check-input" type="checkbox" id="rsvBypassCap">
+              <label class="form-check-label text-muted" for="rsvBypassCap">Allow over-capacity reservation if event is full</label>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-check2-circle me-1"></i>Reserve Spot & Issue Ticket',
+        confirmButtonColor: '#157a09',
+        didOpen: (popup) => {
+          const stuRadio = popup.querySelector('#rsvTypeStudent');
+          const gstRadio = popup.querySelector('#rsvTypeGuest');
+          const stuFields = popup.querySelector('#rsvStudentFields');
+          const gstFields = popup.querySelector('#rsvGuestFields');
+          const compRadio = popup.querySelector('#rsvModeComp');
+          const cashRadio = popup.querySelector('#rsvModeCash');
+          const cashWrap = popup.querySelector('#rsvCashAmountWrap');
+          const qtyInput = popup.querySelector('#rsvQuantity');
+          const amtInput = popup.querySelector('#rsvAmountPaid');
+
+          const syncPrice = () => {
+            const isGst = gstRadio.checked;
+            const unit = isGst ? guestPrice : memberPrice;
+            const q = Math.max(1, parseInt(qtyInput.value, 10) || 1);
+            if (cashRadio.checked) amtInput.value = Math.round(unit * q * 100) / 100;
+          };
+          stuRadio.addEventListener("change", () => { stuFields.style.display = ""; gstFields.style.display = "none"; syncPrice(); });
+          gstRadio.addEventListener("change", () => { stuFields.style.display = "none"; gstFields.style.display = ""; syncPrice(); });
+          compRadio.addEventListener("change", () => { cashWrap.style.display = "none"; });
+          cashRadio.addEventListener("change", () => { cashWrap.style.display = ""; syncPrice(); });
+          qtyInput.addEventListener("input", syncPrice);
+        },
+        preConfirm: () => {
+          const attendee_type = document.getElementById("rsvTypeGuest").checked ? "guest" : "student";
+          const reservation_mode = document.getElementById("rsvModeCash").checked ? "cash" : "complimentary";
+          const quantity = parseInt(document.getElementById("rsvQuantity").value, 10) || 1;
+          const notes = document.getElementById("rsvNotes").value.trim();
+          const bypass_capacity = document.getElementById("rsvBypassCap").checked;
+
+          if (quantity < 1 || quantity > 10) {
+            return Swal.showValidationMessage("Ticket quantity must be between 1 and 10.");
+          }
+
+          const out = { event_id: eventId, attendee_type, reservation_mode, quantity, notes, bypass_capacity };
+          if (attendee_type === "student") {
+            const idVal = document.getElementById("rsvStudentIdentifier").value.trim();
+            if (!idVal) return Swal.showValidationMessage("Enter the student's Matric No or email address.");
+            out.student_identifier = idVal;
+          } else {
+            const gName = document.getElementById("rsvGuestName").value.trim();
+            const gEmail = document.getElementById("rsvGuestEmail").value.trim();
+            const gPhone = document.getElementById("rsvGuestPhone").value.trim();
+            if (gName.length < 2) return Swal.showValidationMessage("Enter the guest's full name.");
+            if (!/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(gEmail)) return Swal.showValidationMessage("Enter a valid guest email address.");
+            out.guest_name = gName;
+            out.guest_email = gEmail;
+            if (gPhone) out.guest_phone = gPhone;
+          }
+
+          if (reservation_mode === "cash") {
+            const amt = Number(document.getElementById("rsvAmountPaid").value);
+            if (!Number.isFinite(amt) || amt < 0) return Swal.showValidationMessage("Enter a valid cash amount.");
+            out.amount_paid = amt;
+          }
+          return out;
+        }
+      });
+
+      if (!isConfirmed || !payload) {
+        if (wasAttendeesOpen) viewEventAttendees(eventId);
+        return;
+      }
+
+      Swal.fire({ title: 'Issuing ticket & reserving spot...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      try {
+        const res = await api.payments.manualReserve(payload);
+        if (!res || !res.success) {
+          throw new Error(res?.error || res?.message || "Failed to reserve spot");
+        }
+        const d = res.data || {};
+        window.allPaymentsList = []; // clear cache so fresh payments load
+        await Promise.allSettled([loadEvents(), loadPayments(), loadDashboardStats()]);
+
+        await Swal.fire({
+          icon: 'success',
+          title: 'Spot Reserved!',
+          html: `
+            <p class="mb-2">Ticket issued for <strong>${escapeHtml(d.attendee?.name || "Attendee")}</strong> (${escapeHtml(d.attendee?.email || "")}).</p>
+            <div class="p-3 bg-light rounded border mb-3">
+              <div class="small text-muted text-uppercase fw-bold">Official Ticket Code</div>
+              <div class="fs-4 fw-bold text-success font-monospace my-1">${escapeHtml(d.ticket_number || "")}</div>
+              <div class="small text-muted">${d.ticket_quantity || 1} ticket(s) · ${d.reservation_mode === "complimentary" ? "Complimentary (₦0)" : ("Paid " + formatCurrency(d.amount))}</div>
+            </div>
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+              <a href="receipt.html?reference=${encodeURIComponent(d.reference || "")}" target="_blank" class="btn btn-sm btn-success text-white">
+                <i class="bi bi-download me-1"></i>Open / Download Ticket Image
+              </a>
+            </div>
+          `,
+          confirmButtonText: 'Done',
+          confirmButtonColor: '#157a09'
+        });
+
+        if (wasAttendeesOpen) viewEventAttendees(eventId);
+      } catch (err) {
+        await Swal.fire("Reservation Failed", escapeHtml(err.message || "Could not reserve spot."), "error");
+        if (wasAttendeesOpen) viewEventAttendees(eventId);
       }
     }; /* OLD_VIEW_ATTENDEES
       const targetEvent = (window.currentEventsList || []).find(e => e.id === eventId);
