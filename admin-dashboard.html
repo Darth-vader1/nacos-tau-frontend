@@ -1062,15 +1062,17 @@
               </div>
               <div class="card-body">
                 <div class="row g-2 mb-3" id="revenueTotals">
-                  <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Ticket revenue (NACOS)</div><div class="fs-5 fw-bold" id="revTickets">-</div></div></div>
-                  <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Service fees</div><div class="fs-5 fw-bold text-success" id="revService">-</div></div></div>
-                  <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Bachs fees (paid by buyers)</div><div class="fs-5 fw-bold" id="revGateway">-</div><button type="button" class="btn btn-link btn-sm p-0 small" onclick="refreshBachsFees(this)" title="Ask Bachs for the fee on past orders that don't have one yet"><i class="bi bi-arrow-repeat me-1"></i>Fetch from Bachs</button></div></div>
-                  <div class="col-6 col-md-3"><div class="border rounded p-2 h-100"><div class="small text-muted">Orders · tickets</div><div class="fs-5 fw-bold" id="revOrders">-</div></div></div>
+                  <div class="col-6 col-md-4"><div class="border rounded p-2 h-100 bg-success-subtle border-success-subtle"><div class="small text-success-emphasis fw-semibold">Total Revenue (NACOS)</div><div class="fs-5 fw-bold text-success" id="revTotal">-</div><div class="small text-muted" id="revTotalSub">Tickets: <span id="revTickets">-</span></div></div></div>
+                  <div class="col-6 col-md-4"><div class="border rounded p-2 h-100"><div class="small text-muted"><i class="bi bi-globe2 me-1 text-primary"></i>Online Gateway (Bachs)</div><div class="fs-5 fw-bold" id="revOnline">-</div><div class="small text-muted" id="revOnlineSub">0 online orders</div></div></div>
+                  <div class="col-6 col-md-4"><div class="border rounded p-2 h-100"><div class="small text-muted"><i class="bi bi-cash-stack me-1 text-success"></i>Offline / Cash Paid</div><div class="fs-5 fw-bold" id="revOffline">-</div><div class="small text-muted" id="revOfflineSub">0 offline · 0 complimentary</div></div></div>
+                  <div class="col-6 col-md-4"><div class="border rounded p-2 h-100"><div class="small text-muted">Service fees (NACOS)</div><div class="fs-5 fw-bold text-success" id="revService">-</div></div></div>
+                  <div class="col-6 col-md-4"><div class="border rounded p-2 h-100"><div class="small text-muted">Bachs fees (paid by buyers)</div><div class="fs-5 fw-bold" id="revGateway">-</div><button type="button" class="btn btn-link btn-sm p-0 small" onclick="refreshBachsFees(this)" title="Ask Bachs for the fee on past orders that don't have one yet"><i class="bi bi-arrow-repeat me-1"></i>Fetch from Bachs</button></div></div>
+                  <div class="col-6 col-md-4"><div class="border rounded p-2 h-100"><div class="small text-muted">Orders · tickets</div><div class="fs-5 fw-bold" id="revOrders">-</div><div class="small text-muted" id="revOrdersSub">All confirmed tickets</div></div></div>
                 </div>
-                <div class="table-responsive" style="max-height: 260px;">
+                <div class="table-responsive" style="max-height: 280px;">
                   <table class="table table-sm align-middle mb-0">
-                    <thead><tr><th>Event</th><th class="text-end">Tickets</th><th class="text-end">Ticket revenue</th><th class="text-end">Service fees</th><th class="text-end">Bachs fees</th><th class="text-end"><span class="visually-hidden">Actions</span></th></tr></thead>
-                    <tbody id="revenueByEvent"><tr><td colspan="6" class="text-muted text-center py-3">Loading...</td></tr></tbody>
+                    <thead><tr><th>Event</th><th class="text-end">Tickets</th><th class="text-end">Online (Gateway)</th><th class="text-end">Offline (Cash)</th><th class="text-end">Total Ticket Rev.</th><th class="text-end">Service fees</th><th class="text-end">Bachs fees</th><th class="text-end"><span class="visually-hidden">Actions</span></th></tr></thead>
+                    <tbody id="revenueByEvent"><tr><td colspan="8" class="text-muted text-center py-3">Loading...</td></tr></tbody>
                   </table>
                 </div>
                 <div class="small text-muted mt-2">Bachs fees appear when Bachs reports them on a payment. Older orders had no service fee.</div>
@@ -1117,9 +1119,12 @@
                 </select>
               </div>
               <div class="col-md-3 col-sm-6">
-                <select class="form-select" id="paymentTypeFilter" aria-label="Filter by type">
-                  <option value="">All Payment Types</option>
-                  <option value="event_registration">Event Registration</option>
+                <select class="form-select" id="paymentTypeFilter" aria-label="Filter by type or channel">
+                  <option value="">All Payment Types &amp; Channels</option>
+                  <option value="channel:online">Online Gateway Only (Bachs)</option>
+                  <option value="channel:offline">Offline / Cash Paid Only</option>
+                  <option value="channel:complimentary">Complimentary (₦0 Reserved) Only</option>
+                  <option value="event_registration">Event Registration (All)</option>
                   <option value="association_fee">Association Fee</option>
                   <option value="other">Other / General</option>
                 </select>
@@ -5678,9 +5683,17 @@ window.deleteEvent = async function(id) {
           : !selectedStatus ? pStatus !== 'abandoned'
           : pStatus === selectedStatus;
 
-        // Payment type match
+        // Payment type or channel match
         const pType = String(p.payment_type || 'event_registration').toLowerCase().trim();
-        const matchesType = !selectedType || pType === selectedType;
+        const pRef = String(p.transaction_id || '');
+        const pNotes = String(p.notes || '') + ' ' + String(p.description || '');
+        const isOfflineRow = pRef.startsWith('RSV-') || /Manual Reservation|Reserved Spot|Complimentary reservation|Manual offline ticket/i.test(pNotes);
+        const isCompRow = isOfflineRow && (Number(p.amount) || 0) === 0;
+        const matchesType = !selectedType ? true
+          : selectedType === 'channel:online' ? !isOfflineRow
+          : selectedType === 'channel:offline' ? (isOfflineRow && !isCompRow)
+          : selectedType === 'channel:complimentary' ? isCompRow
+          : pType === selectedType;
 
         // Event and date range
         const matchesEvent = !selectedEvent || paymentEventKey(p).key === selectedEvent;
@@ -5694,8 +5707,13 @@ window.deleteEvent = async function(id) {
 
       // Update results counter info
       if (resultsInfo) {
-        const verifiedTotal = filtered.filter(p => (p.status || 'verified') === 'verified').reduce((s, p) => s + (Number(p.amount) || 0), 0);
-        const totalNote = verifiedTotal > 0 ? ` &middot; ${formatCurrency(verifiedTotal)} verified` : '';
+        const verifiedList = filtered.filter(p => (p.status || 'verified') === 'verified');
+        const isOff = (p) => String(p.transaction_id || "").startsWith("RSV-") || /Manual Reservation|Reserved Spot|Complimentary reservation|Manual offline ticket/i.test(String(p.notes || "") + " " + String(p.description || ""));
+        const onlineSum = verifiedList.filter(p => !isOff(p)).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const offlineSum = verifiedList.filter(p => isOff(p)).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const verifiedTotal = onlineSum + offlineSum;
+        const splitNote = offlineSum > 0 ? ` (${formatCurrency(onlineSum)} online · ${formatCurrency(offlineSum)} offline)` : "";
+        const totalNote = verifiedTotal > 0 ? ` &middot; <strong>${formatCurrency(verifiedTotal)}</strong> verified${splitNote}` : "";
         if (filtered.length === allPaymentsList.length) {
           resultsInfo.innerHTML = `Showing all <strong>${filtered.length}</strong> payments${totalNote}`;
         } else {
@@ -5847,28 +5865,44 @@ window.deleteEvent = async function(id) {
         const d = res.data || {};
         lastRevenue = d;
         const t = d.totals || {};
-        document.getElementById('revTickets').textContent = formatCurrency(t.ticket_revenue || 0);
+        const onlineRev = Number(t.online_ticket_revenue ?? t.ticket_revenue) || 0;
+        const offlineRev = Number(t.offline_ticket_revenue) || 0;
+        const totalTicketRev = Number(t.ticket_revenue) || (onlineRev + offlineRev);
+        const totalCollected = Number(t.collected) || (totalTicketRev + (Number(t.service_fees) || 0));
+        if (document.getElementById('revTotal')) document.getElementById('revTotal').textContent = formatCurrency(totalCollected);
+        if (document.getElementById('revTickets')) document.getElementById('revTickets').textContent = formatCurrency(totalTicketRev);
+        if (document.getElementById('revOnline')) document.getElementById('revOnline').textContent = formatCurrency(onlineRev);
+        if (document.getElementById('revOnlineSub')) document.getElementById('revOnlineSub').textContent = `${(t.online_orders ?? t.orders ?? 0).toLocaleString()} online order(s)`;
+        if (document.getElementById('revOffline')) document.getElementById('revOffline').textContent = formatCurrency(offlineRev);
+        if (document.getElementById('revOfflineSub')) document.getElementById('revOfflineSub').textContent = `${(t.offline_orders || 0).toLocaleString()} cash paid · ${(t.complimentary_tickets || 0).toLocaleString()} comp. (₦0)`;
         document.getElementById('revService').textContent = formatCurrency(t.service_fees || 0);
         document.getElementById('revGateway').textContent = formatCurrency(t.gateway_fees || 0);
         document.getElementById('revOrders').textContent = `${(t.orders || 0).toLocaleString()} · ${(t.tickets || 0).toLocaleString()}`;
+        if (document.getElementById('revOrdersSub')) document.getElementById('revOrdersSub').textContent = `${(t.online_orders ?? 0)} online · ${(t.offline_orders || 0)} offline · ${(t.complimentary_orders || 0)} comp.`;
         const rows = d.by_event || [];
         window.__revenueRows = rows;
         const canArchive = d.archive_available !== false;
-        body.innerHTML = rows.length ? rows.map((r, i) => `
+        body.innerHTML = rows.length ? rows.map((r, i) => {
+          const rOnline = Number(r.online_ticket_revenue ?? r.ticket_revenue) || 0;
+          const rOffline = Number(r.offline_ticket_revenue) || 0;
+          return `
           <tr class="${r.archived ? 'text-muted' : ''}">
-            <td>${escapeHtml(r.title)}${r.guest_orders ? ` <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">${r.guest_orders} guest</span>` : ''}</td>
+            <td>${escapeHtml(r.title)}${r.guest_orders ? ` <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">${r.guest_orders} guest</span>` : ''}${r.complimentary_tickets ? ` <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">${r.complimentary_tickets} comp</span>` : ''}</td>
             <td class="text-end">${r.tickets}</td>
-            <td class="text-end">${formatCurrency(r.ticket_revenue)}</td>
+            <td class="text-end">${formatCurrency(rOnline)}</td>
+            <td class="text-end">${formatCurrency(rOffline)}</td>
+            <td class="text-end fw-bold">${formatCurrency(r.ticket_revenue)}</td>
             <td class="text-end ${r.archived ? '' : 'text-success'}">${formatCurrency(r.service_fees)}</td>
             <td class="text-end">${formatCurrency(r.gateway_fees)}</td>
             <td class="text-end text-nowrap">${!canArchive || !(r.payment_ids || []).length ? ''
               : r.archived
                 ? `<button type="button" class="btn btn-sm btn-outline-secondary" onclick="restoreRevenueRow(${i})" title="Count these orders again"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>`
                 : `<button type="button" class="btn btn-sm btn-outline-danger" onclick="archiveRevenueRow(${i})" title="Archive these orders (for example test payments)"><i class="bi bi-archive"></i></button>`}</td>
-          </tr>`).join('') : '<tr><td colspan="6" class="text-muted text-center py-3">No confirmed ticket orders in this period.</td></tr>';
+          </tr>`;
+        }).join('') : '<tr><td colspan="8" class="text-muted text-center py-3">No confirmed ticket orders in this period.</td></tr>';
       } catch (err) {
         console.warn('[revenue] load failed:', err);
-        body.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">Could not load revenue.</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" class="text-muted text-center py-3">Could not load revenue.</td></tr>';
       }
     };
 
@@ -5950,10 +5984,10 @@ window.deleteEvent = async function(id) {
       const d = lastRevenue || {};
       const esc = (v) => { let x = String(v ?? ''); if (/^[=+\-@]/.test(x)) x = "'" + x; return `"${x.replace(/"/g, '""')}"`; };
       const lines = [
-        ['Section', 'Month / Event', 'Orders', 'Tickets', 'Ticket revenue (NGN)', 'Service fees (NGN)', 'Bachs fees (NGN)', 'Collected (NGN)'].map(esc).join(','),
-        ...(d.by_month || []).map(m => ['Month', m.month, m.orders, m.tickets, m.ticket_revenue, m.service_fees, m.gateway_fees, m.collected].map(esc).join(',')),
-        ...(d.by_event || []).map(e => ['Event', e.title, e.orders, e.tickets, e.ticket_revenue, e.service_fees, e.gateway_fees, e.collected].map(esc).join(',')),
-        ['Total', '', d.totals?.orders, d.totals?.tickets, d.totals?.ticket_revenue, d.totals?.service_fees, d.totals?.gateway_fees, d.totals?.collected].map(esc).join(',')
+        ['Section', 'Month / Event', 'Orders', 'Tickets', 'Complimentary Tickets', 'Online Revenue (NGN)', 'Offline Cash Revenue (NGN)', 'Total Ticket Revenue (NGN)', 'Service Fees (NGN)', 'Bachs Fees (NGN)', 'Total Collected (NGN)'].map(esc).join(','),
+        ...(d.by_month || []).map(m => ['Month', m.month, m.orders, m.tickets, m.complimentary_tickets || 0, m.online_ticket_revenue ?? m.ticket_revenue, m.offline_ticket_revenue || 0, m.ticket_revenue, m.service_fees, m.gateway_fees, m.collected].map(esc).join(',')),
+        ...(d.by_event || []).map(e => ['Event', e.title, e.orders, e.tickets, e.complimentary_tickets || 0, e.online_ticket_revenue ?? e.ticket_revenue, e.offline_ticket_revenue || 0, e.ticket_revenue, e.service_fees, e.gateway_fees, e.collected].map(esc).join(',')),
+        ['Total', '', d.totals?.orders, d.totals?.tickets, d.totals?.complimentary_tickets || 0, d.totals?.online_ticket_revenue ?? d.totals?.ticket_revenue, d.totals?.offline_ticket_revenue || 0, d.totals?.ticket_revenue, d.totals?.service_fees, d.totals?.gateway_fees, d.totals?.collected].map(esc).join(',')
       ];
       const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
