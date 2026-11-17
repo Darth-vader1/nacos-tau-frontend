@@ -3255,10 +3255,16 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       bootstrap.Modal.getOrCreateInstance(modalEl).show();
 
       try {
+        // The API gives at most 100 payments per page: load every page.
         let allP = [];
         if (typeof api?.payments?.getAll === 'function') {
-          const pr = await api.payments.getAll({ limit: 500 });
-          allP = pr?.data?.payments || [];
+          const seen = new Set();
+          for (let page = 1; page <= 100; page++) {
+            const pr = await api.payments.getAll({ limit: 100, page });
+            const list = (pr && pr.success && pr.data?.payments) || [];
+            list.forEach(p => { if (!seen.has(p.id)) { seen.add(p.id); allP.push(p); } });
+            if (list.length < 100) break;
+          }
           window.allPaymentsList = allP;
         } else if (Array.isArray(window.allPaymentsList)) {
           allP = window.allPaymentsList;
@@ -3266,11 +3272,20 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
 
         const evPays = allP.filter(p => p.event_id === eventId && (p.status === 'verified' || !p.status));
 
+        // Registrations come from the admin API: the browser itself may only
+        // read its own rows, which hid every free sign-up.
         let nonPaidRegs = [];
         try {
-          const { data: regs } = await supabase.from('event_registrations').select('*').eq('event_id', eventId);
-          if (regs) nonPaidRegs = regs;
-        } catch (_) {}
+          const rr = await eventsApiRequest('GET', `/${encodeURIComponent(eventId)}/registrations`);
+          if (Array.isArray(rr?.data)) nonPaidRegs = rr.data;
+        } catch (apiErr) {
+          console.warn('[viewEventAttendees] registrations API failed, falling back:', apiErr.message);
+          try {
+            const { data: regs } = await supabase.from('event_registrations').select('*').eq('event_id', eventId);
+            if (regs) nonPaidRegs = regs;
+          } catch (_) {}
+        }
+        nonPaidRegs = nonPaidRegs.filter(r => (r.status || 'registered') !== 'cancelled');
 
         if (!evPays.length && !nonPaidRegs.length) {
           tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No students have registered or paid for this event yet.</td></tr>';
@@ -3316,6 +3331,30 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
             '<td>' + mNo + '</td>' +
             '<td>' + dpt + '</td>' +
             '<td>' + pBadge + '</td>' +
+            '<td><small class="text-muted">' + dStr + '</small></td>' +
+          '</tr>';
+        });
+
+        // Free sign-ups (and any registration without a matching paid order)
+        otherRegs.forEach(r => {
+          const st = r.students || {};
+          const isGuestRow = !r.user_id && !!r.guest_email;
+          const sName = st.name || (isGuestRow ? (r.guest_name || 'Guest') : 'Student');
+          const mNo = st.matric_no ? ('<code>' + escapeHtml(st.matric_no) + '</code>') : '<span class="text-muted">N/A</span>';
+          const dpt = st.department ? escapeHtml(st.department) : '<span class="text-muted">N/A</span>';
+          const emlVal = st.email || r.guest_email || '';
+          const eml = emlVal ? ('<br><small class="text-muted">' + escapeHtml(emlVal) + '</small>') : '';
+          const q = qtyOf(r);
+          const badge = r.linked_payment_id
+            ? '<span class="badge bg-warning text-dark" title="Linked order is not verified">Registered · payment not verified</span>'
+            : '<span class="badge bg-secondary"><i class="bi bi-person-check me-1"></i>Registered (free)</span>';
+          const rDate = r.registration_date || r.created_at || null;
+          const dStr = rDate ? new Date(rDate).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A';
+          rowsHtml += '<tr>' +
+            '<td><strong>' + escapeHtml(sName) + '</strong>' + eml + '</td>' +
+            '<td>' + mNo + '</td>' +
+            '<td>' + dpt + '</td>' +
+            '<td>' + badge + ' <span class="badge bg-light text-dark border">' + q + ' ticket' + (q > 1 ? 's' : '') + '</span></td>' +
             '<td><small class="text-muted">' + dStr + '</small></td>' +
           '</tr>';
         });
