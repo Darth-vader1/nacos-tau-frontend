@@ -425,11 +425,45 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/env.js"></script>
-  <script src="assets/js/api-config.js"></script>
+  <script type="module" src="assets/js/api-config.js"></script>
 
   <script>
     let receiptData = null;
     let realtimeChannel = null;
+
+    const supabaseClient = (window.supabase && typeof window.supabase.createClient === 'function' && window.SUPABASE_URL && window.SUPABASE_ANON_KEY)
+      ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
+      : null;
+
+    function getApiBase() {
+      const isLocal = window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '0.0.0.0' ||
+        window.location.hostname === '';
+      const base = (window.__CONFIG && window.__CONFIG.apiUrl) ||
+        window.API_URL ||
+        (isLocal ? 'http://localhost:5000/api' : 'https://naco-tau-backend.vercel.app/api');
+      return base.replace(/\/$/, '');
+    }
+
+    function getCachedBuyer(reference) {
+      if (!reference) return {};
+      try {
+        const raw = localStorage.getItem(`nacos_receipt_buyer_${reference}`);
+        if (raw) return JSON.parse(raw) || {};
+      } catch (_) {}
+      try {
+        const pending = JSON.parse(localStorage.getItem('pending_bachs_checkout') || '{}') || {};
+        if (pending && pending.checkoutId === reference) {
+          return {
+            name: pending.guestName || '',
+            email: pending.guestEmail || '',
+            is_guest: !!pending.guest
+          };
+        }
+      } catch (_) {}
+      return {};
+    }
 
     // Helper functions
     function escapeHtml(text) {
@@ -476,27 +510,29 @@
 
     async function loadReceipt(reference) {
       try {
-        const API_BASE = (window.API_URL || 'https://naco-tau-backend.vercel.app/api').replace(/\/$/, '');
+        const API_BASE = getApiBase();
 
         // Pass the session token so the backend can identify the owner and
         // return their full receipt including student details.
         const headers = {};
         try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.access_token) {
-            headers['Authorization'] = `Bearer ${session.access_token}`;
+          if (supabaseClient?.auth) {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session?.access_token) {
+              headers['Authorization'] = `Bearer ${session.access_token}`;
+            }
           }
         } catch (_) { /* non-fatal — proceed as unauthenticated */ }
 
         const res = await fetch(`${API_BASE}/payments/receipt/${encodeURIComponent(reference)}`, { headers });
 
         if (!res.ok) {
-          // Fallback: query Supabase directly for public ticket info only (no PII).
-          // The anon key's RLS policies do not allow reading other users' student
-          // rows, so this path can only return data the current user owns anyway.
-          const { data: payRow } = await supabase
+          if (!supabaseClient) {
+            throw new Error(`Receipt with reference "${reference}" not found.`);
+          }
+          const { data: payRow } = await supabaseClient
             .from('payments')
-            .select('id, transaction_id, status, amount, ticket_quantity, payment_type, event_id, verified_at, submitted_at')
+            .select('id, transaction_id, status, amount, ticket_quantity, payment_type, event_id, verified_at, submitted_at, user_id, guest_name, guest_email')
             .eq('transaction_id', reference)
             .maybeSingle();
 
@@ -504,10 +540,19 @@
             throw new Error(`Receipt with reference "${reference}" not found.`);
           }
 
-          // Fetch event (public info only — no student PII in fallback)
+          let student = null;
+          if (payRow.user_id) {
+            const { data: s } = await supabaseClient
+              .from('students')
+              .select('name, first_name, last_name, email, matric_no, department')
+              .eq('user_id', payRow.user_id)
+              .maybeSingle();
+            student = s || null;
+          }
+
           let event = null;
           if (payRow.event_id) {
-            const { data: ev } = await supabase
+            const { data: ev } = await supabaseClient
               .from('events')
               .select('id, title, date, time, location, image_url')
               .eq('id', payRow.event_id)
@@ -517,7 +562,9 @@
 
           renderReceiptUI({
             payment: payRow,
-            student: null,
+            student: student,
+            guest: (payRow.guest_name || payRow.guest_email) ? { name: payRow.guest_name, email: payRow.guest_email } : null,
+            is_guest: !payRow.user_id && !!(payRow.guest_name || payRow.guest_email),
             event: event,
             // Same deterministic format the server uses, so it matches the emailed ticket
             ticket_number: 'NACOS-' + (payRow.event_id ? payRow.event_id.substring(0, 4).toUpperCase() : 'PAY') + '-' + String(payRow.id).substring(0, 6).toUpperCase(),
@@ -550,17 +597,55 @@
         submitted_at: data.submitted_at,
         transaction_id: new URLSearchParams(window.location.search).get('reference') || ''
       };
+      const referenceKey = payment.transaction_id || extractReference() || '';
+      const cachedBuyer = getCachedBuyer(referenceKey);
       const student = data.student || {};
+      const guest = data.guest || {};
+      const isGuest = Boolean(
+        data.is_guest ||
+        student.is_guest ||
+        guest.email ||
+        guest.name ||
+        payment.guest_email ||
+        payment.guest_name ||
+        data.registration?.guest_email ||
+        data.registration?.guest_name ||
+        cachedBuyer.is_guest
+      );
       const ticketQty = Math.max(1, parseInt(data.ticket_quantity ?? payment.ticket_quantity, 10) || 1);
       const event = data.event || {};
       const ticketNumber = data.ticket_number || ('NACOS-TICKET-' + (payment.transaction_id || 'CONFIRMED').substring(0, 6).toUpperCase());
 
-      // Student info
-      const studentName = student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student Attendee';
+      // Attendee info (supports both registered students and guest buyers)
+      const studentName =
+        student.name ||
+        `${student.first_name || ''} ${student.last_name || ''}`.trim() ||
+        guest.name ||
+        payment.guest_name ||
+        data.registration?.guest_name ||
+        cachedBuyer.name ||
+        (isGuest ? 'Guest Attendee' : 'Student Attendee');
+
+      const studentEmail =
+        student.email ||
+        guest.email ||
+        payment.guest_email ||
+        data.registration?.guest_email ||
+        cachedBuyer.email ||
+        (isGuest ? '—' : 'Registered Student');
+
+      const matricNo = isGuest
+        ? (student.matric_no || 'Guest (Non-Member)')
+        : (student.matric_no || cachedBuyer.matric_no || 'N/A');
+
+      const department = isGuest
+        ? (student.department || 'Guest Ticket')
+        : (student.department || cachedBuyer.department || 'Computing / Computer Science');
+
       document.getElementById('rcAttendeeName').textContent = studentName;
-      document.getElementById('rcMatricNo').textContent = student.matric_no || 'N/A';
-      document.getElementById('rcDepartment').textContent = student.department || 'Computing / Computer Science';
-      document.getElementById('rcEmail').textContent = student.email || 'Registered Student';
+      document.getElementById('rcMatricNo').textContent = matricNo;
+      document.getElementById('rcDepartment').textContent = department;
+      document.getElementById('rcEmail').textContent = studentEmail;
 
       // Event info
       document.getElementById('rcTicketNumber').textContent = ticketNumber;
@@ -645,10 +730,10 @@
     // LIVE AUTO-DETECTION VIA SUPABASE REALTIME
     // ============================================
     function setupRealtimeListener(reference) {
-      if (typeof supabase === 'undefined' || !reference) return;
+      if (!supabaseClient || !reference) return;
 
       try {
-        realtimeChannel = supabase
+        realtimeChannel = supabaseClient
           .channel(`receipt-live-${reference}`)
           .on(
             'postgres_changes',

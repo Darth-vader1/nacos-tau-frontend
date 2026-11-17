@@ -1960,6 +1960,17 @@
       const locationStr = event.location ? escapeHtml(event.location) : 'TAU Campus';
       const feeFormatted = amount > 0 ? formatCurrency(amount) : 'Free';
       const sEmail = (studentData && studentData.email) || (currentUser && currentUser.email) || '';
+      if (reference && reference !== "FREE-REGISTRATION") {
+        try {
+          localStorage.setItem(`nacos_receipt_buyer_${reference}`, JSON.stringify({
+            name: sName,
+            email: sEmail,
+            matric_no: (studentData && studentData.matric_no) || '',
+            department: (studentData && studentData.department) || '',
+            is_guest: false
+          }));
+        } catch (_) {}
+      }
 
       const bodyHtml = `
         <div class="ticket-container" id="printableTicket">

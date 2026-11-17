@@ -1119,8 +1119,14 @@
       return !!event?.open_to_public && Number(event?.public_price) > 0;
     }
 
-    function guestTicketStudent(data) {
-      return { name: data?.guest?.name || 'Guest', email: data?.guest?.email || '' };
+    function guestTicketStudent(data, fallback = {}) {
+      return {
+        name: data?.guest?.name || fallback.name || 'Guest',
+        email: data?.guest?.email || fallback.email || '',
+        matric_no: 'Guest (Non-Member)',
+        department: 'Guest Ticket',
+        is_guest: true
+      };
     }
 
     window.startGuestCheckout = async function(eventId) {
@@ -1175,8 +1181,13 @@
 
         try {
           localStorage.setItem('pending_bachs_checkout', JSON.stringify({
-            eventId, checkoutId: data.checkout_id, quantity, guest: true, guestEmail: form.email, timestamp: Date.now()
+            eventId, checkoutId: data.checkout_id, quantity, guest: true, guestName: form.name, guestEmail: form.email, timestamp: Date.now()
           }));
+          if (data.checkout_id) {
+            localStorage.setItem(`nacos_receipt_buyer_${data.checkout_id}`, JSON.stringify({
+              name: form.name, email: form.email, matric_no: 'Guest (Non-Member)', department: 'Guest Ticket', is_guest: true
+            }));
+          }
         } catch (_) {}
 
         if (data.is_simulation) {
@@ -1204,7 +1215,7 @@
           Swal.close();
           showTicketModal({
             event: d.event || currentEvent || {},
-            student: guestTicketStudent(d),
+            student: guestTicketStudent(d, { email }),
             ticketNumber: d.ticket_number,
             reference: d.payment?.transaction_id || reference,
             amount: d.total_amount ?? 0,
@@ -1475,9 +1486,20 @@
       const gatewayPart = Number(gatewayFee) || 0;
       const s = student || {};
       const ev = event || currentEvent || {};
-      const studentName = s.name || `${s.first_name || ''} ${s.last_name || ''}`.trim() || userSession?.user?.email?.split('@')[0] || 'Student';
+      const studentName = s.name || `${s.first_name || ''} ${s.last_name || ''}`.trim() || userSession?.user?.email?.split('@')[0] || (s.is_guest ? 'Guest Attendee' : 'Student');
       const studentEmail = s.email || userSession?.user?.email || 'your email';
       const matricNo = s.matric_no || s.matric_number || '';
+      if (reference && reference !== "FREE-REGISTRATION") {
+        try {
+          localStorage.setItem(`nacos_receipt_buyer_${reference}`, JSON.stringify({
+            name: studentName,
+            email: studentEmail !== 'your email' ? studentEmail : '',
+            matric_no: matricNo,
+            department: s.department || '',
+            is_guest: !!s.is_guest
+          }));
+        } catch (_) {}
+      }
       const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBA';
       const timeStr = ev.time || 'TBA';
       const locationStr = ev.location || 'TAU Campus';
@@ -1520,9 +1542,14 @@
                   <td class="text-muted" style="width: 38%;">Ticket holder:</td>
                   <td><strong>${escapeHtml(studentName)}</strong></td>
                 </tr>
+                ${studentEmail && studentEmail !== 'your email' ? `
+                <tr>
+                  <td class="text-muted">Email:</td>
+                  <td><strong>${escapeHtml(studentEmail)}</strong></td>
+                </tr>` : ''}
                 ${matricNo ? `
                 <tr>
-                  <td class="text-muted">Matric No:</td>
+                  <td class="text-muted">${s.is_guest ? 'Attendee Type:' : 'Matric No:'}</td>
                   <td><strong>${escapeHtml(matricNo)}</strong></td>
                 </tr>` : ''}
                 <tr>
