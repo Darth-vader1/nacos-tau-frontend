@@ -683,15 +683,8 @@
         }).join('') + '<div class="small text-muted non-printable">A game marshal marks each play at the game area. Refresh this page to see the latest.</div>';
         section.hidden = false;
       }
-      // Every paid ticket gets a QR code to scan at the entrance (or game area).
-      if (typeof QRCode !== 'undefined' && /^NACOS-[0-9A-F]{4}-[0-9A-F]{6}$/.test(ticketNumber)) {
-        try {
-          document.getElementById('rcQr').innerHTML = '';
-          new QRCode(document.getElementById('rcQr'), { text: ticketNumber, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
-          document.getElementById('rcQrWrap').hidden = false;
-          if (games) document.getElementById('rcQrCaption').textContent = 'Show this QR code at the game area';
-        } catch (_) {}
-      }
+      // Every ticket gets a QR code to scan at the entrance (or game area).
+      renderQrCode(ticketNumber, !!games);
       if (games) {
         renderPlays(games);
         document.getElementById('rcTicketsLabel').textContent = 'Plays';
@@ -789,6 +782,51 @@
       downloadReceiptImage();
     }
 
+    function renderQrCode(ticketNumber, isGames = false) {
+      const qrEl = document.getElementById('rcQr');
+      const qrWrap = document.getElementById('rcQrWrap');
+      if (!qrEl || !qrWrap || typeof QRCode === "undefined" || !ticketNumber) return;
+      try {
+        qrWrap.hidden = false;
+        qrEl.innerHTML = '';
+        new QRCode(qrEl, {
+          text: String(ticketNumber).trim(),
+          width: 140,
+          height: 140,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        // qrcodejs hides its <canvas> and creates an <img> asynchronously.
+        // Keep the <canvas> visible directly so html2canvas always captures it.
+        const normalizeQrNodes = () => {
+          const qrCanvas = qrEl.querySelector('canvas');
+          const qrImg = qrEl.querySelector('img');
+          if (qrCanvas) {
+            qrCanvas.style.display = 'block';
+            qrCanvas.style.margin = '0 auto';
+            qrCanvas.style.width = '140px';
+            qrCanvas.style.height = '140px';
+            if (qrImg) {
+              qrImg.style.display = 'none';
+              qrImg.width = 140;
+              qrImg.height = 140;
+            }
+          } else if (qrImg) {
+            qrImg.style.display = 'block';
+            qrImg.style.margin = '0 auto';
+            qrImg.width = 140;
+            qrImg.height = 140;
+          }
+        };
+        normalizeQrNodes();
+        setTimeout(normalizeQrNodes, 50);
+        if (isGames) document.getElementById('rcQrCaption').textContent = 'Show this QR code at the game area';
+      } catch (e) {
+        console.warn('QR render error:', e);
+      }
+    }
+
     async function downloadReceiptImage() {
       const btn = document.getElementById('downloadImageBtn');
       const card = document.getElementById('receiptCard');
@@ -802,14 +840,46 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Preparing image...';
       }
       try {
+        const currentTicket = (document.getElementById('rcTicketNumber')?.textContent || '').trim();
+        const qrEl = document.getElementById('rcQr');
+        if (qrEl && !qrEl.querySelector('canvas') && currentTicket) {
+          renderQrCode(currentTicket, !!(receiptData && Array.isArray(receiptData.games) && receiptData.games.length));
+        }
+        if (qrEl) {
+          const qrCanvas = qrEl.querySelector('canvas');
+          const qrImg = qrEl.querySelector('img');
+          if (qrCanvas) {
+            qrCanvas.style.display = 'block';
+            qrCanvas.style.width = '140px';
+            qrCanvas.style.height = '140px';
+            if (qrImg) qrImg.style.display = 'none';
+          }
+        }
         if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        await new Promise(r => setTimeout(r, 60));
+        const origQrCanvas = document.querySelector("#rcQr canvas");
         const canvas = await html2canvas(card, {
           scale: Math.max(2, window.devicePixelRatio || 1),
           backgroundColor: '#ffffff',
           useCORS: true,
+          allowTaint: true,
           logging: false,
           // Leave out on-screen-only controls (e.g. "Copy Ticket Code")
-          ignoreElements: (el) => el.classList && el.classList.contains('non-printable')
+          ignoreElements: (el) => el.classList && el.classList.contains('non-printable'),
+          onclone: (clonedDoc) => {
+            const clonedWrap = clonedDoc.getElementById("rcQrWrap");
+            if (clonedWrap) clonedWrap.hidden = false;
+            const clonedQrCanvas = clonedDoc.querySelector("#rcQr canvas");
+            const clonedQrImg = clonedDoc.querySelector("#rcQr img");
+            if (clonedQrImg) clonedQrImg.style.display = "none";
+            if (origQrCanvas && clonedQrCanvas) {
+              clonedQrCanvas.style.display = "block";
+              clonedQrCanvas.style.width = "140px";
+              clonedQrCanvas.style.height = "140px";
+              const ctx = clonedQrCanvas.getContext("2d");
+              if (ctx) ctx.drawImage(origQrCanvas, 0, 0);
+            }
+          }
         });
         const ticket = (document.getElementById('rcTicketNumber').textContent || 'receipt').trim().replace(/[^a-zA-Z0-9-]/g, '');
         const fileName = `NACOS-Receipt-${ticket}.png`;
