@@ -191,6 +191,7 @@
           <div class="game-row d-flex align-items-center justify-content-between gap-2 mb-2 ${g.left === 0 ? 'done' : ''}">
             <div>
               <div class="fw-semibold">${esc(g.name)}</div>
+              ${g.username ? `<div class="small"><span class="badge bg-warning-subtle text-warning-emphasis border border-warning">🎮 Player: ${esc(g.username)}</span></div>` : ''}
               <div class="small text-muted">${g.left} of ${g.bought} left${g.used ? ` &middot; ${g.used} used` : ''}</div>
             </div>
             <button class="btn ${g.left === 0 ? 'btn-outline-secondary' : 'btn-success'} btn-mark" data-item="${esc(g.item_id)}" data-name="${esc(g.name)}" ${g.left === 0 ? 'disabled' : ''}>

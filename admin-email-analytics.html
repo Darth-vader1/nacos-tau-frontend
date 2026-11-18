@@ -1040,7 +1040,9 @@
                 ${detailsSnippet}
               </td>
               <td>
-                ${isFailure 
+                ${l.status === 'sending'
+                  ? '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning"><i class="bi bi-hourglass-split me-1"></i>Sending…</span>'
+                  : isFailure
                   ? '<span class="badge bg-danger-subtle text-danger border border-danger">Failed</span>'
                   : '<span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-all me-1"></i>Delivered</span>'}
               </td>
