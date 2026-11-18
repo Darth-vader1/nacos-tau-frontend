@@ -565,10 +565,12 @@
     }
 
     async function loadEvents() {
+      const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('events')
         .select('*')
         .eq('is_active', true)
+        .gte('date', today)
         .order('date', { ascending: true });
 
       const container = document.getElementById('eventsContainer');

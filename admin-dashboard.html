@@ -2933,6 +2933,11 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
     }
 
     const apiAdmin = {
+      list: (table, params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return apiAdminRequest('GET', `/${table}${qs ? '?' + qs : ''}`);
+      },
+      get: (table, id) => apiAdminRequest('GET', `/${table}/${encodeURIComponent(id)}`),
       create: (table, body) => apiAdminRequest('POST', `/${table}`, body),
       update: (table, id, body) => apiAdminRequest('PUT', `/${table}/${encodeURIComponent(id)}`, body),
       remove: (table, id) => apiAdminRequest('DELETE', `/${table}/${encodeURIComponent(id)}`),
@@ -3140,7 +3145,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
           <td>${ev.date || 'TBD'}</td>
           <td>${ev.requires_payment ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning">${formatCurrency(ev.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}</td>
           <td><button class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:12px;font-weight:600;" onclick="viewEventAttendees('${ev.id}')" title="Click to view attending / paid students"><i class="bi bi-people me-1"></i>${(window.eventCountsMap && window.eventCountsMap[ev.id]) || ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</button></td>
-          <td>${ev.is_active ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</td>
+          <td>${ev.is_active ? '<span class="badge bg-success" style="cursor:pointer;" onclick="toggleEventActiveStatus(\'' + ev.id + '\', false)" title="Click to set Inactive">Active</span>' : '<span class="badge bg-secondary" style="cursor:pointer;" onclick="toggleEventActiveStatus(\'' + ev.id + '\', true)" title="Click to set Active">Inactive</span>'}</td>
           <td class="small" style="min-width: 190px;">
             <div class="form-check form-switch mb-1">
               <input class="form-check-input" type="checkbox" role="switch" id="rep-${ev.id}" ${ev.allow_repeat_orders ? 'checked' : ''} ${ev.requires_payment ? '' : 'disabled title="Only for paid events"'} onchange="toggleEventOption('${ev.id}', 'allow_repeat_orders', this)">
@@ -3273,13 +3278,95 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
       }
     };
 
+    window.toggleEventActiveStatus = async function(eventId, makeActive) {
+      try {
+        await apiAdmin.update("events", eventId, { is_active: !!makeActive, updated_at: new Date().toISOString() });
+        await logAdminAction("UPDATE", "event", eventId, { is_active: !!makeActive });
+        Swal.fire({ toast: true, position: "top-end", icon: "success", timer: 1800, showConfirmButton: false, title: makeActive ? "Event set to Active" : "Event set to Inactive" });
+        await loadEvents();
+        loadDashboardStats();
+      } catch (err) {
+        Swal.fire("Error", "Could not update status: " + (err.message || err), "error");
+      }
+    };
+
     async function loadEvents() {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .order('date', { ascending: false });
-      
-      window.currentEventsList = data || []; const tbody = document.getElementById('events-table-body'); window.eventCountsMap = {}; try { let allP = []; if (Array.isArray(window.allPaymentsList) && window.allPaymentsList.length > 0) { allP = window.allPaymentsList; } else if (typeof api?.payments?.getAll === 'function') { const pr = await api.payments.getAll({ limit: 500 }); allP = pr?.data?.payments || []; window.allPaymentsList = allP; } (data || []).forEach(ev => { const evPays = allP.filter(p => p.event_id === ev.id && (p.status === 'verified' || !p.status)); /* seats are counted in tickets: current_attendees is synced server-side (free + paid); paid ticket sum is a fallback */ const paidTickets = evPays.reduce((sum, p) => sum + Math.max(1, parseInt(p.ticket_quantity, 10) || 1), 0); window.eventCountsMap[ev.id] = Math.max(Number(ev.current_attendees) || 0, paidTickets); }); } catch(cntErr){ console.warn('[loadEvents] count err:', cntErr); }
+      let data = null;
+      let error = null;
+      // 1. Primary: fetch via backend admin endpoint (service_role bypasses RLS so inactive events are included)
+      try {
+        const adminRes = await apiAdmin.list("events", { order: "date", ascending: "false" });
+        if (Array.isArray(adminRes)) data = adminRes;
+        else if (adminRes && Array.isArray(adminRes.data)) data = adminRes.data;
+      } catch (_) {}
+
+      // 2. Fallback: merge anon Supabase query + /api/events/past + known event IDs from payments (works even before backend redeploy)
+      let allP = [];
+      try {
+        if (Array.isArray(window.allPaymentsList) && window.allPaymentsList.length > 0) {
+          allP = window.allPaymentsList;
+        } else if (typeof api?.payments?.getAll === 'function') {
+          const pr = await api.payments.getAll({ limit: 500 });
+          allP = pr?.data?.payments || [];
+          window.allPaymentsList = allP;
+        }
+      } catch (_) {}
+
+      if (!Array.isArray(data)) {
+        const sbRes = await supabase.from("events").select("*").order("date", { ascending: false });
+        data = sbRes.data || [];
+        error = sbRes.error;
+        const byId = new Map(data.map(e => [e.id, e]));
+
+        // Merge past events from backend (includes inactive past events)
+        try {
+          const base = window.API_URL || (window.__CONFIG && window.__CONFIG.apiUrl) || "https://naco-tau-backend.vercel.app/api";
+          const pastResp = await fetch(`${base.replace(/\/$/, "")}/events/past?page=1&limit=100`);
+          if (pastResp.ok) {
+            const pastJson = await pastResp.json();
+            const pastEvents = pastJson?.data?.events || [];
+            pastEvents.forEach(e => { if (e && e.id && !byId.has(e.id)) byId.set(e.id, e); });
+          }
+        } catch (_) {}
+
+        // Also fetch any event IDs referenced by payments or local cache that RLS hid (e.g. inactive upcoming events)
+        try {
+          const knownIds = new Set(allP.map(p => p.event_id).filter(Boolean));
+          try {
+            const { data: audRows } = await supabase.from("audit_logs").select("entity_id, details").order("created_at", { ascending: false }).limit(60);
+            (audRows || []).forEach(a => {
+              if (a.entity_id && /^[0-9a-f-]{36}$/i.test(a.entity_id)) knownIds.add(a.entity_id);
+              if (a.details?.event_id && /^[0-9a-f-]{36}$/i.test(a.details.event_id)) knownIds.add(a.details.event_id);
+            });
+          } catch (_) {}
+          try {
+            const cachedIds = JSON.parse(localStorage.getItem("nacos_admin_known_event_ids") || "[]");
+            if (Array.isArray(cachedIds)) cachedIds.forEach(id => { if (id) knownIds.add(id); });
+          } catch (_) {}
+          const missingIds = [...knownIds].filter(id => !byId.has(id));
+          if (missingIds.length) {
+            const base = window.API_URL || (window.__CONFIG && window.__CONFIG.apiUrl) || "https://naco-tau-backend.vercel.app/api";
+            await Promise.allSettled(missingIds.map(async (id) => {
+              const r = await fetch(`${base.replace(/\/$/, "")}/events/${encodeURIComponent(id)}`);
+              if (r.ok) {
+                const j = await r.json();
+                if (j?.data?.id) byId.set(j.data.id, j.data);
+              }
+            }));
+          }
+        } catch (_) {}
+
+        data = [...byId.values()].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+      }
+
+      try {
+        const allIds = (data || []).map(e => e.id).filter(Boolean);
+        const prevIds = JSON.parse(localStorage.getItem("nacos_admin_known_event_ids") || "[]");
+        const mergedIds = [...new Set([...(Array.isArray(prevIds) ? prevIds : []), ...allIds])].slice(-200);
+        localStorage.setItem("nacos_admin_known_event_ids", JSON.stringify(mergedIds));
+      } catch (_) {}
+
+      window.currentEventsList = data || []; const tbody = document.getElementById('events-table-body'); window.eventCountsMap = {}; try { (data || []).forEach(ev => { const evPays = allP.filter(p => p.event_id === ev.id && (p.status === 'verified' || !p.status)); const paidTickets = evPays.reduce((sum, p) => sum + Math.max(1, parseInt(p.ticket_quantity, 10) || 1), 0); window.eventCountsMap[ev.id] = Math.max(Number(ev.current_attendees) || 0, paidTickets); }); } catch(cntErr){ console.warn('[loadEvents] count err:', cntErr); }
       const colSpan = 7;
       
       if (isMissingTableError(error, 'events')) {
@@ -3287,7 +3374,7 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
         tbody.innerHTML = missingTableRowHtml('events', colSpan);
         return;
       }
-      if (error || !data || data.length === 0) {
+      if (!data || data.length === 0) {
         if (error) console.warn('[loadEvents] query error:', error);
         if (document.getElementById('eventResultsInfo')) document.getElementById('eventResultsInfo').textContent = error ? 'Error loading events' : 'No events yet'; tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-4">${error ? `Error loading events: ${escapeHtml(error.message || String(error))}` : 'No events yet'}</td></tr>`;
         return;
@@ -3958,13 +4045,26 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
     // Edit Event - Load data into modal
 window.editEvent = async function(eventId) {
     try {
-        const { data: event, error } = await supabase
-            .from('events')
-            .select('*')
-            .eq('id', eventId)
-            .single();
-        
-        if (error) throw error;
+        let event = (window.currentEventsList || []).find(e => e.id === eventId) || null;
+        if (!event) {
+            try {
+                const base = window.API_URL || (window.__CONFIG && window.__CONFIG.apiUrl) || "https://naco-tau-backend.vercel.app/api";
+                const resp = await fetch(`${base.replace(/\/$/, "")}/events/${encodeURIComponent(eventId)}`);
+                if (resp.ok) {
+                    const json = await resp.json();
+                    event = json?.data || null;
+                }
+            } catch (_) {}
+        }
+        if (!event) {
+            const { data: sbEvent, error } = await supabase
+                .from('events')
+                .select('*')
+                .eq('id', eventId)
+                .single();
+            if (error) throw error;
+            event = sbEvent;
+        }
         
         // Populate modal fields
         document.getElementById('edit-event-id').value = event.id;
