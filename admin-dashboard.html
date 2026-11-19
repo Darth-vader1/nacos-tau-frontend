@@ -277,20 +277,28 @@
       z-index: 3;
     }
 
-    /* Ensure long tables can scroll horizontally on small viewports */
+    /* Ensure long tables scroll smoothly horizontally on small viewports without crushing columns */
+    .table thead th {
+      white-space: nowrap;
+      word-break: normal;
+    }
     @media (max-width: 768px) {
       .table-responsive {
         overflow-x: auto;
       }
-      /* Give tables a sensible minimum width so columns don't collapse
-         — wide tables will scroll horizontally while preserving layout */
       .table-responsive table {
-        min-width: 720px;
+        min-width: 780px;
       }
-      /* Allow text to wrap in table cells (except actions) to avoid overflow */
-      .table td, .table th {
+      #events-section .table-responsive table {
+        min-width: 960px;
+      }
+      .table td {
         white-space: normal;
-        word-break: break-word;
+        word-break: normal;
+        overflow-wrap: break-word;
+      }
+      .table td .badge, .table td .btn {
+        white-space: nowrap;
       }
       /* Keep the Actions column compact and prevent wrapping */
       .table td:last-child, .table th:last-child {
@@ -655,7 +663,7 @@
                   </tr>
                 </thead>
                 <tbody id="questions-table-body">
-                  <tr><td colspan="6" class="text-center text-muted py-4 loading-pulse">Loading...</td</tr>
+                  <tr><td colspan="7" class="text-center text-muted py-4 loading-pulse">Loading...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -3138,14 +3146,16 @@ ALTER TABLE public.past_executives ENABLE ROW LEVEL SECURITY;`
 
       tbody.innerHTML = filtered.map(ev => `
         <tr>
-          <td>
-            ${ev.image_url ? `<img src="${escapeHtml(ev.image_url)}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px;" class="me-2">` : ''}
-            <strong>${escapeHtml(ev.title)}</strong>
+          <td style="min-width: 185px;">
+            <div class="d-flex align-items-center gap-2">
+              ${ev.image_url ? `<img src="${escapeHtml(ev.image_url)}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">` : ''}
+              <strong>${escapeHtml(ev.title)}</strong>
+            </div>
           </td>
-          <td>${ev.date || 'TBD'}</td>
-          <td>${ev.requires_payment ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning">${formatCurrency(ev.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}</td>
-          <td><button class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:12px;font-weight:600;" onclick="viewEventAttendees('${ev.id}')" title="Click to view attending / paid students"><i class="bi bi-people me-1"></i>${(window.eventCountsMap && window.eventCountsMap[ev.id]) || ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</button></td>
-          <td>${ev.is_active ? '<span class="badge bg-success" style="cursor:pointer;" onclick="toggleEventActiveStatus(\'' + ev.id + '\', false)" title="Click to set Inactive">Active</span>' : '<span class="badge bg-secondary" style="cursor:pointer;" onclick="toggleEventActiveStatus(\'' + ev.id + '\', true)" title="Click to set Active">Inactive</span>'}</td>
+          <td class="text-nowrap">${ev.date || 'TBD'}</td>
+          <td class="text-nowrap">${ev.requires_payment ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning">${formatCurrency(ev.payment_amount)}</span>` : '<span class="badge bg-success">Free</span>'}</td>
+          <td class="text-nowrap"><button class="btn btn-sm btn-outline-success py-0 px-2 text-nowrap" style="font-size:12px;font-weight:600;" onclick="viewEventAttendees('${ev.id}')" title="Click to view attending / paid students"><i class="bi bi-people me-1"></i>${(window.eventCountsMap && window.eventCountsMap[ev.id]) || ev.current_attendees || 0}${ev.max_attendees ? ' / ' + ev.max_attendees : ''}</button></td>
+          <td class="text-nowrap">${ev.is_active ? '<span class="badge bg-success" style="cursor:pointer;" onclick="toggleEventActiveStatus(\'' + ev.id + '\', false)" title="Click to set Inactive">Active</span>' : '<span class="badge bg-secondary" style="cursor:pointer;" onclick="toggleEventActiveStatus(\'' + ev.id + '\', true)" title="Click to set Active">Inactive</span>'}</td>
           <td class="small" style="min-width: 190px;">
             <div class="form-check form-switch mb-1">
               <input class="form-check-input" type="checkbox" role="switch" id="rep-${ev.id}" ${ev.allow_repeat_orders ? 'checked' : ''} ${ev.requires_payment ? '' : 'disabled title="Only for paid events"'} onchange="toggleEventOption('${ev.id}', 'allow_repeat_orders', this)">

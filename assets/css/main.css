@@ -2210,11 +2210,12 @@ section,
 }
 
 .loginForm .form-control.error {
-  border: 100px solid red;
-  animation: vibrate 0.5s ease infinite;
+  border: 1.5px solid #dc3545;
+  background-color: #fff8f8;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.12);
 }
 .loginForm .form-control.error::placeholder {
- background-color: #060606;
+  color: #b86a71;
 }
 
 @keyframes vibrate {

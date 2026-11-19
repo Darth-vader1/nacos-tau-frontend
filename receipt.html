@@ -137,21 +137,68 @@
 
     .info-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px 24px;
       margin-bottom: 28px;
     }
 
+    .info-grid > div {
+      min-width: 0;
+    }
+
+    .info-full {
+      grid-column: 1 / -1;
+    }
+
     @media (max-width: 576px) {
+      body {
+        padding: 14px 10px;
+      }
+      .receipt-card {
+        border-radius: 16px;
+      }
       .info-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+        margin-bottom: 22px;
       }
       .receipt-header, .receipt-body {
-        padding: 24px 20px;
+        padding: 20px 16px;
+      }
+      .header-logo {
+        height: 40px;
+      }
+      .receipt-header h4 {
+        font-size: 1.1rem;
+      }
+      .receipt-header h6 {
+        font-size: 0.7rem;
+      }
+      .verified-badge {
+        font-size: 0.75rem;
+        padding: 5px 11px;
+      }
+      .ticket-highlight-box {
+        padding: 16px 14px;
+        margin-bottom: 22px;
       }
       .ticket-code {
-        font-size: 1.25rem;
+        font-size: 1.2rem;
+        letter-spacing: 1px;
+      }
+      .fake-barcode {
+        font-size: 15px;
+        letter-spacing: 2px;
+        word-break: break-word;
+        max-width: 100%;
+      }
+      .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .action-bar .btn-action {
+        justify-content: center;
+        width: 100%;
       }
     }
 
@@ -350,7 +397,7 @@
           <!-- Event / Purpose Information -->
           <div class="section-title">Event & Schedule</div>
           <div class="info-grid">
-            <div style="grid-column: span 2;">
+            <div class="info-full">
               <div class="info-label">Event / Activity</div>
               <div class="info-value fw-bold fs-5 text-success" id="rcEventTitle">—</div>
             </div>
