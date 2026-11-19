@@ -2,7 +2,7 @@
 // Admin Dashboard CMS for index.html (Current Executives + Site Copy & Payment Info)
 
 import { checkAuth, uploadFileToStorage } from './supabase-config.js';
-import { api } from './api-config.js?v=2.3';
+import { api } from './api-config.js?v=2.5';
 
 let currentExecsList = [];
 let currentSiteSettings = null;

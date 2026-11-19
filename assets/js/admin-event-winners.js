@@ -2,7 +2,7 @@
 // Admin modal controller for managing & announcing Game Night / Event winners.
 
 import { supabase, checkAuth } from './supabase-config.js';
-import { api } from './api-config.js?v=2.4';
+import { api } from './api-config.js?v=2.5';
 
 let activeEventId = null;
 let activeEventTitle = '';

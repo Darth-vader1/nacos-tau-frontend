@@ -440,6 +440,18 @@ export const api = {
             return response.json();
         },
 
+        async recheckPending(includeAbandoned = false) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/payments/recheck-pending`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({ includeAbandoned })
+            });
+            return response.json();
+        },
+
         async verifyAdmin(id, data) {
             const { data: { session } } = await supabase.auth.getSession();
             const response = await secureRequest('PUT', `${API_URL}/payments/${id}/verify`, {

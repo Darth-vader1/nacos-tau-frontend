@@ -1094,6 +1094,9 @@
           <div class="card-header">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
               <span><i class="bi bi-credit-card me-2"></i>Payment Verifications</span>
+              <button class="btn btn-primary btn-sm me-1" id="recheckAllPendingBtn" onclick="recheckAllPendingPayments(this)" title="Ask Bachs to verify all pending online checkouts at once">
+                <i class="bi bi-arrow-repeat me-1"></i> Verify All Pending
+              </button>
               <button class="btn btn-outline-success btn-sm" id="exportPaymentsCsvBtn" title="Export Payments to CSV">
                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
               </button>
@@ -2679,7 +2682,7 @@
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script> 
   <script type="module" src="assets/js/supabase-config.js"></script>
-  <script type="module" src="assets/js/api-config.js?v=2.3"></script>
+  <script type="module" src="assets/js/api-config.js?v=2.5"></script>
   <script type="module" src="assets/js/admin-homepage-cms.js"></script>
   <script type="module" src="assets/js/admin-event-winners.js"></script>
   <script src="assets/js/main.js"></script>
@@ -2688,12 +2691,40 @@
 
   <script type="module">
     import { supabase, requireAdmin, checkAuth, signOut, DEFAULT_BUCKET_NAME, ensureBucket, uploadFileToStorage } from './assets/js/supabase-config.js';
-    import { api } from './assets/js/api-config.js?v=2.3';
+    import { api } from './assets/js/api-config.js?v=2.5';
 
     // Convenience: also expose on window for code paths that reference
     // window.api (delete event handlers registered via onclick="..." etc
     // run in the outer scope, not inside this ES module).
     window.api = api;
+
+    // Ensure api.payments.manualReserve / recheckPending exist even if an older api-config.js is cached
+    if (window.api && window.api.payments) {
+      const postPaymentsFallback = async (path, body) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return { success: false, error: 'Not authenticated' };
+        const base = window.API_URL || (window.__CONFIG && window.__CONFIG.apiUrl) || 'https://naco-tau-backend.vercel.app/api';
+        const url = `${base}${path}`;
+        const opts = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify(body || {})
+        };
+        const resp = (window.securityManager && window.securityManager.isInitialized)
+          ? await window.securityManager.secureFetch(url, opts)
+          : await fetch(url, opts);
+        return resp.json();
+      };
+      if (!window.api.payments.manualReserve) {
+        window.api.payments.manualReserve = (data) => postPaymentsFallback('/payments/manual-reserve', data);
+      }
+      if (!window.api.payments.recheckPending) {
+        window.api.payments.recheckPending = (includeAbandoned = false) => postPaymentsFallback('/payments/recheck-pending', { includeAbandoned });
+      }
+    }
 
     // Ensure api.students.verify is always defined even if an older api-config.js is cached
     if (window.api && window.api.students && !window.api.students.verify) {
@@ -6753,6 +6784,26 @@ window.deleteEvent = async function(id) {
         Swal.fire('Not confirmed', escapeHtml(error.message) + '<br><small class="text-muted">If Bachs shows this payment as received, send the server log lines starting with [Bachs] to your developer.</small>', 'info');
       } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Re-check gateway'; }
+      }
+    };
+
+    window.recheckAllPendingPayments = async function(btn) {
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Checking all...'; }
+      try {
+        const response = await api.payments.recheckPending(false);
+        if (!response.success) throw new Error(response.error || 'Could not re-check pending payments');
+        const d = response.data || {};
+        Swal.fire(
+          d.verified > 0 ? 'Payments Verified' : 'Check Complete',
+          `Checked <strong>${d.checked || 0}</strong> pending online checkout(s):<br>• <strong>${d.verified || 0}</strong> verified &amp; ticketed<br>• <strong>${d.stillUnpaid || 0}</strong> still unpaid${d.errors ? `<br>• ${d.errors} could not be reached` : ''}`,
+          d.verified > 0 ? 'success' : 'info'
+        );
+        if (d.verified > 0) { loadPayments(); loadDashboardStats(); }
+      } catch (error) {
+        console.error('Error in recheckAllPendingPayments:', error);
+        Swal.fire('Error', escapeHtml(error.message || 'Failed to verify pending payments'), 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i> Verify All Pending'; }
       }
     };
 
