@@ -187,6 +187,55 @@ export const api = {
         }
     },
 
+    // Event & Game Night Winners
+    eventWinners: {
+        async list(eventId, { includeDrafts = false } = {}) {
+            const headers = {};
+            if (includeDrafts) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+            }
+            const qs = includeDrafts ? '?includeDrafts=true' : '';
+            const response = await fetch(`${API_URL}/events/${encodeURIComponent(eventId)}/winners${qs}`, { headers });
+            return response.json();
+        },
+        async recent() {
+            const response = await fetch(`${API_URL}/events/winners/recent`);
+            return response.json();
+        },
+        async add(eventId, data) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/events/${encodeURIComponent(eventId)}/winners`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return response.json();
+        },
+        async remove(eventId, winnerId) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('DELETE', `${API_URL}/events/${encodeURIComponent(eventId)}/winners/${encodeURIComponent(winnerId)}`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`
+                }
+            });
+            return response.json();
+        },
+        async announce(eventId, { notify_winners = true, notify_scope = 'participants' } = {}) {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await secureRequest('POST', `${API_URL}/events/${encodeURIComponent(eventId)}/winners/announce`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({ notify_winners, notify_scope })
+            });
+            return response.json();
+        }
+    },
+
     resources: {
         async getAll(params = {}) {
             const queryString = new URLSearchParams(params).toString();
