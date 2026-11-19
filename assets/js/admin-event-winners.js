@@ -81,6 +81,42 @@ async function refreshWinnersData() {
   renderWinnersList();
 }
 
+function playerMatchesGame(p, gameId) {
+  if (!gameId) return true;
+  if (p.item_id && String(p.item_id) === String(gameId)) return true;
+  if (Array.isArray(p.order_items) && p.order_items.some(x => String(x.item_id) === String(gameId))) return true;
+  if (Array.isArray(p.entry_details) && p.entry_details.some(x => String(x.item_id) === String(gameId))) return true;
+  return false;
+}
+
+function getPlayerDisplay(p, gameId = '') {
+  const name = p.students?.name || p.guest_name || p.student_name || p.name || p.students?.email || p.guest_email || 'Participant';
+  const email = p.students?.email || p.guest_email || p.email || '';
+  const entries = Array.isArray(p.entry_details) ? p.entry_details : (Array.isArray(p.order_items) ? p.order_items : []);
+  const matchingEntry = gameId ? entries.find(x => String(x.item_id) === String(gameId) && x.username) : null;
+  const tags = matchingEntry?.username
+    ? matchingEntry.username
+    : entries.map(x => x.username).filter(Boolean).join(', ');
+  return { name, email, tags };
+}
+
+function renderPlayerSelect(gameId = '') {
+  const playerSel = document.getElementById('ew-player-select');
+  if (!playerSel) return;
+
+  const filtered = cachedPlayers.filter(p => playerMatchesGame(p, gameId));
+  const emptyText = gameId && filtered.length === 0
+    ? '-- No registered players found for this game (enter manually) --'
+    : `-- Enter manually or pick from ${filtered.length} player(s) --`;
+
+  playerSel.innerHTML = `<option value="">${esc(emptyText)}</option>` +
+    filtered.map(p => {
+      const { name, email, tags } = getPlayerDisplay(p, gameId);
+      const label = `${name}${tags ? ` (@${tags})` : ''}${email ? ` — ${email}` : ''}`;
+      return `<option value="${esc(p.id)}">${esc(label)}</option>`;
+    }).join('');
+}
+
 window.manageEventWinners = async function(eventId) {
   const session = await checkAuth();
   if (!session) return;
@@ -114,19 +150,8 @@ window.manageEventWinners = async function(eventId) {
         cachedGames.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');
     }
 
-    // Populate player quick-pick dropdown
-    const playerSel = document.getElementById('ew-player-select');
-    if (playerSel) {
-      playerSel.innerHTML = '<option value="">-- Enter manually or pick a registered player --</option>' +
-        cachedPlayers.map(p => {
-          const name = p.student_name || p.guest_name || p.name || p.email || 'Participant';
-          const email = p.student_email || p.guest_email || p.email || '';
-          const entries = Array.isArray(p.entry_details) ? p.entry_details : (Array.isArray(p.order_items) ? p.order_items : []);
-          const tags = entries.map(x => x.username).filter(Boolean).join(', ');
-          const label = `${name}${tags ? ` (@${tags})` : ''}${email ? ` — ${email}` : ''}`;
-          return `<option value="${esc(p.id)}">${esc(label)}</option>`;
-        }).join('');
-    }
+    // Populate player quick-pick dropdown (filtered by selected game)
+    renderPlayerSelect(gameSel ? gameSel.value : '');
 
     await refreshWinnersData();
   } catch (err) {
@@ -147,6 +172,11 @@ window.deleteEventWinner = async function(winnerId) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Re-filter registered players when Game / Category changes
+  document.getElementById('ew-game-select')?.addEventListener('change', (e) => {
+    renderPlayerSelect(e.target.value);
+  });
+
   // Auto-fill winner fields when picking a registered player
   document.getElementById('ew-player-select')?.addEventListener('change', (e) => {
     const regId = e.target.value;
@@ -154,20 +184,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const p = cachedPlayers.find(x => String(x.id) === String(regId));
     if (!p) return;
 
+    const gameId = document.getElementById('ew-game-select')?.value || '';
+    const { name, email, tags } = getPlayerDisplay(p, gameId);
+
     const nameInput = document.getElementById('ew-winner-name');
     const emailInput = document.getElementById('ew-winner-email');
     const tagInput = document.getElementById('ew-gamertag');
-    const gameId = document.getElementById('ew-game-select')?.value || '';
 
-    if (nameInput) nameInput.value = p.student_name || p.guest_name || p.name || '';
-    if (emailInput) emailInput.value = p.student_email || p.guest_email || p.email || '';
-    const entries = Array.isArray(p.entry_details) ? p.entry_details : (Array.isArray(p.order_items) ? p.order_items : []);
-    if (tagInput && entries.length) {
-      const match = gameId
-        ? entries.find(x => x.item_id === gameId && x.username)
-        : entries.find(x => x.username);
-      if (match?.username) tagInput.value = match.username;
-    }
+    if (nameInput) nameInput.value = name;
+    if (emailInput) emailInput.value = email;
+    if (tagInput) tagInput.value = tags || '';
   });
 
   document.getElementById('ew-add-form')?.addEventListener('submit', async (e) => {

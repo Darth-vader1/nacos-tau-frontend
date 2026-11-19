@@ -503,6 +503,7 @@
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/env.js"></script>
   <script src="assets/js/security.js"></script>
+  <script src="assets/js/winners-podium.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script type="module">
     import { supabase } from './assets/js/supabase-config.js';
@@ -822,26 +823,11 @@
           if (wResp.ok) {
             const wJson = await wResp.json();
             const wList = Array.isArray(wJson?.data?.winners) ? wJson.data.winners : [];
-            if (wList.length > 0) {
-              winnersHtml = `
-                <div class="mb-3 p-3 rounded-3" style="background:#fffbeb;border:1px solid #fde68a;">
-                  <h5 class="mb-2" style="color:#b45309;"><i class="bi bi-trophy-fill me-1"></i> Official Champions &amp; Winners</h5>
-                  <div class="list-group list-group-flush">
-                    ${wList.map(w => `
-                      <div class="list-group-item bg-transparent px-0 py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div>
-                          <span class="badge bg-warning text-dark me-1">${escapeHtml(w.placement || '1st Place')}</span>
-                          <strong>${escapeHtml(w.winner_name)}</strong>
-                          ${w.in_game_username ? `<span class="text-muted small ms-1">(@${escapeHtml(w.in_game_username)})</span>` : ''}
-                          ${w.game_name ? `<span class="badge bg-success-subtle text-success ms-1">${escapeHtml(w.game_name)}</span>` : ''}
-                          ${w.note ? `<div class="small text-muted mt-1">${escapeHtml(w.note)}</div>` : ''}
-                        </div>
-                        ${w.prize ? `<span class="badge bg-success">${escapeHtml(w.prize)}</span>` : ''}
-                      </div>
-                    `).join('')}
-                  </div>
-                </div>
-              `;
+            if (wList.length > 0 && typeof window.buildWinnersPodiumHtml === 'function') {
+              winnersHtml = window.buildWinnersPodiumHtml(wList, {
+                title: `${event.title || 'Event'} — Champions Podium`,
+                uid: `archive-${eventId}`
+              });
             }
           }
         } catch (_) {}
